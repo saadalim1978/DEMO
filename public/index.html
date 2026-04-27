@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>توأم رقمي للجسم | AI + API + 3D</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="/styles.css?v=body-anatomy-4" />
+    <link rel="stylesheet" href="/styles.css?v=body-anatomy-6" />
     <script type="importmap">
       {
         "imports": {
@@ -104,6 +104,36 @@
             </button>
           </div>
           <div class="scene-disclaimer" id="disclaimer">محاكاة تعليمية وليست أداة تشخيص.</div>
+          <div class="layer-controls" aria-label="طبقات النموذج">
+            <label class="layer-toggle">
+              <input type="checkbox" data-layer-toggle="skin" checked />
+              <span>الجلد</span>
+            </label>
+            <label class="layer-toggle">
+              <input type="checkbox" data-layer-toggle="organs" checked />
+              <span>الأعضاء</span>
+            </label>
+            <label class="layer-toggle">
+              <input type="checkbox" data-layer-toggle="vessels" checked />
+              <span>الأوعية</span>
+            </label>
+            <label class="layer-toggle">
+              <input type="checkbox" data-layer-toggle="sensors" checked />
+              <span>المستشعرات</span>
+            </label>
+            <label class="layer-toggle">
+              <input type="checkbox" data-layer-toggle="labels" checked />
+              <span>التسميات</span>
+            </label>
+            <label class="layer-toggle">
+              <input type="checkbox" data-layer-toggle="effects" checked />
+              <span>المؤثرات</span>
+            </label>
+            <label class="layer-toggle cutaway-toggle">
+              <input id="cutawayToggle" type="checkbox" checked />
+              <span>قص جانبي</span>
+            </label>
+          </div>
         </section>
 
         <aside class="insights-panel" aria-label="المؤشرات الحيوية">
@@ -183,6 +213,6 @@
       </main>
     </div>
 
-    <script type="module" src="/app.js?v=body-anatomy-4"></script>
+    <script type="module" src="/app.js?v=body-anatomy-6"></script>
   </body>
 </html>

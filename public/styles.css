@@ -644,12 +644,63 @@ body[data-scenario="heart_failure"] .fallback-heart {
   gap: 8px;
 }
 
+.layer-controls {
+  position: absolute;
+  z-index: 6;
+  left: 14px;
+  bottom: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  width: min(340px, calc(100% - 28px));
+}
+
+.layer-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(12, 13, 16, 0.7);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 800;
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+}
+
+.layer-toggle span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.layer-toggle input {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  accent-color: var(--cyan);
+}
+
+.layer-toggle:has(input:checked) {
+  border-color: rgba(72, 199, 216, 0.5);
+  background: rgba(26, 63, 70, 0.78);
+}
+
+.cutaway-toggle {
+  grid-column: auto;
+}
+
 .scene-disclaimer {
   position: absolute;
   z-index: 5;
   right: 14px;
   bottom: 14px;
-  max-width: 520px;
+  max-width: 220px;
   color: #f6d3d7;
   font-size: 12px;
   line-height: 1.6;
@@ -1000,6 +1051,18 @@ textarea:focus {
     max-width: none;
   }
 
+  .layer-controls {
+    top: 116px;
+    right: 14px;
+    bottom: auto;
+    width: auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .cutaway-toggle {
+    grid-column: auto;
+  }
+
   .metrics-grid {
     grid-template-columns: 1fr;
   }
@@ -1022,6 +1085,13 @@ textarea:focus {
 
   .scene-panel {
     min-height: 540px;
+  }
+
+  .layer-controls {
+    top: 14px;
+    left: 66px;
+    right: 14px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .intervention-list {

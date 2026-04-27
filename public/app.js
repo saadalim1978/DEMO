@@ -25,7 +25,9 @@ const dom = {
   questionInput: document.querySelector("#questionInput"),
   askBtn: document.querySelector("#askBtn"),
   refreshBtn: document.querySelector("#refreshBtn"),
-  resetCameraBtn: document.querySelector("#resetCameraBtn")
+  resetCameraBtn: document.querySelector("#resetCameraBtn"),
+  layerToggles: document.querySelectorAll("[data-layer-toggle]"),
+  cutawayToggle: document.querySelector("#cutawayToggle")
 };
 
 const statusColors = {
@@ -52,12 +54,24 @@ let bloodParticles = [];
 let glucoseParticles = [];
 let webglSignalChecked = false;
 let framesWithoutSignal = 0;
+let activeLayerGroup = null;
 
 const disease = {};
 const bodyParts = {};
+const layerGroups = {};
 const gltfLoader = new GLTFLoader();
+const cutawayPlane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0.08);
+const layerState = {
+  skin: true,
+  organs: true,
+  vessels: true,
+  sensors: true,
+  labels: true,
+  effects: true
+};
+let cutawayEnabled = true;
 
-const bodyShellAsset = {
+let bodyShellAsset = {
   file: "VH_M_Skin.glb",
   label: "NIH 3D Skin, Male",
   source: "NIH 3D",
@@ -66,7 +80,7 @@ const bodyShellAsset = {
   rotation: [0, 0, 0]
 };
 
-const organAssets = [
+let organAssets = [
   {
     key: "lungs",
     file: "3d-vh-f-lung.glb",
@@ -171,6 +185,7 @@ try {
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.localClippingEnabled = true;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   dom.scene.appendChild(renderer.domElement);
@@ -190,12 +205,69 @@ const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 const clock = new THREE.Clock();
 
+await loadAnatomyManifest();
 if (renderer) initScene();
 wireEvents();
 resize();
 refreshTwin().then(() => askAi("حلل حالة الجسم الآن مع التركيز على السكري والضغط والجلطات."));
 setInterval(refreshTwin, 2600);
 if (renderer) requestAnimationFrame(animate);
+
+async function loadAnatomyManifest() {
+  try {
+    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-6", { cache: "no-store" });
+    if (!response.ok) throw new Error(`Manifest HTTP ${response.status}`);
+    const manifest = await response.json();
+    if (manifest.bodyShell) bodyShellAsset = normalizeBodyShell(manifest.bodyShell);
+    if (Array.isArray(manifest.organs)) organAssets = manifest.organs.map(normalizeOrganAsset);
+    if (Array.isArray(manifest.layers)) {
+      manifest.layers.forEach((layer) => {
+        if (layer?.key in layerState) layerState[layer.key] = layer.defaultVisible !== false;
+      });
+    }
+    document.body.dataset.anatomyManifest = manifest.version || "loaded";
+  } catch (error) {
+    console.warn("Using bundled anatomy configuration", error);
+    bodyShellAsset = normalizeBodyShell(bodyShellAsset);
+    organAssets = organAssets.map(normalizeOrganAsset);
+  }
+}
+
+function normalizeBodyShell(asset) {
+  return {
+    ...asset,
+    fit: vectorOr(asset.fit, [2.96, 5.15, 0.9]),
+    position: vectorOr(asset.position, [0, 0.18, 0]),
+    rotation: vectorOr(asset.rotation, [0, 0, 0])
+  };
+}
+
+function normalizeOrganAsset(asset) {
+  return {
+    ...asset,
+    position: vectorOr(asset.position, [0, 0, 0]),
+    fit: vectorOr(asset.fit, [0.3, 0.3, 0.3]),
+    rotation: vectorOr(asset.rotation, [0, 0, 0]),
+    material: {
+      color: colorToHex(asset.material?.color, 0xffffff),
+      emissive: colorToHex(asset.material?.emissive, 0x000000),
+      opacity: Number.isFinite(asset.material?.opacity) ? asset.material.opacity : 0.85
+    }
+  };
+}
+
+function vectorOr(value, fallback) {
+  if (!Array.isArray(value) || value.length < 3) return [...fallback];
+  return value.slice(0, 3).map((item, index) => (Number.isFinite(item) ? item : fallback[index]));
+}
+
+function colorToHex(value, fallback) {
+  if (Number.isFinite(value)) return value;
+  if (typeof value !== "string") return fallback;
+  const clean = value.trim().replace(/^#/, "");
+  const parsed = Number.parseInt(clean, 16);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
 
 function initScene() {
   const ambient = new THREE.HemisphereLight(0xf7fbff, 0x211017, 1.05);
@@ -240,6 +312,7 @@ function addBodyTwinModel() {
   humanGroup.rotation.set(0.01, -Math.PI / 2, 0);
   humanGroup.scale.setScalar(0.98);
   scene.add(humanGroup);
+  createLayerGroups();
 
   const vesselRed = vesselMaterial(0xff5d73, 0x5a0610, 0.35);
   const vesselBlue = vesselMaterial(0x4cc9f0, 0x052d4a, 0.24);
@@ -249,99 +322,153 @@ function addBodyTwinModel() {
     addHumanSilhouette();
   });
   loadReadyMadeOrgans();
-  bodyParts.brain = addEllipsoid("brain", [0, 2.48, 0.02], [0.22, 0.14, 0.18], organMaterial(0xa78bfa, 0x221146, 0.78));
-  addBrainFolds();
+  withLayer("organs", () => {
+    bodyParts.brain = addEllipsoid("brain", [0, 2.48, 0.02], [0.22, 0.14, 0.18], organMaterial(0xa78bfa, 0x221146, 0.78));
+    addBrainFolds();
+  });
 
-  createTube(
-    [
-      [-0.06, 1.1, 0.12],
-      [-0.02, 1.58, 0.08],
-      [0, 2.02, 0.04],
-      [-0.04, 2.27, 0.03],
-      [0, 2.45, 0.02]
-    ],
-    0.045,
-    vesselRed,
-    "aorta-up"
-  );
-  createTube(
-    [
-      [-0.04, 1.08, 0.1],
-      [-0.01, 0.54, 0.07],
-      [-0.02, -0.36, 0.05],
-      [-0.2, -1.08, 0.04],
-      [-0.24, -2.0, 0.03]
-    ],
-    0.04,
-    vesselRed,
-    "leg-artery-left"
-  );
-  createTube(
-    [
-      [0.02, -0.36, 0.05],
-      [0.2, -1.08, 0.04],
-      [0.24, -2.0, 0.03]
-    ],
-    0.036,
-    vesselRed,
-    "leg-artery-right"
-  );
-  createTube(
-    [
-      [0.12, 1.12, 0.04],
-      [0.08, 0.44, 0.03],
-      [-0.12, -0.54, 0.02],
-      [-0.2, -1.58, 0.02]
-    ],
-    0.035,
-    vesselBlue,
-    "vein-left"
-  );
-  createTube(
-    [
-      [0.14, 1.08, 0.04],
-      [0.16, 0.42, 0.03],
-      [0.18, -0.58, 0.02],
-      [0.22, -1.72, 0.02]
-    ],
-    0.032,
-    vesselBlue,
-    "vein-right"
-  );
-  createTube(
-    [
-      [-0.02, 2.02, 0.04],
-      [-0.08, 2.25, 0.03],
-      [-0.08, 2.43, 0.02]
-    ],
-    0.024,
-    vesselRed,
-    "carotid-left"
-  );
-  createTube(
-    [
-      [0.02, 2.02, 0.04],
-      [0.08, 2.25, 0.03],
-      [0.08, 2.43, 0.02]
-    ],
-    0.024,
-    vesselRed,
-    "carotid-right"
-  );
+  withLayer("vessels", () => {
+    createTube(
+      [
+        [-0.06, 1.1, 0.12],
+        [-0.02, 1.58, 0.08],
+        [0, 2.02, 0.04],
+        [-0.04, 2.27, 0.03],
+        [0, 2.45, 0.02]
+      ],
+      0.045,
+      vesselRed,
+      "aorta-up"
+    );
+    createTube(
+      [
+        [-0.04, 1.08, 0.1],
+        [-0.01, 0.54, 0.07],
+        [-0.02, -0.36, 0.05],
+        [-0.2, -1.08, 0.04],
+        [-0.24, -2.0, 0.03]
+      ],
+      0.04,
+      vesselRed,
+      "leg-artery-left"
+    );
+    createTube(
+      [
+        [0.02, -0.36, 0.05],
+        [0.2, -1.08, 0.04],
+        [0.24, -2.0, 0.03]
+      ],
+      0.036,
+      vesselRed,
+      "leg-artery-right"
+    );
+    createTube(
+      [
+        [0.12, 1.12, 0.04],
+        [0.08, 0.44, 0.03],
+        [-0.12, -0.54, 0.02],
+        [-0.2, -1.58, 0.02]
+      ],
+      0.035,
+      vesselBlue,
+      "vein-left"
+    );
+    createTube(
+      [
+        [0.14, 1.08, 0.04],
+        [0.16, 0.42, 0.03],
+        [0.18, -0.58, 0.02],
+        [0.22, -1.72, 0.02]
+      ],
+      0.032,
+      vesselBlue,
+      "vein-right"
+    );
+    createTube(
+      [
+        [-0.02, 2.02, 0.04],
+        [-0.08, 2.25, 0.03],
+        [-0.08, 2.43, 0.02]
+      ],
+      0.024,
+      vesselRed,
+      "carotid-left"
+    );
+    createTube(
+      [
+        [0.02, 2.02, 0.04],
+        [0.08, 2.25, 0.03],
+        [0.08, 2.43, 0.02]
+      ],
+      0.024,
+      vesselRed,
+      "carotid-right"
+    );
+    createBloodParticles();
+    createVascularAndNerveNetwork();
+  });
 
-  createDiseaseLayers();
-  createBloodParticles();
-  createGlucoseParticles();
-  createVascularAndNerveNetwork();
-  createAnatomyLabels();
+  withLayer("effects", () => {
+    createDiseaseLayers();
+    createGlucoseParticles();
+  });
+  withLayer("labels", createAnatomyLabels);
+  applyLayerVisibility();
+  applyCutawayMode();
+}
+
+function createLayerGroups() {
+  ["skin", "organs", "vessels", "effects", "sensors", "labels"].forEach((key) => {
+    const group = new THREE.Group();
+    group.name = `layer-${key}`;
+    layerGroups[key] = group;
+    humanGroup.add(group);
+  });
+}
+
+function withLayer(key, callback) {
+  const previous = activeLayerGroup;
+  activeLayerGroup = layerGroups[key] || humanGroup;
+  try {
+    return callback();
+  } finally {
+    activeLayerGroup = previous;
+  }
+}
+
+function addToActiveLayer(object) {
+  (activeLayerGroup || humanGroup)?.add(object);
+}
+
+function applyLayerVisibility() {
+  Object.entries(layerGroups).forEach(([key, group]) => {
+    group.visible = layerState[key] !== false;
+  });
+  dom.layerToggles.forEach((input) => {
+    input.checked = layerState[input.dataset.layerToggle] !== false;
+  });
+}
+
+function applyCutawayMode() {
+  if (renderer) renderer.localClippingEnabled = true;
+  bodyParts.skin?.traverse((child) => {
+    if (!child.isMesh || !child.material) return;
+    child.material.clippingPlanes = cutawayEnabled ? [cutawayPlane] : [];
+    child.material.opacity = cutawayEnabled ? 0.28 : 0.46;
+    child.material.needsUpdate = true;
+  });
+  document.body.dataset.cutaway = cutawayEnabled ? "on" : "off";
+  if (dom.cutawayToggle) dom.cutawayToggle.checked = cutawayEnabled;
 }
 
 async function loadNihBodyShell() {
   const gltf = await gltfLoader.loadAsync(`/models/body/${bodyShellAsset.file}`);
   const shell = prepareBodyShell(gltf.scene);
-  humanGroup.add(shell);
+  layerGroups.skin?.add(shell);
   bodyParts.skin = shell;
   document.body.dataset.bodyShell = "nih-3d-skin-male";
+  applyLayerVisibility();
+  applyCutawayMode();
 }
 
 function prepareBodyShell(sceneModel) {
@@ -394,9 +521,11 @@ function skinShellMaterial() {
     emissive: 0x2c1210,
     emissiveIntensity: 0.04,
     transparent: true,
-    opacity: 0.34,
+    opacity: cutawayEnabled ? 0.28 : 0.46,
     depthWrite: false,
-    side: THREE.DoubleSide
+    side: THREE.DoubleSide,
+    clippingPlanes: cutawayEnabled ? [cutawayPlane] : [],
+    clipShadows: true
   });
 }
 
@@ -436,7 +565,7 @@ function createBodyInspectionWindow() {
 async function loadReadyMadeOrgans() {
   const organLayer = new THREE.Group();
   organLayer.name = "ready-made-human-organs";
-  humanGroup.add(organLayer);
+  layerGroups.organs?.add(organLayer);
 
   const results = await Promise.allSettled(
     organAssets.map(async (asset) => {
@@ -593,7 +722,7 @@ function addHumanSilhouette() {
   );
   silhouette.name = "human-silhouette";
   silhouette.position.set(0, 0.22, -0.08);
-  humanGroup.add(silhouette);
+  layerGroups.skin?.add(silhouette);
 }
 
 function createSkeleton(boneMat) {
@@ -727,13 +856,13 @@ function createDiseaseLayers() {
     ring.rotation.set(Math.PI / 2.35, 0, 0);
     disease.pressure.add(ring);
   }
-  humanGroup.add(disease.pressure);
+  addToActiveLayer(disease.pressure);
 
   [[-0.28, 0.34, -0.08], [0.28, 0.34, -0.08]].forEach((pos) => {
     const glow = addGlowSphere(pos, [0.13, 0.2, 0.1], 0xc084fc);
     disease.kidney.add(glow);
   });
-  humanGroup.add(disease.kidney);
+  addToActiveLayer(disease.kidney);
 
   Object.values(disease).forEach((item) => {
     if (item) item.visible = false;
@@ -758,7 +887,7 @@ function createBloodParticles() {
     particle.position.copy(path.getPointAt(t));
     particle.userData = { t, path, speed: 0.45 + (i % 5) * 0.045 };
     bloodParticles.push(particle);
-    humanGroup.add(particle);
+    addToActiveLayer(particle);
   }
 }
 
@@ -772,7 +901,7 @@ function createGlucoseParticles() {
     disease.glucoseField.add(particle);
   }
   disease.glucoseField.visible = false;
-  humanGroup.add(disease.glucoseField);
+  addToActiveLayer(disease.glucoseField);
 }
 
 function createAnatomyLabels() {
@@ -792,7 +921,7 @@ function addBrainFolds() {
       const u = (j / 23) * Math.PI * 2;
       points.push(new THREE.Vector3(Math.cos(u) * (0.085 + i * 0.018), 2.48 + Math.sin(u * 2 + i) * 0.012, 0.02 + Math.sin(u) * (0.05 + i * 0.012)));
     }
-    humanGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), foldMat));
+    addToActiveLayer(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), foldMat));
   }
 }
 
@@ -817,7 +946,7 @@ function createClotGroup(position, scale = 1) {
   });
   group.position.set(...position);
   group.visible = false;
-  humanGroup.add(group);
+  addToActiveLayer(group);
   return group;
 }
 
@@ -829,7 +958,7 @@ function addGlowSphere(position, scale, color) {
   mesh.position.set(...position);
   mesh.scale.set(...scale);
   mesh.visible = false;
-  humanGroup.add(mesh);
+  addToActiveLayer(mesh);
   return mesh;
 }
 
@@ -841,7 +970,7 @@ function addEllipsoid(name, position, scale, material, rotation = [0, 0, 0]) {
   mesh.rotation.set(...rotation);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
-  humanGroup.add(mesh);
+  addToActiveLayer(mesh);
   return mesh;
 }
 
@@ -857,7 +986,7 @@ function capsuleBetween(start, end, radius, material) {
     cap.castShadow = true;
     group.add(cap);
   });
-  humanGroup.add(group);
+  addToActiveLayer(group);
   return group;
 }
 
@@ -866,7 +995,7 @@ function createTube(points, radius, material, name = "") {
   const mesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 96, radius, 18, false), material);
   mesh.name = name;
   mesh.castShadow = true;
-  humanGroup.add(mesh);
+  addToActiveLayer(mesh);
   return mesh;
 }
 
@@ -938,7 +1067,7 @@ function createAnatomyLabel(text, color, position) {
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }));
   sprite.position.set(...position);
   sprite.scale.set(0.54, 0.17, 1);
-  humanGroup.add(sprite);
+  addToActiveLayer(sprite);
 }
 
 function roundRect(ctx, x, y, width, height, radius) {
@@ -991,7 +1120,7 @@ function buildSensors(sensors) {
 
       group.userData.sensorId = sensor.id;
       sensorMeshes.set(sensor.id, group);
-      humanGroup?.add(group);
+      layerGroups.sensors?.add(group);
     }
 
     group.position.set(...sensor.position);
@@ -1241,6 +1370,16 @@ function wireEvents() {
   dom.refreshBtn.addEventListener("click", refreshTwin);
   dom.resetCameraBtn.addEventListener("click", resetCamera);
   dom.askBtn.addEventListener("click", () => askAi());
+  dom.layerToggles.forEach((input) => {
+    input.addEventListener("change", () => {
+      layerState[input.dataset.layerToggle] = input.checked;
+      applyLayerVisibility();
+    });
+  });
+  dom.cutawayToggle?.addEventListener("change", () => {
+    cutawayEnabled = dom.cutawayToggle.checked;
+    applyCutawayMode();
+  });
 
   dom.questionInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) askAi();
