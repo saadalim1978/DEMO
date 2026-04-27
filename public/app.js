@@ -103,8 +103,8 @@ let organAssets = [
     key: "liver",
     file: "VH_M_Liver.glb",
     label: "Liver",
-    position: [0.24, 0.7, 0.06],
-    fit: [0.5, 0.24, 0.2],
+    position: [-0.28, 0.78, 0.08],
+    fit: [0.62, 0.3, 0.24],
     rotation: [0, Math.PI, 0],
     material: { color: 0x9a4d2f, emissive: 0x341006, opacity: 0.88 }
   },
@@ -112,17 +112,17 @@ let organAssets = [
     key: "stomach",
     file: "realistic_stomach.glb",
     label: "Stomach",
-    position: [-0.22, 0.55, 0.08],
-    fit: [0.25, 0.28, 0.18],
-    rotation: [0, 0.2, 0],
+    position: [0.2, 0.58, 0.1],
+    fit: [0.24, 0.3, 0.18],
+    rotation: [0, -0.25, 0],
     material: { color: 0xff9f80, emissive: 0x44140c, opacity: 0.9 }
   },
   {
     key: "pancreas",
     file: "3d-vh-m-pancreas.glb",
     label: "Pancreas",
-    position: [-0.04, 0.66, 0.13],
-    fit: [0.42, 0.1, 0.1],
+    position: [0.02, 0.62, 0.13],
+    fit: [0.38, 0.09, 0.09],
     rotation: [0, Math.PI, 0],
     material: { color: 0xf4b740, emissive: 0x5a3600, opacity: 0.95 }
   },
@@ -130,8 +130,8 @@ let organAssets = [
     key: "leftKidney",
     file: "VH_M_Kidney_L.glb",
     label: "Left Kidney",
-    position: [-0.28, 0.34, -0.08],
-    fit: [0.15, 0.24, 0.11],
+    position: [0.24, 0.5, -0.12],
+    fit: [0.14, 0.24, 0.1],
     rotation: [0, Math.PI, -0.18],
     material: { color: 0xc084fc, emissive: 0x28113c, opacity: 0.9 }
   },
@@ -139,8 +139,8 @@ let organAssets = [
     key: "rightKidney",
     file: "VH_M_Kidney_L.glb",
     label: "Right Kidney",
-    position: [0.28, 0.34, -0.08],
-    fit: [0.15, 0.24, 0.11],
+    position: [-0.24, 0.5, -0.12],
+    fit: [0.14, 0.24, 0.1],
     rotation: [0, 0, 0.18],
     mirrorX: true,
     material: { color: 0xc084fc, emissive: 0x28113c, opacity: 0.9 }
@@ -167,8 +167,8 @@ let organAssets = [
     key: "bladder",
     file: "VH_F_Urinary_Bladder.glb",
     label: "Bladder",
-    position: [0, -0.5, 0.04],
-    fit: [0.16, 0.16, 0.14],
+    position: [0, -0.32, 0.08],
+    fit: [0.16, 0.18, 0.14],
     rotation: [0, Math.PI, 0],
     material: { color: 0xff77aa, emissive: 0x4c0b24, opacity: 0.86 }
   }
@@ -215,7 +215,7 @@ if (renderer) requestAnimationFrame(animate);
 
 async function loadAnatomyManifest() {
   try {
-    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-7", { cache: "no-store" });
+    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-8", { cache: "no-store" });
     if (!response.ok) throw new Error(`Manifest HTTP ${response.status}`);
     const manifest = await response.json();
     if (manifest.bodyShell) bodyShellAsset = normalizeBodyShell(manifest.bodyShell);
@@ -932,7 +932,7 @@ function createDiseaseLayers() {
   }
   addToActiveLayer(disease.pressure);
 
-  [[-0.28, 0.34, -0.08], [0.28, 0.34, -0.08]].forEach((pos) => {
+  [[0.24, 0.5, -0.12], [-0.24, 0.5, -0.12]].forEach((pos) => {
     const glow = addGlowSphere(pos, [0.13, 0.2, 0.1], 0xc084fc);
     disease.kidney.add(glow);
   });
@@ -983,7 +983,7 @@ function createAnatomyLabels() {
   createAnatomyLabel("الرئتان", "#48c7d8", [0.58, 1.4, 0.18]);
   createAnatomyLabel("القلب", "#ef4b5f", [-0.52, 1.08, 0.2]);
   createAnatomyLabel("البنكرياس", "#f4b740", [-0.52, 0.64, 0.18]);
-  createAnatomyLabel("الكلى", "#c084fc", [0.52, 0.32, 0.16]);
+  createAnatomyLabel("الكلى", "#c084fc", [0.52, 0.5, 0.16]);
   createAnatomyLabel("الأوعية", "#ff5d73", [0.48, 0.92, 0.18]);
 }
 
