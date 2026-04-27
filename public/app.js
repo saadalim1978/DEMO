@@ -71,8 +71,8 @@ const organAssets = [
     key: "lungs",
     file: "3d-vh-f-lung.glb",
     label: "Lungs",
-    position: [0.01, 1.43, 0.08],
-    fit: [0.56, 0.72, 0.28],
+    position: [0, 1.36, 0.04],
+    fit: [0.62, 0.72, 0.25],
     rotation: [0, Math.PI, 0],
     material: { color: 0x48c7d8, emissive: 0x07334a, opacity: 0.72 }
   },
@@ -80,8 +80,8 @@ const organAssets = [
     key: "heart",
     file: "VH_M_Heart.glb",
     label: "Heart",
-    position: [-0.07, 1.17, 0.18],
-    fit: [0.26, 0.32, 0.22],
+    position: [-0.08, 1.12, 0.12],
+    fit: [0.24, 0.3, 0.2],
     rotation: [0, -0.2, 0],
     material: { color: 0xef4b5f, emissive: 0x4c0712, opacity: 0.96 }
   },
@@ -89,8 +89,8 @@ const organAssets = [
     key: "liver",
     file: "VH_M_Liver.glb",
     label: "Liver",
-    position: [0.23, 0.66, 0.13],
-    fit: [0.54, 0.26, 0.22],
+    position: [0.24, 0.7, 0.06],
+    fit: [0.5, 0.24, 0.2],
     rotation: [0, Math.PI, 0],
     material: { color: 0x9a4d2f, emissive: 0x341006, opacity: 0.88 }
   },
@@ -98,8 +98,8 @@ const organAssets = [
     key: "stomach",
     file: "realistic_stomach.glb",
     label: "Stomach",
-    position: [-0.2, 0.55, 0.2],
-    fit: [0.27, 0.32, 0.2],
+    position: [-0.22, 0.55, 0.08],
+    fit: [0.25, 0.28, 0.18],
     rotation: [0, 0.2, 0],
     material: { color: 0xff9f80, emissive: 0x44140c, opacity: 0.9 }
   },
@@ -107,8 +107,8 @@ const organAssets = [
     key: "pancreas",
     file: "3d-vh-m-pancreas.glb",
     label: "Pancreas",
-    position: [-0.04, 0.72, 0.19],
-    fit: [0.48, 0.12, 0.12],
+    position: [-0.04, 0.66, 0.13],
+    fit: [0.42, 0.1, 0.1],
     rotation: [0, Math.PI, 0],
     material: { color: 0xf4b740, emissive: 0x5a3600, opacity: 0.95 }
   },
@@ -116,8 +116,8 @@ const organAssets = [
     key: "leftKidney",
     file: "VH_M_Kidney_L.glb",
     label: "Left Kidney",
-    position: [-0.3, 0.35, -0.02],
-    fit: [0.16, 0.26, 0.12],
+    position: [-0.28, 0.34, -0.08],
+    fit: [0.15, 0.24, 0.11],
     rotation: [0, Math.PI, -0.18],
     material: { color: 0xc084fc, emissive: 0x28113c, opacity: 0.9 }
   },
@@ -125,8 +125,8 @@ const organAssets = [
     key: "rightKidney",
     file: "VH_M_Kidney_L.glb",
     label: "Right Kidney",
-    position: [0.3, 0.35, -0.02],
-    fit: [0.16, 0.26, 0.12],
+    position: [0.28, 0.34, -0.08],
+    fit: [0.15, 0.24, 0.11],
     rotation: [0, 0, 0.18],
     mirrorX: true,
     material: { color: 0xc084fc, emissive: 0x28113c, opacity: 0.9 }
@@ -135,8 +135,8 @@ const organAssets = [
     key: "smallIntestine",
     file: "VH_F_Small_Intestine.glb",
     label: "Small Intestine",
-    position: [0, 0.14, 0.18],
-    fit: [0.54, 0.5, 0.22],
+    position: [0, 0.08, 0.08],
+    fit: [0.5, 0.42, 0.18],
     rotation: [0, Math.PI, 0],
     material: { color: 0xffb3a7, emissive: 0x4e1b16, opacity: 0.84 }
   },
@@ -144,8 +144,8 @@ const organAssets = [
     key: "largeIntestine",
     file: "SBU_F_Intestine_Large.glb",
     label: "Large Intestine",
-    position: [0, 0.15, 0.17],
-    fit: [0.64, 0.58, 0.24],
+    position: [0, 0.05, 0.06],
+    fit: [0.58, 0.5, 0.2],
     rotation: [0, Math.PI, 0],
     material: { color: 0xffb3a7, emissive: 0x4e1b16, opacity: 0.76 }
   },
@@ -153,8 +153,8 @@ const organAssets = [
     key: "bladder",
     file: "VH_F_Urinary_Bladder.glb",
     label: "Bladder",
-    position: [0, -0.46, 0.1],
-    fit: [0.18, 0.18, 0.16],
+    position: [0, -0.5, 0.04],
+    fit: [0.16, 0.16, 0.14],
     rotation: [0, Math.PI, 0],
     material: { color: 0xff77aa, emissive: 0x4c0b24, opacity: 0.86 }
   }
@@ -249,16 +249,16 @@ function addBodyTwinModel() {
     addHumanSilhouette();
   });
   loadReadyMadeOrgans();
-  bodyParts.brain = addEllipsoid("brain", [0, 2.8, 0.08], [0.23, 0.15, 0.19], organMaterial(0xa78bfa, 0x221146, 0.78));
+  bodyParts.brain = addEllipsoid("brain", [0, 2.48, 0.02], [0.22, 0.14, 0.18], organMaterial(0xa78bfa, 0x221146, 0.78));
   addBrainFolds();
 
   createTube(
     [
-      [-0.12, 1.2, 0.5],
-      [-0.02, 1.62, 0.48],
-      [0, 2.12, 0.32],
-      [-0.08, 2.38, 0.2],
-      [0, 2.7, 0.1]
+      [-0.06, 1.1, 0.12],
+      [-0.02, 1.58, 0.08],
+      [0, 2.02, 0.04],
+      [-0.04, 2.27, 0.03],
+      [0, 2.45, 0.02]
     ],
     0.045,
     vesselRed,
@@ -266,11 +266,11 @@ function addBodyTwinModel() {
   );
   createTube(
     [
-      [-0.1, 1.18, 0.48],
-      [-0.02, 0.55, 0.42],
-      [0, -0.35, 0.34],
-      [-0.28, -1.12, 0.23],
-      [-0.32, -2.02, 0.18]
+      [-0.04, 1.08, 0.1],
+      [-0.01, 0.54, 0.07],
+      [-0.02, -0.36, 0.05],
+      [-0.2, -1.08, 0.04],
+      [-0.24, -2.0, 0.03]
     ],
     0.04,
     vesselRed,
@@ -278,9 +278,9 @@ function addBodyTwinModel() {
   );
   createTube(
     [
-      [-0.02, -0.35, 0.34],
-      [0.28, -1.12, 0.22],
-      [0.32, -2.02, 0.18]
+      [0.02, -0.36, 0.05],
+      [0.2, -1.08, 0.04],
+      [0.24, -2.0, 0.03]
     ],
     0.036,
     vesselRed,
@@ -288,10 +288,10 @@ function addBodyTwinModel() {
   );
   createTube(
     [
-      [0.18, 1.18, 0.39],
-      [0.08, 0.46, 0.33],
-      [-0.18, -0.55, 0.26],
-      [-0.3, -1.58, 0.2]
+      [0.12, 1.12, 0.04],
+      [0.08, 0.44, 0.03],
+      [-0.12, -0.54, 0.02],
+      [-0.2, -1.58, 0.02]
     ],
     0.035,
     vesselBlue,
@@ -299,10 +299,10 @@ function addBodyTwinModel() {
   );
   createTube(
     [
-      [0.18, 1.15, 0.38],
-      [0.22, 0.42, 0.32],
-      [0.38, -0.58, 0.24],
-      [0.36, -1.72, 0.18]
+      [0.14, 1.08, 0.04],
+      [0.16, 0.42, 0.03],
+      [0.18, -0.58, 0.02],
+      [0.22, -1.72, 0.02]
     ],
     0.032,
     vesselBlue,
@@ -310,9 +310,9 @@ function addBodyTwinModel() {
   );
   createTube(
     [
-      [-0.02, 2.02, 0.34],
-      [-0.18, 2.34, 0.28],
-      [-0.16, 2.64, 0.16]
+      [-0.02, 2.02, 0.04],
+      [-0.08, 2.25, 0.03],
+      [-0.08, 2.43, 0.02]
     ],
     0.024,
     vesselRed,
@@ -320,9 +320,9 @@ function addBodyTwinModel() {
   );
   createTube(
     [
-      [0.02, 2.02, 0.34],
-      [0.18, 2.34, 0.28],
-      [0.16, 2.64, 0.16]
+      [0.02, 2.02, 0.04],
+      [0.08, 2.25, 0.03],
+      [0.08, 2.43, 0.02]
     ],
     0.024,
     vesselRed,
@@ -694,28 +694,28 @@ function createVascularAndNerveNetwork() {
   const nerve = vesselMaterial(0xffd166, 0x493000, 0.12);
 
   [
-    { side: -1, mat: artery, radius: 0.007, points: [[-0.34, 1.45, 0.3], [-0.58, 1.16, 0.3], [-0.78, 0.58, 0.27], [-0.9, 0.28, 0.18]] },
-    { side: 1, mat: artery, radius: 0.007, points: [[0.34, 1.45, 0.3], [0.58, 1.16, 0.3], [0.78, 0.58, 0.27], [0.9, 0.28, 0.18]] },
-    { side: -1, mat: vein, radius: 0.006, points: [[-0.28, 1.34, 0.25], [-0.5, 1.02, 0.25], [-0.73, 0.54, 0.24], [-0.86, 0.27, 0.16]] },
-    { side: 1, mat: vein, radius: 0.006, points: [[0.28, 1.34, 0.25], [0.5, 1.02, 0.25], [0.73, 0.54, 0.24], [0.86, 0.27, 0.16]] },
-    { side: -1, mat: artery, radius: 0.008, points: [[-0.12, -0.48, 0.28], [-0.24, -1.12, 0.25], [-0.32, -1.78, 0.2], [-0.34, -2.18, 0.18]] },
-    { side: 1, mat: artery, radius: 0.008, points: [[0.12, -0.48, 0.28], [0.24, -1.12, 0.25], [0.32, -1.78, 0.2], [0.34, -2.18, 0.18]] },
-    { side: -1, mat: vein, radius: 0.007, points: [[-0.02, -0.42, 0.23], [-0.18, -1.1, 0.22], [-0.28, -1.76, 0.19], [-0.3, -2.12, 0.16]] },
-    { side: 1, mat: vein, radius: 0.007, points: [[0.02, -0.42, 0.23], [0.18, -1.1, 0.22], [0.28, -1.76, 0.19], [0.3, -2.12, 0.16]] }
+    { side: -1, mat: artery, radius: 0.006, points: [[-0.3, 1.42, 0.03], [-0.48, 1.1, 0.02], [-0.67, 0.58, 0.02], [-0.78, 0.3, 0.02]] },
+    { side: 1, mat: artery, radius: 0.006, points: [[0.3, 1.42, 0.03], [0.48, 1.1, 0.02], [0.67, 0.58, 0.02], [0.78, 0.3, 0.02]] },
+    { side: -1, mat: vein, radius: 0.006, points: [[-0.24, 1.32, 0.01], [-0.44, 1, 0.01], [-0.62, 0.54, 0.01], [-0.74, 0.28, 0.01]] },
+    { side: 1, mat: vein, radius: 0.006, points: [[0.24, 1.32, 0.01], [0.44, 1, 0.01], [0.62, 0.54, 0.01], [0.74, 0.28, 0.01]] },
+    { side: -1, mat: artery, radius: 0.007, points: [[-0.1, -0.48, 0.03], [-0.18, -1.12, 0.02], [-0.23, -1.78, 0.02], [-0.22, -2.16, 0.02]] },
+    { side: 1, mat: artery, radius: 0.007, points: [[0.1, -0.48, 0.03], [0.18, -1.12, 0.02], [0.23, -1.78, 0.02], [0.22, -2.16, 0.02]] },
+    { side: -1, mat: vein, radius: 0.006, points: [[-0.04, -0.42, 0.01], [-0.13, -1.1, 0.01], [-0.19, -1.76, 0.01], [-0.18, -2.12, 0.01]] },
+    { side: 1, mat: vein, radius: 0.006, points: [[0.04, -0.42, 0.01], [0.13, -1.1, 0.01], [0.19, -1.76, 0.01], [0.18, -2.12, 0.01]] }
   ].forEach((path) => createTube(path.points, path.radius, path.mat, `vascular-${path.side}`));
 
-  createTube([[0, 2.6, 0.12], [-0.12, 2.3, 0.18], [-0.32, 1.94, 0.2], [-0.52, 1.78, 0.2]], 0.0045, nerve, "neck-nerve-left");
-  createTube([[0, 2.6, 0.12], [0.12, 2.3, 0.18], [0.32, 1.94, 0.2], [0.52, 1.78, 0.2]], 0.0045, nerve, "neck-nerve-right");
+  createTube([[0, 2.45, 0.02], [-0.08, 2.25, 0.02], [-0.22, 1.94, 0.02], [-0.42, 1.78, 0.02]], 0.0045, nerve, "neck-nerve-left");
+  createTube([[0, 2.45, 0.02], [0.08, 2.25, 0.02], [0.22, 1.94, 0.02], [0.42, 1.78, 0.02]], 0.0045, nerve, "neck-nerve-right");
 }
 
 function createDiseaseLayers() {
-  disease.pancreasGlow = addGlowSphere([0, 0.74, 0.4], [0.45, 0.15, 0.09], 0xf4b740);
+  disease.pancreasGlow = addGlowSphere([-0.04, 0.66, 0.13], [0.38, 0.12, 0.08], 0xf4b740);
   disease.glucoseField = new THREE.Group();
   disease.pressure = new THREE.Group();
-  disease.clot = createClotGroup([-0.3, -1.58, 0.2], 0.76);
-  disease.lungClot = createClotGroup([0.28, 1.52, 0.38], 0.54);
-  disease.brain = addGlowSphere([0, 2.8, 0.1], [0.34, 0.22, 0.24], 0xa78bfa);
-  disease.carotid = createClotGroup([-0.16, 2.3, 0.24], 0.42);
+  disease.clot = createClotGroup([-0.18, -1.58, 0.02], 0.68);
+  disease.lungClot = createClotGroup([0.22, 1.42, 0.08], 0.5);
+  disease.brain = addGlowSphere([0, 2.48, 0.02], [0.3, 0.2, 0.22], 0xa78bfa);
+  disease.carotid = createClotGroup([-0.08, 2.24, 0.03], 0.36);
   disease.kidney = new THREE.Group();
 
   for (let i = 0; i < 4; i += 1) {
@@ -723,14 +723,14 @@ function createDiseaseLayers() {
       new THREE.TorusGeometry(0.3 + i * 0.13, 0.008, 8, 72),
       new THREE.MeshBasicMaterial({ color: 0xef4b5f, transparent: true, opacity: 0.34, depthWrite: false })
     );
-    ring.position.set(0, 1.14 - i * 0.13, 0.36);
+    ring.position.set(0, 1.08 - i * 0.12, 0.1);
     ring.rotation.set(Math.PI / 2.35, 0, 0);
     disease.pressure.add(ring);
   }
   humanGroup.add(disease.pressure);
 
-  [[-0.31, 0.35, 0.2], [0.31, 0.35, 0.2]].forEach((pos) => {
-    const glow = addGlowSphere(pos, [0.15, 0.22, 0.12], 0xc084fc);
+  [[-0.28, 0.34, -0.08], [0.28, 0.34, -0.08]].forEach((pos) => {
+    const glow = addGlowSphere(pos, [0.13, 0.2, 0.1], 0xc084fc);
     disease.kidney.add(glow);
   });
   humanGroup.add(disease.kidney);
@@ -743,13 +743,13 @@ function createDiseaseLayers() {
 function createBloodParticles() {
   const material = new THREE.MeshBasicMaterial({ color: 0xffc8c8 });
   const path = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(-0.1, 1.18, 0.52),
-    new THREE.Vector3(0, 1.7, 0.48),
-    new THREE.Vector3(0, 2.35, 0.24),
-    new THREE.Vector3(-0.02, 0.45, 0.38),
-    new THREE.Vector3(-0.36, -1.9, 0.18),
-    new THREE.Vector3(0.34, -1.8, 0.18),
-    new THREE.Vector3(0.18, 1.0, 0.4)
+    new THREE.Vector3(-0.06, 1.12, 0.1),
+    new THREE.Vector3(0, 1.66, 0.07),
+    new THREE.Vector3(0, 2.32, 0.03),
+    new THREE.Vector3(-0.02, 0.42, 0.06),
+    new THREE.Vector3(-0.2, -1.9, 0.02),
+    new THREE.Vector3(0.2, -1.8, 0.02),
+    new THREE.Vector3(0.1, 1.0, 0.05)
   ]);
 
   for (let i = 0; i < 46; i += 1) {
@@ -766,7 +766,7 @@ function createGlucoseParticles() {
   const material = new THREE.MeshBasicMaterial({ color: 0xffd166, transparent: true, opacity: 0.85 });
   for (let i = 0; i < 42; i += 1) {
     const particle = new THREE.Mesh(new THREE.SphereGeometry(0.026, 8, 8), material.clone());
-    particle.position.set((Math.random() - 0.5) * 1.3, 0.1 + Math.random() * 1.65, 0.32 + Math.random() * 0.35);
+    particle.position.set((Math.random() - 0.5) * 0.9, -0.05 + Math.random() * 1.45, 0.02 + Math.random() * 0.16);
     particle.userData = { baseY: particle.position.y, speed: 0.8 + Math.random() * 0.8, phase: Math.random() * Math.PI * 2 };
     glucoseParticles.push(particle);
     disease.glucoseField.add(particle);
@@ -776,12 +776,12 @@ function createGlucoseParticles() {
 }
 
 function createAnatomyLabels() {
-  createAnatomyLabel("الدماغ", "#a78bfa", [0.54, 2.78, 0.24]);
-  createAnatomyLabel("الرئتان", "#48c7d8", [0.65, 1.52, 0.3]);
-  createAnatomyLabel("القلب", "#ef4b5f", [-0.56, 1.18, 0.55]);
-  createAnatomyLabel("البنكرياس", "#f4b740", [-0.58, 0.72, 0.5]);
-  createAnatomyLabel("الكلى", "#c084fc", [0.58, 0.34, 0.38]);
-  createAnatomyLabel("الأوعية", "#ff5d73", [0.56, 0.96, 0.54]);
+  createAnatomyLabel("الدماغ", "#a78bfa", [0.5, 2.48, 0.18]);
+  createAnatomyLabel("الرئتان", "#48c7d8", [0.58, 1.4, 0.18]);
+  createAnatomyLabel("القلب", "#ef4b5f", [-0.52, 1.08, 0.2]);
+  createAnatomyLabel("البنكرياس", "#f4b740", [-0.52, 0.64, 0.18]);
+  createAnatomyLabel("الكلى", "#c084fc", [0.52, 0.32, 0.16]);
+  createAnatomyLabel("الأوعية", "#ff5d73", [0.48, 0.92, 0.18]);
 }
 
 function addBrainFolds() {
@@ -790,7 +790,7 @@ function addBrainFolds() {
     const points = [];
     for (let j = 0; j < 24; j += 1) {
       const u = (j / 23) * Math.PI * 2;
-      points.push(new THREE.Vector3(Math.cos(u) * (0.09 + i * 0.02), 2.8 + Math.sin(u * 2 + i) * 0.014, 0.08 + Math.sin(u) * (0.055 + i * 0.014)));
+      points.push(new THREE.Vector3(Math.cos(u) * (0.085 + i * 0.018), 2.48 + Math.sin(u * 2 + i) * 0.012, 0.02 + Math.sin(u) * (0.05 + i * 0.012)));
     }
     humanGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), foldMat));
   }

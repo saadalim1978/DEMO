@@ -178,24 +178,24 @@ const interventions = {
 };
 
 const sensorTemplates = [
-  { id: "glucose", name: "سكر الدم", metric: "glucose", unit: "mg/dL", base: 96, amplitude: 7, decimals: 0, phase: 0.6, zone: "البنكرياس", position: [-0.28, 0.95, 0.48], warningHigh: 126, criticalHigh: 180, warningLow: 70, criticalLow: 55 },
-  { id: "hba1c", name: "السكر التراكمي", metric: "hba1c", unit: "%", base: 5.3, amplitude: 0.08, decimals: 1, phase: 2.3, zone: "الأيض", position: [-0.62, 0.82, 0.5], warningHigh: 5.7, criticalHigh: 6.5 },
-  { id: "insulinResistance", name: "مقاومة الإنسولين", metric: "insulinResistance", unit: "%", base: 18, amplitude: 3, decimals: 0, phase: 1.2, zone: "الأيض", position: [0.28, 0.9, 0.5], warningHigh: 45, criticalHigh: 70 },
-  { id: "systolic", name: "ضغط الدم الانقباضي", metric: "systolic", unit: "mmHg", base: 118, amplitude: 5, decimals: 0, phase: 1.8, zone: "الأوعية", position: [0.0, 1.6, 0.62], warningHigh: 130, criticalHigh: 180, warningLow: 90, criticalLow: 75 },
-  { id: "diastolic", name: "ضغط الدم الانبساطي", metric: "diastolic", unit: "mmHg", base: 76, amplitude: 3, decimals: 0, phase: 2.8, zone: "الأوعية", position: [0.22, 1.35, 0.62], warningHigh: 80, criticalHigh: 120, warningLow: 55, criticalLow: 45 },
-  { id: "heartRate", name: "معدل النبض", metric: "heartRate", unit: "bpm", base: 72, amplitude: 4, decimals: 0, phase: 0.4, zone: "القلب", position: [-0.18, 1.45, 0.72], warningHigh: 110, criticalHigh: 140, warningLow: 50, criticalLow: 38 },
-  { id: "oxygen", name: "تشبع الأكسجين", metric: "oxygen", unit: "%", base: 98, amplitude: 0.8, decimals: 0, phase: 3.1, zone: "الرئتان", position: [0.48, 1.65, 0.45], warningLow: 94, criticalLow: 90 },
-  { id: "ldl", name: "LDL كوليسترول", metric: "ldl", unit: "mg/dL", base: 96, amplitude: 8, decimals: 0, phase: 4.2, zone: "الدهون", position: [0.72, 0.68, 0.34], warningHigh: 130, criticalHigh: 190 },
-  { id: "triglycerides", name: "الدهون الثلاثية", metric: "triglycerides", unit: "mg/dL", base: 118, amplitude: 12, decimals: 0, phase: 1.7, zone: "الدهون", position: [0.55, 0.48, 0.38], warningHigh: 150, criticalHigh: 300 },
-  { id: "bmi", name: "مؤشر كتلة الجسم", metric: "bmi", unit: "BMI", base: 25, amplitude: 0.4, decimals: 1, phase: 3.6, zone: "الجسم", position: [0.0, 0.25, 0.6], warningHigh: 30, criticalHigh: 40 },
-  { id: "clotRisk", name: "قابلية التخثر", metric: "clotRisk", unit: "%", base: 16, amplitude: 3, decimals: 0, phase: 2.1, zone: "الأوردة", position: [-0.42, -1.0, 0.36], warningHigh: 35, criticalHigh: 65 },
-  { id: "dDimer", name: "D-dimer محاكى", metric: "dDimer", unit: "ng/mL", base: 260, amplitude: 42, decimals: 0, phase: 4.5, zone: "التخثر", position: [-0.62, -1.42, 0.28], warningHigh: 500, criticalHigh: 1000 },
-  { id: "legFlow", name: "تدفق أوردة الساق", metric: "legFlow", unit: "%", base: 96, amplitude: 3, decimals: 0, phase: 0.9, zone: "الساق", position: [-0.52, -1.78, 0.2], warningLow: 70, criticalLow: 45 },
-  { id: "egfr", name: "وظائف الكلى eGFR", metric: "egfr", unit: "mL/min", base: 98, amplitude: 3, decimals: 0, phase: 2.6, zone: "الكلى", position: [-0.5, 0.34, 0.28], warningLow: 60, criticalLow: 30 },
-  { id: "neuroPerfusion", name: "تروية الدماغ", metric: "neuroPerfusion", unit: "%", base: 98, amplitude: 2, decimals: 0, phase: 1.4, zone: "الدماغ", position: [0.0, 2.96, 0.08], warningLow: 85, criticalLow: 70 },
-  { id: "vascularStiffness", name: "تيبس الأوعية", metric: "vascularStiffness", unit: "%", base: 18, amplitude: 3, decimals: 0, phase: 5.1, zone: "الأوعية", position: [0.36, 1.02, 0.58], warningHigh: 45, criticalHigh: 70 },
-  { id: "inflammation", name: "التهاب CRP", metric: "inflammation", unit: "mg/L", base: 1.1, amplitude: 0.25, decimals: 1, phase: 2.2, zone: "التهاب", position: [0.18, 0.08, 0.48], warningHigh: 3, criticalHigh: 10 },
-  { id: "painScore", name: "ألم/تنميل محاكى", metric: "painScore", unit: "/10", base: 0, amplitude: 0.3, decimals: 0, phase: 0.3, zone: "الأعراض", position: [-0.78, -0.7, 0.24], warningHigh: 4, criticalHigh: 7 }
+  { id: "glucose", name: "سكر الدم", metric: "glucose", unit: "mg/dL", base: 96, amplitude: 7, decimals: 0, phase: 0.6, zone: "البنكرياس", position: [-0.08, 0.66, 0.15], warningHigh: 126, criticalHigh: 180, warningLow: 70, criticalLow: 55 },
+  { id: "hba1c", name: "السكر التراكمي", metric: "hba1c", unit: "%", base: 5.3, amplitude: 0.08, decimals: 1, phase: 2.3, zone: "الأيض", position: [-0.28, 0.62, 0.13], warningHigh: 5.7, criticalHigh: 6.5 },
+  { id: "insulinResistance", name: "مقاومة الإنسولين", metric: "insulinResistance", unit: "%", base: 18, amplitude: 3, decimals: 0, phase: 1.2, zone: "الأيض", position: [0.2, 0.62, 0.13], warningHigh: 45, criticalHigh: 70 },
+  { id: "systolic", name: "ضغط الدم الانقباضي", metric: "systolic", unit: "mmHg", base: 118, amplitude: 5, decimals: 0, phase: 1.8, zone: "الأوعية", position: [0, 1.5, 0.08], warningHigh: 130, criticalHigh: 180, warningLow: 90, criticalLow: 75 },
+  { id: "diastolic", name: "ضغط الدم الانبساطي", metric: "diastolic", unit: "mmHg", base: 76, amplitude: 3, decimals: 0, phase: 2.8, zone: "الأوعية", position: [0.18, 1.28, 0.08], warningHigh: 80, criticalHigh: 120, warningLow: 55, criticalLow: 45 },
+  { id: "heartRate", name: "معدل النبض", metric: "heartRate", unit: "bpm", base: 72, amplitude: 4, decimals: 0, phase: 0.4, zone: "القلب", position: [-0.12, 1.12, 0.14], warningHigh: 110, criticalHigh: 140, warningLow: 50, criticalLow: 38 },
+  { id: "oxygen", name: "تشبع الأكسجين", metric: "oxygen", unit: "%", base: 98, amplitude: 0.8, decimals: 0, phase: 3.1, zone: "الرئتان", position: [0.36, 1.43, 0.08], warningLow: 94, criticalLow: 90 },
+  { id: "ldl", name: "LDL كوليسترول", metric: "ldl", unit: "mg/dL", base: 96, amplitude: 8, decimals: 0, phase: 4.2, zone: "الدهون", position: [0.3, 0.7, 0.08], warningHigh: 130, criticalHigh: 190 },
+  { id: "triglycerides", name: "الدهون الثلاثية", metric: "triglycerides", unit: "mg/dL", base: 118, amplitude: 12, decimals: 0, phase: 1.7, zone: "الدهون", position: [0.22, 0.46, 0.08], warningHigh: 150, criticalHigh: 300 },
+  { id: "bmi", name: "مؤشر كتلة الجسم", metric: "bmi", unit: "BMI", base: 25, amplitude: 0.4, decimals: 1, phase: 3.6, zone: "الجسم", position: [0, 0.15, 0.08], warningHigh: 30, criticalHigh: 40 },
+  { id: "clotRisk", name: "قابلية التخثر", metric: "clotRisk", unit: "%", base: 16, amplitude: 3, decimals: 0, phase: 2.1, zone: "الأوردة", position: [-0.18, -1, 0.02], warningHigh: 35, criticalHigh: 65 },
+  { id: "dDimer", name: "D-dimer محاكى", metric: "dDimer", unit: "ng/mL", base: 260, amplitude: 42, decimals: 0, phase: 4.5, zone: "التخثر", position: [-0.2, -1.42, 0.02], warningHigh: 500, criticalHigh: 1000 },
+  { id: "legFlow", name: "تدفق أوردة الساق", metric: "legFlow", unit: "%", base: 96, amplitude: 3, decimals: 0, phase: 0.9, zone: "الساق", position: [-0.22, -1.78, 0.02], warningLow: 70, criticalLow: 45 },
+  { id: "egfr", name: "وظائف الكلى eGFR", metric: "egfr", unit: "mL/min", base: 98, amplitude: 3, decimals: 0, phase: 2.6, zone: "الكلى", position: [-0.28, 0.34, -0.06], warningLow: 60, criticalLow: 30 },
+  { id: "neuroPerfusion", name: "تروية الدماغ", metric: "neuroPerfusion", unit: "%", base: 98, amplitude: 2, decimals: 0, phase: 1.4, zone: "الدماغ", position: [0, 2.48, 0.06], warningLow: 85, criticalLow: 70 },
+  { id: "vascularStiffness", name: "تيبس الأوعية", metric: "vascularStiffness", unit: "%", base: 18, amplitude: 3, decimals: 0, phase: 5.1, zone: "الأوعية", position: [0.18, 0.95, 0.08], warningHigh: 45, criticalHigh: 70 },
+  { id: "inflammation", name: "التهاب CRP", metric: "inflammation", unit: "mg/L", base: 1.1, amplitude: 0.25, decimals: 1, phase: 2.2, zone: "التهاب", position: [0.06, 0.08, 0.08], warningHigh: 3, criticalHigh: 10 },
+  { id: "painScore", name: "ألم/تنميل محاكى", metric: "painScore", unit: "/10", base: 0, amplitude: 0.3, decimals: 0, phase: 0.3, zone: "الأعراض", position: [-0.38, -0.7, 0.04], warningHigh: 4, criticalHigh: 7 }
 ];
 
 const anatomy = [
@@ -341,22 +341,22 @@ function buildTwinState() {
 function buildLesions(byId, scenario) {
   const lesions = [];
   if (scenario.disease === "diabetes" || byId.glucose.value >= 126 || byId.hba1c.value >= 5.7) {
-    lesions.push({ id: "pancreas-stress", type: "diabetes", label: "إجهاد البنكرياس", severity: clamp((byId.glucose.value - 110) / 110, 0.18, 1), position: [-0.28, 0.92, 0.48], color: "#f4b740" });
-    lesions.push({ id: "glucose-field", type: "glucose", label: "ارتفاع السكر حول الأوعية", severity: clamp((byId.glucose.value - 110) / 120, 0.12, 1), position: [0.0, 1.0, 0.45], color: "#ffd166" });
+    lesions.push({ id: "pancreas-stress", type: "diabetes", label: "إجهاد البنكرياس", severity: clamp((byId.glucose.value - 110) / 110, 0.18, 1), position: [-0.04, 0.66, 0.13], color: "#f4b740" });
+    lesions.push({ id: "glucose-field", type: "glucose", label: "ارتفاع السكر حول الأوعية", severity: clamp((byId.glucose.value - 110) / 120, 0.12, 1), position: [0, 0.55, 0.08], color: "#ffd166" });
   }
   if (scenario.disease === "hypertension" || byId.systolic.value >= 130 || byId.vascularStiffness.value >= 45) {
-    lesions.push({ id: "arterial-pressure", type: "hypertension", label: "ضغط عال على الشرايين", severity: clamp((byId.systolic.value - 120) / 75, 0.18, 1), position: [0.0, 1.35, 0.58], color: "#ef4b5f" });
+    lesions.push({ id: "arterial-pressure", type: "hypertension", label: "ضغط عال على الشرايين", severity: clamp((byId.systolic.value - 120) / 75, 0.18, 1), position: [0, 1.1, 0.1], color: "#ef4b5f" });
   }
   if (scenario.disease === "thrombosis" || byId.clotRisk.value >= 35 || byId.dDimer.value >= 500) {
-    lesions.push({ id: "leg-thrombus", type: "clot", label: "خثرة محاكاة في وريد الساق", severity: clamp(byId.clotRisk.value / 100, 0.2, 1), position: [-0.38, -1.62, 0.2], color: "#6f1d1b" });
-    if (byId.oxygen.value < 95) lesions.push({ id: "lung-risk", type: "lung-clot", label: "تنبيه رئوي محاكى", severity: clamp((96 - byId.oxygen.value) / 10, 0.1, 1), position: [0.42, 1.65, 0.42], color: "#ff7b7b" });
+    lesions.push({ id: "leg-thrombus", type: "clot", label: "خثرة محاكاة في وريد الساق", severity: clamp(byId.clotRisk.value / 100, 0.2, 1), position: [-0.18, -1.58, 0.02], color: "#6f1d1b" });
+    if (byId.oxygen.value < 95) lesions.push({ id: "lung-risk", type: "lung-clot", label: "تنبيه رئوي محاكى", severity: clamp((96 - byId.oxygen.value) / 10, 0.1, 1), position: [0.22, 1.42, 0.08], color: "#ff7b7b" });
   }
   if (scenario.disease === "stroke" || byId.neuroPerfusion.value <= 85) {
-    lesions.push({ id: "brain-perfusion", type: "stroke", label: "نقص تروية دماغي محاكى", severity: clamp((95 - byId.neuroPerfusion.value) / 35, 0.16, 1), position: [0.0, 2.96, 0.08], color: "#a78bfa" });
-    lesions.push({ id: "carotid-plaque", type: "carotid", label: "إجهاد الشريان السباتي", severity: clamp((byId.ldl.value - 110) / 120, 0.12, 1), position: [-0.18, 2.25, 0.24], color: "#ffbe55" });
+    lesions.push({ id: "brain-perfusion", type: "stroke", label: "نقص تروية دماغي محاكى", severity: clamp((95 - byId.neuroPerfusion.value) / 35, 0.16, 1), position: [0, 2.48, 0.04], color: "#a78bfa" });
+    lesions.push({ id: "carotid-plaque", type: "carotid", label: "إجهاد الشريان السباتي", severity: clamp((byId.ldl.value - 110) / 120, 0.12, 1), position: [-0.08, 2.24, 0.03], color: "#ffbe55" });
   }
   if (byId.egfr.value <= 75 || ["diabetes", "hypertension", "metabolic"].includes(scenario.disease)) {
-    lesions.push({ id: "kidney-stress", type: "kidney", label: "ضغط على الكلى", severity: clamp((95 - byId.egfr.value) / 55, 0.1, 1), position: [-0.42, 0.32, 0.28], color: "#c084fc" });
+    lesions.push({ id: "kidney-stress", type: "kidney", label: "ضغط على الكلى", severity: clamp((95 - byId.egfr.value) / 55, 0.1, 1), position: [-0.28, 0.34, -0.08], color: "#c084fc" });
   }
   return lesions;
 }
