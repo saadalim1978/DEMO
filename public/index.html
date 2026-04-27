@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>توأم رقمي للجسم | AI + API + 3D</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/styles.css?v=body-anatomy-4" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/vendor/three.module.js",
+          "three/addons/": "/vendor/"
+        }
+      }
+    </script>
+    <script defer src="/vendor/lucide.min.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark">BT</span>
+          <div>
+            <p class="eyebrow">AI + API + 3D</p>
+            <h1>توأم رقمي للجسم البشري</h1>
+          </div>
+        </div>
+
+        <nav class="scenario-switcher" aria-label="سيناريوهات الجسم">
+          <button class="scenario-btn active" data-scenario="baseline" title="جسم مستقر">
+            <i data-lucide="activity"></i>
+            <span>مستقر</span>
+          </button>
+          <button class="scenario-btn" data-scenario="diabetes_risk" title="خطر السكري">
+            <i data-lucide="droplets"></i>
+            <span>سكري</span>
+          </button>
+          <button class="scenario-btn" data-scenario="hypertension" title="ارتفاع ضغط الدم">
+            <i data-lucide="gauge"></i>
+            <span>ضغط</span>
+          </button>
+          <button class="scenario-btn danger" data-scenario="thrombosis" title="خطر جلطة">
+            <i data-lucide="circle-dot"></i>
+            <span>جلطات</span>
+          </button>
+          <button class="scenario-btn" data-scenario="stroke_risk" title="خطر سكتة">
+            <i data-lucide="brain"></i>
+            <span>سكتة</span>
+          </button>
+          <button class="scenario-btn" data-scenario="cardio_metabolic" title="متلازمة أيضية">
+            <i data-lucide="heart-pulse"></i>
+            <span>أيضي</span>
+          </button>
+        </nav>
+      </header>
+
+      <main class="dashboard">
+        <section class="scene-panel" aria-label="نموذج الجسم ثلاثي الأبعاد">
+          <div id="scene">
+            <div id="fallbackBody" class="fallback-human" aria-hidden="true">
+              <div class="fb-head"></div>
+              <div class="fb-brain"></div>
+              <div class="fb-neck"></div>
+              <div class="fb-torso"></div>
+              <div class="fb-lung lung-a"></div>
+              <div class="fb-lung lung-b"></div>
+              <div class="fb-heart"></div>
+              <div class="fb-pancreas"></div>
+              <div class="fb-kidney kidney-a"></div>
+              <div class="fb-kidney kidney-b"></div>
+              <div class="fb-arm arm-a"></div>
+              <div class="fb-arm arm-b"></div>
+              <div class="fb-leg leg-a"></div>
+              <div class="fb-leg leg-b"></div>
+              <div class="fb-vessel vessel-main"></div>
+              <div class="fb-clot"></div>
+            </div>
+          </div>
+          <div class="scene-hud">
+            <div>
+              <span class="hud-label">النموذج</span>
+              <strong id="assetName">...</strong>
+            </div>
+            <div>
+              <span class="hud-label">السيناريو</span>
+              <strong id="scenarioName">...</strong>
+            </div>
+            <div>
+              <span class="hud-label">التدخل المحاكى</span>
+              <strong id="interventionName">...</strong>
+            </div>
+            <div>
+              <span class="hud-label">آخر تحديث</span>
+              <strong id="lastUpdate">...</strong>
+            </div>
+          </div>
+          <div class="scene-tools">
+            <button id="resetCameraBtn" class="icon-button" title="إعادة ضبط الكاميرا" aria-label="إعادة ضبط الكاميرا">
+              <i data-lucide="scan"></i>
+            </button>
+            <button id="refreshBtn" class="icon-button" title="تحديث البيانات" aria-label="تحديث البيانات">
+              <i data-lucide="refresh-cw"></i>
+            </button>
+          </div>
+          <div class="scene-disclaimer" id="disclaimer">محاكاة تعليمية وليست أداة تشخيص.</div>
+        </section>
+
+        <aside class="insights-panel" aria-label="المؤشرات الحيوية">
+          <section class="metrics-grid">
+            <article class="metric-tile health">
+              <span>الصحة</span>
+              <strong id="healthMetric">--%</strong>
+              <small>جاهزية النموذج</small>
+            </article>
+            <article class="metric-tile risk">
+              <span>المخاطر</span>
+              <strong id="riskMetric">--%</strong>
+              <small>تقدير تنبؤي</small>
+            </article>
+            <article class="metric-tile perfusion">
+              <span>سكر الدم</span>
+              <strong id="perfusionMetric">--</strong>
+              <small>مؤشر أيضي</small>
+            </article>
+            <article class="metric-tile">
+              <span>الضغط / النبض</span>
+              <strong id="pulseMetric">--</strong>
+              <small id="bpMetric">--</small>
+            </article>
+          </section>
+
+          <section class="panel-section">
+            <div class="section-heading">
+              <h2>المستشعرات الحيوية</h2>
+              <span id="alertBadge" class="badge">0 تنبيه</span>
+            </div>
+            <div id="sensorList" class="sensor-list"></div>
+          </section>
+
+          <section class="panel-section">
+            <div class="section-heading">
+              <h2>تدخلات المحاكاة</h2>
+              <span class="badge neutral">API</span>
+            </div>
+            <div id="interventionList" class="intervention-list"></div>
+          </section>
+        </aside>
+
+        <aside class="ai-panel" aria-label="مساعد الذكاء الاصطناعي">
+          <section class="panel-section ai-box">
+            <div class="section-heading">
+              <h2>مساعد التوأم الجسدي</h2>
+              <span id="aiSource" class="badge neutral">Local AI</span>
+            </div>
+            <div id="aiAnswer" class="ai-answer">...</div>
+            <div id="aiEvidence" class="evidence-list"></div>
+            <div class="ask-row">
+              <textarea id="questionInput" rows="3" placeholder="حلل خطر السكري والضغط والجلطات الآن"></textarea>
+              <button id="askBtn" class="primary-button">
+                <i data-lucide="sparkles"></i>
+                <span>حلل</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="panel-section">
+            <div class="section-heading">
+              <h2>التنبؤات</h2>
+              <span class="badge neutral">30 دقيقة</span>
+            </div>
+            <div id="predictionList" class="prediction-list"></div>
+          </section>
+
+          <section class="panel-section">
+            <div class="section-heading">
+              <h2>سجل الأحداث</h2>
+              <span class="badge neutral">Live</span>
+            </div>
+            <div id="eventList" class="event-list"></div>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js?v=body-anatomy-4"></script>
+  </body>
+</html>

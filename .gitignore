@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.*
+server.log
+server.err.log
+tmp/
+outputs/
+*.pdf
+*.zip
+*.7z
+*.rar
+.DS_Store
+Thumbs.db

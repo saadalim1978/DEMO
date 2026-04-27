@@ -1,0 +1,1030 @@
+:root {
+  color-scheme: dark;
+  --bg: #101114;
+  --surface: rgba(25, 27, 32, 0.92);
+  --surface-2: #22252c;
+  --surface-3: #30343d;
+  --line: rgba(255, 255, 255, 0.1);
+  --text: #f8f4ee;
+  --muted: #bbb4aa;
+  --red: #ef4b5f;
+  --deep-red: #8e1d2c;
+  --cyan: #48c7d8;
+  --amber: #f4b740;
+  --green: #46c483;
+  --violet: #a78bfa;
+  --blue: #6aa7ff;
+  --shadow: 0 18px 54px rgba(0, 0, 0, 0.32);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(239, 75, 95, 0.08), transparent 38%),
+    linear-gradient(225deg, rgba(72, 199, 216, 0.08), transparent 42%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 96px),
+    var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+  letter-spacing: 0;
+}
+
+button,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 14px;
+  height: 100vh;
+  min-height: 0;
+  padding: 18px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 74px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 240px;
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  flex: 0 0 50px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--red), var(--cyan));
+  color: #111216;
+  font-weight: 900;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--cyan);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 21px;
+  line-height: 1.35;
+}
+
+h2 {
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.scenario-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.scenario-btn,
+.intervention-btn,
+.primary-button,
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  background: var(--surface-2);
+  transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.scenario-btn {
+  min-width: 86px;
+  height: 42px;
+  padding: 0 10px;
+}
+
+.scenario-btn svg,
+.intervention-btn svg,
+.primary-button svg,
+.icon-button svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+}
+
+.scenario-btn:hover,
+.intervention-btn:hover,
+.primary-button:hover,
+.icon-button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(72, 199, 216, 0.55);
+}
+
+.scenario-btn.active {
+  color: #121315;
+  border-color: transparent;
+  background: var(--cyan);
+}
+
+.scenario-btn.danger.active {
+  color: #fff7f2;
+  background: var(--red);
+}
+
+.dashboard {
+  display: grid;
+  grid-template-columns: minmax(460px, 1fr) minmax(320px, 380px) minmax(320px, 380px);
+  gap: 14px;
+  height: 100%;
+  min-height: 0;
+}
+
+.scene-panel,
+.insights-panel,
+.ai-panel {
+  min-width: 0;
+  min-height: 0;
+}
+
+.scene-panel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #0c0d10;
+  box-shadow: var(--shadow);
+}
+
+#scene {
+  position: absolute;
+  inset: 0;
+}
+
+#scene canvas {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.fallback-heart {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 50%;
+  width: min(46vw, 360px);
+  height: min(56vw, 430px);
+  min-width: 250px;
+  min-height: 300px;
+  transform: translate(-50%, -48%) rotateX(58deg) rotateZ(-12deg);
+  transform-style: preserve-3d;
+  filter: drop-shadow(0 28px 34px rgba(0, 0, 0, 0.42));
+  opacity: 1;
+  transition: opacity 280ms ease;
+  pointer-events: none;
+}
+
+body.webgl-ready .fallback-heart {
+  opacity: 0;
+}
+
+.fallback-human {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 50%;
+  width: min(38vw, 300px);
+  height: min(70vw, 560px);
+  min-width: 230px;
+  min-height: 430px;
+  transform: translate(-50%, -49%) rotateX(55deg) rotateZ(-5deg);
+  transform-style: preserve-3d;
+  filter: drop-shadow(0 30px 36px rgba(0, 0, 0, 0.42));
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity 280ms ease;
+}
+
+body.webgl-ready .fallback-human {
+  opacity: 0;
+}
+
+.fallback-human > div {
+  position: absolute;
+  transform-style: preserve-3d;
+}
+
+.fb-head {
+  top: 2%;
+  left: 39%;
+  width: 22%;
+  height: 12%;
+  border-radius: 50%;
+  background: rgba(232, 194, 170, 0.36);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.fb-brain {
+  top: 5%;
+  left: 43%;
+  width: 14%;
+  height: 6%;
+  border-radius: 50%;
+  background: #a78bfa;
+  box-shadow: 0 0 18px rgba(167, 139, 250, 0.62);
+}
+
+.fb-neck {
+  top: 13%;
+  left: 45%;
+  width: 10%;
+  height: 8%;
+  border-radius: 999px;
+  background: rgba(232, 194, 170, 0.25);
+}
+
+.fb-torso {
+  top: 18%;
+  left: 28%;
+  width: 44%;
+  height: 42%;
+  border-radius: 42% 42% 48% 48%;
+  background: rgba(232, 194, 170, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.fb-lung {
+  top: 25%;
+  width: 17%;
+  height: 20%;
+  border-radius: 48%;
+  background: rgba(72, 199, 216, 0.78);
+  box-shadow: inset -10px -12px 16px rgba(4, 54, 78, 0.32);
+}
+
+.lung-a {
+  left: 32%;
+}
+
+.lung-b {
+  right: 32%;
+}
+
+.fb-heart {
+  top: 36%;
+  left: 44%;
+  width: 13%;
+  height: 12%;
+  border-radius: 48% 52% 55% 45%;
+  background: #ef4b5f;
+  box-shadow: 0 0 18px rgba(239, 75, 95, 0.7);
+  animation: fallbackBeat 980ms ease-in-out infinite;
+}
+
+.fb-pancreas {
+  top: 48%;
+  left: 34%;
+  width: 32%;
+  height: 4%;
+  border-radius: 999px;
+  background: #f4b740;
+  box-shadow: 0 0 18px rgba(244, 183, 64, 0.6);
+}
+
+.fb-kidney {
+  top: 52%;
+  width: 10%;
+  height: 11%;
+  border-radius: 50%;
+  background: #c084fc;
+}
+
+.kidney-a {
+  left: 34%;
+}
+
+.kidney-b {
+  right: 34%;
+}
+
+.fb-arm {
+  top: 22%;
+  width: 7%;
+  height: 38%;
+  border-radius: 999px;
+  background: rgba(232, 194, 170, 0.2);
+}
+
+.arm-a {
+  left: 18%;
+  transform: rotate(13deg);
+}
+
+.arm-b {
+  right: 18%;
+  transform: rotate(-13deg);
+}
+
+.fb-leg {
+  top: 60%;
+  width: 10%;
+  height: 34%;
+  border-radius: 999px;
+  background: rgba(232, 194, 170, 0.2);
+}
+
+.leg-a {
+  left: 38%;
+}
+
+.leg-b {
+  right: 38%;
+}
+
+.vessel-main {
+  top: 24%;
+  left: 49%;
+  width: 3%;
+  height: 62%;
+  border-radius: 999px;
+  background: linear-gradient(#ff5d73, #4cc9f0);
+  box-shadow: 0 0 14px rgba(255, 93, 115, 0.55);
+}
+
+.fb-clot {
+  top: 75%;
+  left: 35%;
+  width: 18px;
+  height: 16px;
+  border-radius: 50%;
+  background: #6f1d1b;
+  box-shadow: 0 0 16px rgba(239, 75, 95, 0.8);
+  opacity: 0;
+}
+
+body[data-scenario="thrombosis"] .fb-clot,
+body[data-scenario="stroke_risk"] .fb-brain,
+body[data-scenario="diabetes_risk"] .fb-pancreas,
+body[data-scenario="hypertension"] .vessel-main,
+body[data-scenario="cardio_metabolic"] .fb-pancreas {
+  opacity: 1;
+  filter: saturate(1.55) brightness(1.18);
+}
+
+.fallback-chamber,
+.fallback-vessel,
+.fallback-coronary,
+.fallback-clot,
+.fallback-ischemia,
+.fallback-ring {
+  position: absolute;
+  transform-style: preserve-3d;
+}
+
+.fallback-chamber {
+  border-radius: 48% 52% 55% 45%;
+  background: linear-gradient(145deg, #ff8c78 0%, #e94c5c 50%, #8e1d2c 100%);
+  box-shadow: inset -22px -28px 34px rgba(78, 4, 13, 0.34), inset 18px 14px 28px rgba(255, 213, 190, 0.22);
+  animation: fallbackBeat 950ms ease-in-out infinite;
+}
+
+.chamber-left {
+  right: 30%;
+  bottom: 12%;
+  width: 34%;
+  height: 55%;
+  transform: translateZ(38px) rotate(-8deg);
+}
+
+.chamber-right {
+  left: 29%;
+  bottom: 16%;
+  width: 32%;
+  height: 49%;
+  transform: translateZ(32px) rotate(12deg);
+  background: linear-gradient(145deg, #ff9b7b 0%, #f36f45 48%, #9f321f 100%);
+}
+
+.fallback-chamber.atrium {
+  top: 25%;
+  bottom: auto;
+  width: 28%;
+  height: 25%;
+  border-radius: 50%;
+  animation-delay: 80ms;
+}
+
+.chamber-left.atrium {
+  right: 36%;
+}
+
+.chamber-right.atrium {
+  left: 35%;
+}
+
+.fallback-vessel {
+  top: 6%;
+  width: 18%;
+  height: 50%;
+  border-radius: 999px;
+  transform-origin: bottom center;
+}
+
+.vessel-aorta {
+  right: 30%;
+  background: linear-gradient(90deg, #ad5b14, #ffbe55 45%, #ffe08a);
+  transform: translateZ(22px) rotate(28deg);
+}
+
+.vessel-pulmonary {
+  left: 22%;
+  background: linear-gradient(90deg, #087ea4, #4cc9f0 55%, #b7f0ff);
+  transform: translateZ(18px) rotate(-62deg);
+}
+
+.fallback-coronary {
+  height: 4px;
+  border-radius: 999px;
+  background: #ffe066;
+  box-shadow: 0 0 10px rgba(255, 224, 102, 0.7);
+}
+
+.coronary-main {
+  right: 26%;
+  top: 47%;
+  width: 45%;
+  transform: translateZ(78px) rotate(111deg);
+}
+
+.coronary-branch {
+  right: 18%;
+  top: 59%;
+  width: 34%;
+  transform: translateZ(80px) rotate(28deg);
+}
+
+.fallback-clot {
+  right: 63%;
+  top: 45%;
+  width: 34px;
+  height: 30px;
+  border-radius: 44% 56% 50% 50%;
+  background: #6f1d1b;
+  box-shadow: 10px 2px 0 #8e2420, 0 0 18px rgba(239, 75, 95, 0.7);
+  transform: translateZ(94px);
+  opacity: 0;
+}
+
+.fallback-ischemia {
+  right: 43%;
+  bottom: 20%;
+  width: 35%;
+  height: 36%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 59, 48, 0.72), rgba(255, 59, 48, 0.08) 64%, transparent 70%);
+  transform: translateZ(82px);
+  opacity: 0;
+  animation: fallbackGlow 1.3s ease-in-out infinite;
+}
+
+.fallback-ring {
+  width: 30%;
+  height: 8%;
+  border: 3px solid rgba(72, 199, 216, 0.88);
+  border-radius: 50%;
+  transform: translateZ(112px) rotateX(68deg);
+}
+
+.ring-a {
+  top: 34%;
+  right: 27%;
+}
+
+.ring-b {
+  top: 52%;
+  left: 25%;
+  border-color: rgba(239, 75, 95, 0.9);
+}
+
+.ring-c {
+  bottom: 18%;
+  right: 44%;
+  border-color: rgba(244, 183, 64, 0.9);
+}
+
+body[data-scenario="coronary_clot"] .fallback-clot,
+body[data-scenario="coronary_clot"] .fallback-ischemia,
+body[data-scenario="ischemia"] .fallback-ischemia {
+  opacity: 1;
+}
+
+body[data-scenario="arrhythmia"] .fallback-ring {
+  animation: fallbackSpark 700ms linear infinite;
+}
+
+body[data-scenario="heart_failure"] .fallback-heart {
+  filter: drop-shadow(0 28px 34px rgba(0, 0, 0, 0.42)) saturate(0.82);
+}
+
+@keyframes fallbackBeat {
+  0%,
+  100% {
+    scale: 1;
+  }
+  12% {
+    scale: 1.055;
+  }
+  24% {
+    scale: 0.985;
+  }
+}
+
+@keyframes fallbackGlow {
+  0%,
+  100% {
+    transform: translateZ(82px) scale(0.96);
+  }
+  50% {
+    transform: translateZ(82px) scale(1.08);
+  }
+}
+
+@keyframes fallbackSpark {
+  to {
+    transform: translateZ(112px) rotateX(68deg) rotateZ(360deg);
+  }
+}
+
+.scene-hud {
+  position: absolute;
+  z-index: 5;
+  right: 14px;
+  left: 76px;
+  top: 14px;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr 1fr;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.scene-hud > div,
+.scene-disclaimer {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(12, 13, 16, 0.68);
+  backdrop-filter: blur(12px);
+}
+
+.hud-label {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.scene-hud strong {
+  display: block;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scene-tools {
+  position: absolute;
+  z-index: 6;
+  left: 14px;
+  top: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.scene-disclaimer {
+  position: absolute;
+  z-index: 5;
+  right: 14px;
+  bottom: 14px;
+  max-width: 520px;
+  color: #f6d3d7;
+  font-size: 12px;
+  line-height: 1.6;
+  pointer-events: none;
+}
+
+.icon-button {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+}
+
+.insights-panel,
+.ai-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metric-tile,
+.panel-section {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+}
+
+.metric-tile {
+  min-height: 108px;
+  padding: 14px;
+  border-top: 3px solid var(--blue);
+}
+
+.metric-tile.health {
+  border-top-color: var(--green);
+}
+
+.metric-tile.risk {
+  border-top-color: var(--amber);
+}
+
+.metric-tile.perfusion {
+  border-top-color: var(--cyan);
+}
+
+.metric-tile span,
+.metric-tile small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.metric-tile strong {
+  display: block;
+  overflow-wrap: anywhere;
+  margin: 8px 0;
+  font-size: 28px;
+  line-height: 1.15;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+#bpMetric,
+.sensor-value {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.panel-section {
+  padding: 14px;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  max-width: 144px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #1b1301;
+  background: var(--amber);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.badge.neutral {
+  color: var(--text);
+  background: var(--surface-3);
+}
+
+.sensor-list,
+.intervention-list,
+.prediction-list,
+.event-list,
+.evidence-list {
+  display: grid;
+  gap: 9px;
+}
+
+.sensor-item,
+.intervention-btn,
+.prediction-item,
+.event-item,
+.evidence-item {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(34, 37, 44, 0.78);
+}
+
+.sensor-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  color: var(--text);
+  text-align: right;
+}
+
+.sensor-item.selected {
+  border-color: rgba(72, 199, 216, 0.78);
+  background: rgba(72, 199, 216, 0.12);
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 4px rgba(70, 196, 131, 0.12);
+}
+
+.status-warning {
+  background: var(--amber);
+  box-shadow: 0 0 0 4px rgba(244, 183, 64, 0.12);
+}
+
+.status-critical {
+  background: var(--red);
+  box-shadow: 0 0 0 4px rgba(239, 75, 95, 0.14);
+}
+
+.item-main {
+  min-width: 0;
+}
+
+.item-main strong {
+  display: block;
+  overflow: hidden;
+  margin-bottom: 3px;
+  font-size: 13px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-main small,
+.event-item small,
+.prediction-item small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.sensor-value {
+  min-width: 76px;
+  color: var(--text);
+  font-weight: 900;
+  text-align: left;
+}
+
+.intervention-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.intervention-btn {
+  min-height: 44px;
+  width: 100%;
+  color: var(--text);
+  text-align: center;
+}
+
+.intervention-btn.active {
+  border-color: transparent;
+  background: var(--red);
+  color: #fff8f6;
+}
+
+.ai-box {
+  border-top: 3px solid var(--violet);
+}
+
+.ai-answer {
+  min-height: 116px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(12, 13, 16, 0.72);
+  color: var(--text);
+  line-height: 1.75;
+}
+
+.evidence-list {
+  margin-top: 9px;
+}
+
+.evidence-item {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.ask-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-top: 10px;
+  align-items: stretch;
+}
+
+textarea {
+  width: 100%;
+  min-width: 0;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: #12141a;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+textarea:focus {
+  outline: 2px solid rgba(72, 199, 216, 0.34);
+  border-color: rgba(72, 199, 216, 0.65);
+}
+
+.primary-button {
+  min-width: 86px;
+  padding: 0 14px;
+  border-color: transparent;
+  background: var(--cyan);
+  color: #081214;
+  font-weight: 900;
+}
+
+.prediction-item strong,
+.event-item strong {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.event-item.watch,
+.event-item.warning {
+  border-color: rgba(244, 183, 64, 0.42);
+}
+
+.event-item.critical {
+  border-color: rgba(239, 75, 95, 0.56);
+}
+
+@media (max-width: 1240px) {
+  body {
+    overflow: auto;
+  }
+
+  .app-shell {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .dashboard {
+    grid-template-columns: 1fr 1fr;
+    grid-auto-rows: minmax(360px, auto);
+  }
+
+  .scene-panel {
+    grid-column: 1 / -1;
+    min-height: 56vh;
+  }
+}
+
+@media (max-width: 820px) {
+  .app-shell {
+    padding: 10px;
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .brand {
+    width: 100%;
+  }
+
+  .scenario-switcher {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .scenario-btn {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .dashboard {
+    grid-template-columns: 1fr;
+  }
+
+  .scene-panel {
+    min-height: 460px;
+  }
+
+  .scene-hud {
+    left: 14px;
+    right: 14px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .scene-disclaimer {
+    left: 14px;
+    max-width: none;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ask-row {
+    grid-template-columns: 1fr;
+  }
+
+  .primary-button {
+    height: 44px;
+  }
+}
+
+@media (max-width: 520px) {
+  .scene-hud {
+    top: auto;
+    bottom: 70px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .scene-panel {
+    min-height: 540px;
+  }
+
+  .intervention-list {
+    grid-template-columns: 1fr;
+  }
+}
