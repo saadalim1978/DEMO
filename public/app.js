@@ -1055,8 +1055,8 @@ function focusSensor(sensorId) {
 }
 
 function resetCamera() {
-  camera.position.set(0.35, 0.88, 7.25);
-  controls?.target.set(0, 0.58, 0.12);
+  camera.position.set(0.18, 0.72, 7.85);
+  controls?.target.set(0, 0.45, 0.14);
 }
 
 function resize() {
@@ -1070,8 +1070,8 @@ function resize() {
 
   const mobileLayout = width < 520;
   if (mobileLayout && !camera.userData.mobileLayout) {
-    camera.position.set(0.28, 0.72, 8.05);
-    controls?.target.set(0, 0.52, 0.12);
+    camera.position.set(0.24, 0.68, 8.1);
+    controls?.target.set(0, 0.45, 0.14);
     camera.userData.mobileLayout = true;
   } else if (!mobileLayout && camera.userData.mobileLayout) {
     resetCamera();
