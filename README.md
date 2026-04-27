@@ -10,6 +10,7 @@
 - سيناريوهات محاكاة: جسم مستقر، خطر السكري، ارتفاع ضغط الدم، خطر الجلطات، خطر السكتة، ومتلازمة أيضية.
 - مساعد AI محلي مبني على قواعد تحليلية، مع دعم OpenAI اختياري عند توفر `OPENAI_API_KEY`.
 - مؤشرات حيوية متغيرة: سكر الدم، السكر التراكمي، مقاومة الإنسولين، الضغط، النبض، الأكسجين، LDL، الدهون الثلاثية، BMI، قابلية التخثر، D-dimer، تدفق أوردة الساق، وظائف الكلى، وتروية الدماغ.
+- يستخدم ملفات GLB جاهزة للأعضاء الداخلية من مشروع [Human Organs](https://github.com/code4fukui/human_organs)، المبني على بيانات NIH 3D Print Exchange.
 
 > تنبيه: هذا demo تعليمي وليس جهازًا طبيًا أو أداة تشخيص أو توصية علاجية. أي أعراض حقيقية مثل ألم صدر، ضيق نفس، علامات سكتة، أو تورم/ألم ساق مفاجئ تحتاج تواصلًا فوريًا مع الطوارئ أو الطبيب.
 
@@ -93,6 +94,7 @@ $env:OPENAI_MODEL="gpt-4o-mini"
 
 ## مراجع عامة
 
+- [Human Organs GLB data](https://github.com/code4fukui/human_organs) by Taisuke Fukuno, with organ data sourced from NIH 3D Print Exchange.
 - [CDC: Preventing Type 2 Diabetes](https://www.cdc.gov/diabetes/prevention-type-2/index.html)
 - [CDC: High Blood Pressure Risk Factors](https://www.cdc.gov/high-blood-pressure/risk-factors/index.html)
 - [CDC: Risk Factors for Blood Clots](https://www.cdc.gov/blood-clots/risk-factors/index.html)
