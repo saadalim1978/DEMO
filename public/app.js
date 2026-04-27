@@ -57,12 +57,21 @@ const disease = {};
 const bodyParts = {};
 const gltfLoader = new GLTFLoader();
 
+const bodyShellAsset = {
+  file: "VH_M_Skin.glb",
+  label: "NIH 3D Skin, Male",
+  source: "NIH 3D",
+  fit: [2.96, 5.15, 0.9],
+  position: [0, 0.18, 0],
+  rotation: [0, 0, 0]
+};
+
 const organAssets = [
   {
     key: "lungs",
     file: "3d-vh-f-lung.glb",
     label: "Lungs",
-    position: [0.01, 1.43, 0.22],
+    position: [0.01, 1.43, 0.08],
     fit: [0.56, 0.72, 0.28],
     rotation: [0, Math.PI, 0],
     material: { color: 0x48c7d8, emissive: 0x07334a, opacity: 0.72 }
@@ -71,7 +80,7 @@ const organAssets = [
     key: "heart",
     file: "VH_M_Heart.glb",
     label: "Heart",
-    position: [-0.07, 1.17, 0.43],
+    position: [-0.07, 1.17, 0.18],
     fit: [0.26, 0.32, 0.22],
     rotation: [0, -0.2, 0],
     material: { color: 0xef4b5f, emissive: 0x4c0712, opacity: 0.96 }
@@ -80,7 +89,7 @@ const organAssets = [
     key: "liver",
     file: "VH_M_Liver.glb",
     label: "Liver",
-    position: [0.23, 0.66, 0.32],
+    position: [0.23, 0.66, 0.13],
     fit: [0.54, 0.26, 0.22],
     rotation: [0, Math.PI, 0],
     material: { color: 0x9a4d2f, emissive: 0x341006, opacity: 0.88 }
@@ -89,7 +98,7 @@ const organAssets = [
     key: "stomach",
     file: "realistic_stomach.glb",
     label: "Stomach",
-    position: [-0.2, 0.55, 0.38],
+    position: [-0.2, 0.55, 0.2],
     fit: [0.27, 0.32, 0.2],
     rotation: [0, 0.2, 0],
     material: { color: 0xff9f80, emissive: 0x44140c, opacity: 0.9 }
@@ -98,7 +107,7 @@ const organAssets = [
     key: "pancreas",
     file: "3d-vh-m-pancreas.glb",
     label: "Pancreas",
-    position: [-0.04, 0.72, 0.43],
+    position: [-0.04, 0.72, 0.19],
     fit: [0.48, 0.12, 0.12],
     rotation: [0, Math.PI, 0],
     material: { color: 0xf4b740, emissive: 0x5a3600, opacity: 0.95 }
@@ -107,7 +116,7 @@ const organAssets = [
     key: "leftKidney",
     file: "VH_M_Kidney_L.glb",
     label: "Left Kidney",
-    position: [-0.3, 0.35, 0.22],
+    position: [-0.3, 0.35, -0.02],
     fit: [0.16, 0.26, 0.12],
     rotation: [0, Math.PI, -0.18],
     material: { color: 0xc084fc, emissive: 0x28113c, opacity: 0.9 }
@@ -116,7 +125,7 @@ const organAssets = [
     key: "rightKidney",
     file: "VH_M_Kidney_L.glb",
     label: "Right Kidney",
-    position: [0.3, 0.35, 0.22],
+    position: [0.3, 0.35, -0.02],
     fit: [0.16, 0.26, 0.12],
     rotation: [0, 0, 0.18],
     mirrorX: true,
@@ -126,7 +135,7 @@ const organAssets = [
     key: "smallIntestine",
     file: "VH_F_Small_Intestine.glb",
     label: "Small Intestine",
-    position: [0, 0.14, 0.42],
+    position: [0, 0.14, 0.18],
     fit: [0.54, 0.5, 0.22],
     rotation: [0, Math.PI, 0],
     material: { color: 0xffb3a7, emissive: 0x4e1b16, opacity: 0.84 }
@@ -135,7 +144,7 @@ const organAssets = [
     key: "largeIntestine",
     file: "SBU_F_Intestine_Large.glb",
     label: "Large Intestine",
-    position: [0, 0.15, 0.4],
+    position: [0, 0.15, 0.17],
     fit: [0.64, 0.58, 0.24],
     rotation: [0, Math.PI, 0],
     material: { color: 0xffb3a7, emissive: 0x4e1b16, opacity: 0.76 }
@@ -144,7 +153,7 @@ const organAssets = [
     key: "bladder",
     file: "VH_F_Urinary_Bladder.glb",
     label: "Bladder",
-    position: [0, -0.46, 0.34],
+    position: [0, -0.46, 0.1],
     fit: [0.18, 0.18, 0.16],
     rotation: [0, Math.PI, 0],
     material: { color: 0xff77aa, emissive: 0x4c0b24, opacity: 0.86 }
@@ -228,14 +237,17 @@ function initScene() {
 
 function addBodyTwinModel() {
   humanGroup = new THREE.Group();
-  humanGroup.rotation.set(-0.01, -0.015, 0);
-  humanGroup.scale.setScalar(0.96);
+  humanGroup.rotation.set(0.01, -Math.PI / 2, 0);
+  humanGroup.scale.setScalar(0.98);
   scene.add(humanGroup);
 
   const vesselRed = vesselMaterial(0xff5d73, 0x5a0610, 0.35);
   const vesselBlue = vesselMaterial(0x4cc9f0, 0x052d4a, 0.24);
 
-  addHumanSilhouette();
+  loadNihBodyShell().catch((error) => {
+    console.warn("NIH body shell failed to load, using canvas silhouette fallback", error);
+    addHumanSilhouette();
+  });
   loadReadyMadeOrgans();
   bodyParts.brain = addEllipsoid("brain", [0, 2.8, 0.08], [0.23, 0.15, 0.19], organMaterial(0xa78bfa, 0x221146, 0.78));
   addBrainFolds();
@@ -322,6 +334,103 @@ function addBodyTwinModel() {
   createGlucoseParticles();
   createVascularAndNerveNetwork();
   createAnatomyLabels();
+}
+
+async function loadNihBodyShell() {
+  const gltf = await gltfLoader.loadAsync(`/models/body/${bodyShellAsset.file}`);
+  const shell = prepareBodyShell(gltf.scene);
+  humanGroup.add(shell);
+  bodyParts.skin = shell;
+  document.body.dataset.bodyShell = "nih-3d-skin-male";
+}
+
+function prepareBodyShell(sceneModel) {
+  const wrapper = new THREE.Group();
+  wrapper.name = "nih-human-body-shell";
+  sceneModel.name = "nih-human-skin-source";
+
+  sceneModel.traverse((child) => {
+    if (!child.isMesh) return;
+    child.castShadow = true;
+    child.receiveShadow = true;
+    child.frustumCulled = false;
+    child.renderOrder = 1;
+    child.material = skinShellMaterial();
+  });
+
+  fitModelToBox(sceneModel, bodyShellAsset.fit);
+  wrapper.add(sceneModel);
+  wrapper.position.set(...bodyShellAsset.position);
+  wrapper.rotation.set(...bodyShellAsset.rotation);
+  wrapper.userData.asset = bodyShellAsset;
+
+  const edge = createBodyInspectionWindow();
+  wrapper.add(edge);
+  return wrapper;
+}
+
+function fitModelToBox(sceneModel, fitBox) {
+  const box = new THREE.Box3().setFromObject(sceneModel);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  const fit = new THREE.Vector3(...fitBox);
+  const scale = Math.min(fit.x / size.x, fit.y / size.y, fit.z / size.z);
+
+  sceneModel.scale.setScalar(scale);
+  sceneModel.position.set(
+    -center.x * sceneModel.scale.x,
+    -center.y * sceneModel.scale.y,
+    -center.z * sceneModel.scale.z
+  );
+}
+
+function skinShellMaterial() {
+  return new THREE.MeshPhysicalMaterial({
+    color: 0xffc8b6,
+    roughness: 0.62,
+    metalness: 0.01,
+    clearcoat: 0.2,
+    clearcoatRoughness: 0.6,
+    emissive: 0x2c1210,
+    emissiveIntensity: 0.04,
+    transparent: true,
+    opacity: 0.34,
+    depthWrite: false,
+    side: THREE.DoubleSide
+  });
+}
+
+function createBodyInspectionWindow() {
+  const group = new THREE.Group();
+  group.name = "body-inspection-window";
+  const lineMaterial = new THREE.LineBasicMaterial({
+    color: 0xffe2d6,
+    transparent: true,
+    opacity: 0.48
+  });
+  const points = [];
+  for (let i = 0; i <= 72; i += 1) {
+    const t = (i / 72) * Math.PI * 2;
+    points.push(new THREE.Vector3(-0.42, 0.58 + Math.sin(t) * 0.93, 0.06 + Math.cos(t) * 0.31));
+  }
+  const outline = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), lineMaterial);
+  group.add(outline);
+
+  const panel = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.56, 1.72),
+    new THREE.MeshBasicMaterial({
+      color: 0x101419,
+      transparent: true,
+      opacity: 0.12,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    })
+  );
+  panel.position.set(-0.42, 0.58, 0.06);
+  panel.rotation.y = Math.PI / 2;
+  panel.renderOrder = 0;
+  group.add(panel);
+  return group;
 }
 
 async function loadReadyMadeOrgans() {
@@ -882,7 +991,7 @@ function buildSensors(sensors) {
 
       group.userData.sensorId = sensor.id;
       sensorMeshes.set(sensor.id, group);
-      scene.add(group);
+      humanGroup?.add(group);
     }
 
     group.position.set(...sensor.position);
@@ -898,7 +1007,7 @@ function buildSensors(sensors) {
 
   for (const [id, group] of sensorMeshes) {
     if (!seen.has(id)) {
-      scene.remove(group);
+      group.parent?.remove(group);
       sensorMeshes.delete(id);
     }
   }
@@ -1168,7 +1277,9 @@ function wireEvents() {
 function focusSensor(sensorId) {
   const group = sensorMeshes.get(sensorId);
   if (!group || !controls) return;
-  controls.target.copy(group.position);
+  const worldPosition = new THREE.Vector3();
+  group.getWorldPosition(worldPosition);
+  controls.target.copy(worldPosition);
 }
 
 function resetCamera() {

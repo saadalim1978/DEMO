@@ -95,6 +95,8 @@ $env:OPENAI_MODEL="gpt-4o-mini"
 ## مراجع عامة
 
 - [Human Organs GLB data](https://github.com/code4fukui/human_organs) by Taisuke Fukuno, with organ data sourced from NIH 3D Print Exchange.
+- [NIH 3D: Skin, Male](https://3d.nih.gov/entries/21016/1), used as the transparent GLB body shell in the 3D scene.
+- [NIH 3D: Body, Male](https://3d.nih.gov/entries/21022/1.01), reviewed as a full HRA reference organ model; it is too large to commit directly to GitHub.
 - [CDC: Preventing Type 2 Diabetes](https://www.cdc.gov/diabetes/prevention-type-2/index.html)
 - [CDC: High Blood Pressure Risk Factors](https://www.cdc.gov/high-blood-pressure/risk-factors/index.html)
 - [CDC: Risk Factors for Blood Clots](https://www.cdc.gov/blood-clots/risk-factors/index.html)
