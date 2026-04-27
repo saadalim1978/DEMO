@@ -59,8 +59,8 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0c0d10);
 scene.fog = new THREE.Fog(0x0c0d10, 10, 24);
 
-const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 100);
-camera.position.set(0.35, 0.88, 7.25);
+const camera = new THREE.PerspectiveCamera(44, 1, 0.1, 100);
+camera.position.set(0.18, 0.72, 7.85);
 
 try {
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
@@ -73,7 +73,7 @@ try {
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.06;
-  controls.target.set(0, 0.58, 0.12);
+  controls.target.set(0, 0.45, 0.14);
   controls.maxPolarAngle = Math.PI * 0.64;
   controls.minDistance = 4.3;
   controls.maxDistance = 11.5;
@@ -132,50 +132,64 @@ function initScene() {
 
 function addBodyTwinModel() {
   humanGroup = new THREE.Group();
-  humanGroup.rotation.set(-0.02, -0.02, 0);
-  humanGroup.scale.setScalar(0.94);
+  humanGroup.rotation.set(-0.01, -0.015, 0);
+  humanGroup.scale.setScalar(0.96);
   scene.add(humanGroup);
 
   const skinMat = new THREE.MeshPhysicalMaterial({
-    color: 0xe8c2aa,
+    color: 0xf2c8b4,
     roughness: 0.62,
     metalness: 0.02,
     clearcoat: 0.16,
     transparent: true,
-    opacity: 0.18,
+    opacity: 0.045,
     side: THREE.DoubleSide
   });
-  const outlineMat = new THREE.MeshBasicMaterial({ color: 0x6a3a3a, transparent: true, opacity: 0.16, side: THREE.BackSide });
+  const outlineMat = new THREE.MeshBasicMaterial({ color: 0xf2b9a5, transparent: true, opacity: 0.07, side: THREE.BackSide });
   const vesselRed = vesselMaterial(0xff5d73, 0x5a0610, 0.35);
   const vesselBlue = vesselMaterial(0x4cc9f0, 0x052d4a, 0.24);
   const boneMat = boneMaterial();
 
-  const torso = addEllipsoid("body-shell", [0, 0.9, 0], [0.88, 1.35, 0.42], skinMat);
-  const torsoBack = new THREE.Mesh(torso.geometry, outlineMat);
-  torsoBack.position.copy(torso.position);
-  torsoBack.scale.copy(torso.scale).multiplyScalar(1.02);
+  addHumanSilhouette();
+
+  const chest = addEllipsoid("chest-shell", [0, 1.28, 0], [0.72, 0.78, 0.31], skinMat);
+  const abdomen = addEllipsoid("abdomen-shell", [0, 0.42, 0], [0.58, 0.7, 0.3], skinMat);
+  const torsoBack = new THREE.Mesh(chest.geometry, outlineMat);
+  torsoBack.position.copy(chest.position);
+  torsoBack.scale.copy(chest.scale).multiplyScalar(1.035);
   humanGroup.add(torsoBack);
 
-  addEllipsoid("pelvis-shell", [0, -0.55, 0], [0.58, 0.38, 0.36], skinMat, [0, 0, 0.05]);
-  addEllipsoid("head-shell", [0, 2.84, 0.02], [0.36, 0.42, 0.34], skinMat);
-  capsuleBetween([0, 2.25, 0], [0, 2.52, 0], 0.12, skinMat);
+  addEllipsoid("pelvis-shell", [0, -0.45, 0], [0.48, 0.32, 0.28], skinMat, [0, 0, 0.04]);
+  addEllipsoid("head-shell", [0, 2.78, 0.02], [0.3, 0.36, 0.28], skinMat);
+  capsuleBetween([0, 2.24, 0], [0, 2.5, 0], 0.085, skinMat);
 
-  capsuleBetween([-0.62, 1.82, 0], [-1.28, 0.52, 0.02], 0.09, skinMat);
-  capsuleBetween([0.62, 1.82, 0], [1.28, 0.52, 0.02], 0.09, skinMat);
-  capsuleBetween([-0.32, -0.82, 0], [-0.42, -2.14, 0.02], 0.13, skinMat);
-  capsuleBetween([0.32, -0.82, 0], [0.42, -2.14, 0.02], 0.13, skinMat);
+  addEllipsoid("left-shoulder", [-0.58, 1.78, 0.02], [0.12, 0.11, 0.1], skinMat);
+  addEllipsoid("right-shoulder", [0.58, 1.78, 0.02], [0.12, 0.11, 0.1], skinMat);
+  capsuleBetween([-0.58, 1.74, 0], [-0.78, 1.02, 0.02], 0.058, skinMat);
+  capsuleBetween([-0.78, 1.02, 0.02], [-0.88, 0.36, 0.05], 0.048, skinMat);
+  capsuleBetween([0.58, 1.74, 0], [0.78, 1.02, 0.02], 0.058, skinMat);
+  capsuleBetween([0.78, 1.02, 0.02], [0.88, 0.36, 0.05], 0.048, skinMat);
+  addEllipsoid("left-hand-shell", [-0.91, 0.25, 0.08], [0.07, 0.12, 0.045], skinMat, [0, 0, -0.16]);
+  addEllipsoid("right-hand-shell", [0.91, 0.25, 0.08], [0.07, 0.12, 0.045], skinMat, [0, 0, 0.16]);
+
+  capsuleBetween([-0.23, -0.72, 0], [-0.29, -1.4, 0.02], 0.092, skinMat);
+  capsuleBetween([-0.29, -1.4, 0.02], [-0.34, -2.13, 0.06], 0.074, skinMat);
+  capsuleBetween([0.23, -0.72, 0], [0.29, -1.4, 0.02], 0.092, skinMat);
+  capsuleBetween([0.29, -1.4, 0.02], [0.34, -2.13, 0.06], 0.074, skinMat);
+  addEllipsoid("left-foot-shell", [-0.34, -2.3, 0.2], [0.11, 0.06, 0.2], skinMat, [0.2, 0, -0.03]);
+  addEllipsoid("right-foot-shell", [0.34, -2.3, 0.2], [0.11, 0.06, 0.2], skinMat, [0.2, 0, 0.03]);
 
   createSkeleton(boneMat);
-  bodyParts.brain = addEllipsoid("brain", [0, 2.91, 0.08], [0.28, 0.18, 0.24], organMaterial(0xa78bfa, 0x221146, 0.82));
+  bodyParts.brain = addEllipsoid("brain", [0, 2.8, 0.08], [0.23, 0.15, 0.19], organMaterial(0xa78bfa, 0x221146, 0.78));
   addBrainFolds();
 
-  bodyParts.leftLung = addEllipsoid("left-lung", [-0.28, 1.48, 0.2], [0.28, 0.58, 0.17], organMaterial(0x48c7d8, 0x07334a, 0.62), [0.04, 0, -0.08]);
-  bodyParts.rightLung = addEllipsoid("right-lung", [0.28, 1.48, 0.2], [0.28, 0.58, 0.17], organMaterial(0x48c7d8, 0x07334a, 0.62), [0.04, 0, 0.08]);
-  bodyParts.heart = addEllipsoid("heart", [-0.12, 1.24, 0.44], [0.17, 0.25, 0.16], organMaterial(0xef4b5f, 0x4c0712, 0.95), [0.08, 0.16, -0.2]);
-  bodyParts.liver = addEllipsoid("liver", [0.28, 0.66, 0.34], [0.36, 0.22, 0.16], organMaterial(0x9a4d2f, 0x341006, 0.84), [0, 0, -0.08]);
-  bodyParts.pancreas = capsuleBetween([-0.38, 0.72, 0.44], [0.24, 0.76, 0.46], 0.055, organMaterial(0xf4b740, 0x5a3600, 0.95));
-  bodyParts.leftKidney = addEllipsoid("left-kidney", [-0.38, 0.34, 0.22], [0.13, 0.22, 0.1], organMaterial(0xc084fc, 0x28113c, 0.88), [0, 0.18, -0.18]);
-  bodyParts.rightKidney = addEllipsoid("right-kidney", [0.38, 0.34, 0.22], [0.13, 0.22, 0.1], organMaterial(0xc084fc, 0x28113c, 0.88), [0, -0.18, 0.18]);
+  bodyParts.leftLung = addEllipsoid("left-lung", [-0.24, 1.42, 0.23], [0.21, 0.43, 0.13], organMaterial(0x48c7d8, 0x07334a, 0.6), [0.04, 0, -0.08]);
+  bodyParts.rightLung = addEllipsoid("right-lung", [0.24, 1.42, 0.23], [0.21, 0.43, 0.13], organMaterial(0x48c7d8, 0x07334a, 0.6), [0.04, 0, 0.08]);
+  bodyParts.heart = addEllipsoid("heart", [-0.06, 1.18, 0.39], [0.13, 0.19, 0.12], organMaterial(0xef4b5f, 0x4c0712, 0.94), [0.08, 0.16, -0.16]);
+  bodyParts.liver = addEllipsoid("liver", [0.23, 0.66, 0.3], [0.29, 0.17, 0.12], organMaterial(0x9a4d2f, 0x341006, 0.78), [0, 0, -0.08]);
+  bodyParts.pancreas = capsuleBetween([-0.3, 0.72, 0.37], [0.19, 0.75, 0.39], 0.04, organMaterial(0xf4b740, 0x5a3600, 0.9));
+  bodyParts.leftKidney = addEllipsoid("left-kidney", [-0.31, 0.35, 0.2], [0.1, 0.17, 0.075], organMaterial(0xc084fc, 0x28113c, 0.84), [0, 0.16, -0.16]);
+  bodyParts.rightKidney = addEllipsoid("right-kidney", [0.31, 0.35, 0.2], [0.1, 0.17, 0.075], organMaterial(0xc084fc, 0x28113c, 0.84), [0, -0.16, 0.16]);
   createDigestiveSystem();
 
   createTube(
@@ -183,8 +197,8 @@ function addBodyTwinModel() {
       [-0.12, 1.2, 0.5],
       [-0.02, 1.62, 0.48],
       [0, 2.12, 0.32],
-      [-0.1, 2.48, 0.2],
-      [0, 2.78, 0.1]
+      [-0.08, 2.38, 0.2],
+      [0, 2.7, 0.1]
     ],
     0.045,
     vesselRed,
@@ -196,7 +210,7 @@ function addBodyTwinModel() {
       [-0.02, 0.55, 0.42],
       [0, -0.35, 0.34],
       [-0.28, -1.12, 0.23],
-      [-0.4, -2.02, 0.18]
+      [-0.32, -2.02, 0.18]
     ],
     0.04,
     vesselRed,
@@ -206,7 +220,7 @@ function addBodyTwinModel() {
     [
       [-0.02, -0.35, 0.34],
       [0.28, -1.12, 0.22],
-      [0.4, -2.02, 0.18]
+      [0.32, -2.02, 0.18]
     ],
     0.036,
     vesselRed,
@@ -217,7 +231,7 @@ function addBodyTwinModel() {
       [0.18, 1.18, 0.39],
       [0.08, 0.46, 0.33],
       [-0.18, -0.55, 0.26],
-      [-0.38, -1.6, 0.2]
+      [-0.3, -1.58, 0.2]
     ],
     0.035,
     vesselBlue,
@@ -228,7 +242,7 @@ function addBodyTwinModel() {
       [0.18, 1.15, 0.38],
       [0.22, 0.42, 0.32],
       [0.38, -0.58, 0.24],
-      [0.48, -1.75, 0.18]
+      [0.36, -1.72, 0.18]
     ],
     0.032,
     vesselBlue,
@@ -238,7 +252,7 @@ function addBodyTwinModel() {
     [
       [-0.02, 2.02, 0.34],
       [-0.18, 2.34, 0.28],
-      [-0.22, 2.72, 0.16]
+      [-0.16, 2.64, 0.16]
     ],
     0.024,
     vesselRed,
@@ -248,7 +262,7 @@ function addBodyTwinModel() {
     [
       [0.02, 2.02, 0.34],
       [0.18, 2.34, 0.28],
-      [0.22, 2.72, 0.16]
+      [0.16, 2.64, 0.16]
     ],
     0.024,
     vesselRed,
@@ -262,45 +276,138 @@ function addBodyTwinModel() {
   createAnatomyLabels();
 }
 
+function addHumanSilhouette() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 700;
+  canvas.height = 1700;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const fill = "rgba(242, 200, 180, 0.28)";
+  const stroke = "rgba(255, 218, 205, 0.56)";
+  const shadow = "rgba(239, 75, 95, 0.18)";
+
+  ctx.save();
+  ctx.shadowColor = shadow;
+  ctx.shadowBlur = 34;
+  ctx.fillStyle = fill;
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = 8;
+  ctx.lineJoin = "round";
+
+  ctx.beginPath();
+  ctx.ellipse(350, 184, 84, 112, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.roundRect(305, 292, 90, 108, 42);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(238, 390);
+  ctx.bezierCurveTo(278, 350, 422, 350, 462, 390);
+  ctx.bezierCurveTo(505, 502, 480, 748, 430, 936);
+  ctx.bezierCurveTo(398, 1000, 302, 1000, 270, 936);
+  ctx.bezierCurveTo(220, 748, 195, 502, 238, 390);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  [
+    { side: -1, shoulder: 244, wrist: 142 },
+    { side: 1, shoulder: 456, wrist: 558 }
+  ].forEach(({ side, shoulder, wrist }) => {
+    ctx.beginPath();
+    ctx.moveTo(shoulder, 420);
+    ctx.bezierCurveTo(shoulder + side * 48, 566, wrist + side * 10, 830, wrist, 1120);
+    ctx.bezierCurveTo(wrist - side * 42, 1148, wrist - side * 64, 1090, wrist - side * 50, 1002);
+    ctx.bezierCurveTo(wrist - side * 34, 780, shoulder - side * 12, 548, shoulder - side * 54, 444);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  });
+
+  [
+    { side: -1, hip: 304, ankle: 292 },
+    { side: 1, hip: 396, ankle: 408 }
+  ].forEach(({ side, hip, ankle }) => {
+    ctx.beginPath();
+    ctx.moveTo(hip, 900);
+    ctx.bezierCurveTo(hip + side * 32, 1064, ankle + side * 30, 1375, ankle, 1572);
+    ctx.bezierCurveTo(ankle - side * 16, 1622, ankle - side * 70, 1618, ankle - side * 74, 1560);
+    ctx.bezierCurveTo(ankle - side * 68, 1358, hip - side * 18, 1120, 350 - side * 10, 930);
+    ctx.bezierCurveTo(334, 906, 318, 900, hip, 900);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  });
+
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.18)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(350, 402);
+  ctx.bezierCurveTo(328, 592, 326, 836, 350, 1030);
+  ctx.bezierCurveTo(374, 836, 372, 592, 350, 402);
+  ctx.stroke();
+  ctx.restore();
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const silhouette = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.15, 5.25),
+    new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    })
+  );
+  silhouette.name = "human-silhouette";
+  silhouette.position.set(0, 0.22, -0.08);
+  humanGroup.add(silhouette);
+}
+
 function createSkeleton(boneMat) {
-  addEllipsoid("skull", [0, 2.86, -0.02], [0.31, 0.38, 0.28], boneMat);
-  addEllipsoid("jaw", [0, 2.6, 0.04], [0.22, 0.09, 0.18], boneMat);
-  capsuleBetween([0, 2.23, 0.02], [0, -0.72, 0.02], 0.032, boneMat);
-  for (let i = 0; i < 16; i += 1) {
-    const y = 2.15 - i * 0.18;
-    addEllipsoid(`vertebra-${i}`, [0, y, 0.03], [0.07, 0.045, 0.04], boneMat);
+  addEllipsoid("skull", [0, 2.77, -0.015], [0.25, 0.31, 0.22], boneMat);
+  addEllipsoid("jaw", [0, 2.53, 0.04], [0.16, 0.055, 0.13], boneMat);
+  capsuleBetween([0, 2.18, 0.02], [0, -0.56, 0.02], 0.022, boneMat);
+  for (let i = 0; i < 12; i += 1) {
+    const y = 2.02 - i * 0.18;
+    addEllipsoid(`vertebra-${i}`, [0, y, 0.035], [0.045, 0.032, 0.03], boneMat);
   }
 
-  capsuleBetween([-0.58, 1.9, 0.12], [-0.08, 1.78, 0.15], 0.035, boneMat);
-  capsuleBetween([0.58, 1.9, 0.12], [0.08, 1.78, 0.15], 0.035, boneMat);
-  capsuleBetween([-0.08, 1.82, 0.16], [0.08, 0.78, 0.18], 0.035, boneMat);
+  capsuleBetween([-0.5, 1.8, 0.11], [-0.07, 1.7, 0.14], 0.024, boneMat);
+  capsuleBetween([0.5, 1.8, 0.11], [0.07, 1.7, 0.14], 0.024, boneMat);
+  capsuleBetween([-0.06, 1.72, 0.16], [0.06, 0.82, 0.18], 0.026, boneMat);
 
-  for (let i = 0; i < 8; i += 1) {
-    const y = 1.68 - i * 0.12;
-    const width = 0.26 + i * 0.045;
+  for (let i = 0; i < 6; i += 1) {
+    const y = 1.58 - i * 0.12;
+    const width = 0.21 + i * 0.04;
     createRib(-1, y, width, boneMat);
     createRib(1, y, width, boneMat);
   }
 
   createPelvis(boneMat);
-  createLimbBones(boneMat);
 }
 
 function createRib(side, y, width, material) {
   const points = [
     [0.06 * side, y, 0.12],
-    [side * width * 0.58, y + 0.05, 0.18],
-    [side * width, y - 0.02, 0.09],
-    [side * width * 0.82, y - 0.12, -0.08],
-    [side * 0.14, y - 0.08, -0.05]
+    [side * width * 0.58, y + 0.035, 0.17],
+    [side * width, y - 0.025, 0.08],
+    [side * width * 0.78, y - 0.1, -0.045],
+    [side * 0.12, y - 0.075, -0.035]
   ];
-  createTube(points, 0.014, material, `rib-${side}-${y}`);
+  createTube(points, 0.009, material, `rib-${side}-${y}`);
 }
 
 function createPelvis(material) {
-  createTube([[-0.48, -0.48, 0.05], [-0.25, -0.72, 0.12], [0, -0.66, 0.14], [0.25, -0.72, 0.12], [0.48, -0.48, 0.05]], 0.032, material, "pelvis-front");
-  createTube([[-0.48, -0.48, 0.05], [-0.58, -0.74, 0], [-0.32, -0.92, 0.03], [-0.08, -0.72, 0.12]], 0.028, material, "pelvis-left");
-  createTube([[0.48, -0.48, 0.05], [0.58, -0.74, 0], [0.32, -0.92, 0.03], [0.08, -0.72, 0.12]], 0.028, material, "pelvis-right");
+  createTube([[-0.38, -0.43, 0.05], [-0.2, -0.62, 0.12], [0, -0.58, 0.14], [0.2, -0.62, 0.12], [0.38, -0.43, 0.05]], 0.02, material, "pelvis-front");
+  createTube([[-0.38, -0.43, 0.05], [-0.43, -0.66, 0], [-0.22, -0.78, 0.03], [-0.06, -0.62, 0.12]], 0.017, material, "pelvis-left");
+  createTube([[0.38, -0.43, 0.05], [0.43, -0.66, 0], [0.22, -0.78, 0.03], [0.06, -0.62, 0.12]], 0.017, material, "pelvis-right");
 }
 
 function createLimbBones(material) {
@@ -339,73 +446,65 @@ function createFoot(side, material) {
 
 function createDigestiveSystem() {
   const stomachMat = organMaterial(0xff9f80, 0x44140c, 0.86);
-  addEllipsoid("stomach", [-0.22, 0.55, 0.48], [0.18, 0.28, 0.12], stomachMat, [0, 0.1, -0.2]);
+  addEllipsoid("stomach", [-0.19, 0.54, 0.38], [0.14, 0.21, 0.09], stomachMat, [0, 0.1, -0.2]);
   const intestineMat = vesselMaterial(0xffb3a7, 0x4e1b16, 0.08);
-  for (let row = 0; row < 5; row += 1) {
-    const y = 0.18 - row * 0.11;
+  for (let row = 0; row < 3; row += 1) {
+    const y = 0.18 - row * 0.12;
     const points = [];
-    for (let i = 0; i < 20; i += 1) {
-      const t = i / 19;
-      const x = -0.34 + t * 0.68;
-      const wiggle = Math.sin(t * Math.PI * 5 + row) * 0.06;
-      points.push([x, y + wiggle, 0.48 + Math.cos(t * Math.PI * 4) * 0.025]);
+    for (let i = 0; i < 18; i += 1) {
+      const t = i / 17;
+      const x = -0.27 + t * 0.54;
+      const wiggle = Math.sin(t * Math.PI * 4 + row) * 0.045;
+      points.push([x, y + wiggle, 0.38 + Math.cos(t * Math.PI * 4) * 0.018]);
     }
-    createTube(points, 0.026, intestineMat, `intestine-${row}`);
+    createTube(points, 0.018, intestineMat, `intestine-${row}`);
   }
-  addEllipsoid("bladder", [0, -0.58, 0.38], [0.12, 0.13, 0.1], organMaterial(0xff77aa, 0x4c0b24, 0.86));
+  addEllipsoid("bladder", [0, -0.46, 0.34], [0.095, 0.11, 0.08], organMaterial(0xff77aa, 0x4c0b24, 0.8));
 }
 
 function createVascularAndNerveNetwork() {
   const artery = vesselMaterial(0xff4d6d, 0x520411, 0.22);
   const vein = vesselMaterial(0x35c7ff, 0x033247, 0.18);
   const nerve = vesselMaterial(0xffd166, 0x493000, 0.12);
-  const colors = [artery, vein, nerve];
-  const offsets = [-0.032, 0.032, 0.072];
 
   [
-    { side: -1, points: [[-0.56, 1.78, 0.24], [-0.82, 1.18, 0.25], [-1.12, 0.56, 0.24], [-1.32, 0.26, 0.22]] },
-    { side: 1, points: [[0.56, 1.78, 0.24], [0.82, 1.18, 0.25], [1.12, 0.56, 0.24], [1.32, 0.26, 0.22]] },
-    { side: -1, points: [[-0.22, -0.7, 0.25], [-0.34, -1.25, 0.25], [-0.42, -1.78, 0.23], [-0.46, -2.22, 0.2]] },
-    { side: 1, points: [[0.22, -0.7, 0.25], [0.34, -1.25, 0.25], [0.42, -1.78, 0.23], [0.46, -2.22, 0.2]] }
-  ].forEach((limb) => {
-    colors.forEach((mat, index) => {
-      const shifted = limb.points.map(([x, y, z]) => [x + limb.side * offsets[index], y, z + index * 0.018]);
-      createTube(shifted, index === 2 ? 0.006 : 0.008, mat, `network-${limb.side}-${index}`);
-    });
-    for (let i = 1; i < limb.points.length - 1; i += 1) {
-      const [x, y, z] = limb.points[i];
-      createTube([[x, y, z], [x + limb.side * 0.16, y - 0.08, z + 0.03]], 0.0045, nerve, "nerve-branch");
-      createTube([[x, y, z + 0.02], [x - limb.side * 0.14, y - 0.06, z + 0.03]], 0.0045, vein, "vein-branch");
-    }
-  });
+    { side: -1, mat: artery, radius: 0.007, points: [[-0.34, 1.45, 0.3], [-0.58, 1.16, 0.3], [-0.78, 0.58, 0.27], [-0.9, 0.28, 0.18]] },
+    { side: 1, mat: artery, radius: 0.007, points: [[0.34, 1.45, 0.3], [0.58, 1.16, 0.3], [0.78, 0.58, 0.27], [0.9, 0.28, 0.18]] },
+    { side: -1, mat: vein, radius: 0.006, points: [[-0.28, 1.34, 0.25], [-0.5, 1.02, 0.25], [-0.73, 0.54, 0.24], [-0.86, 0.27, 0.16]] },
+    { side: 1, mat: vein, radius: 0.006, points: [[0.28, 1.34, 0.25], [0.5, 1.02, 0.25], [0.73, 0.54, 0.24], [0.86, 0.27, 0.16]] },
+    { side: -1, mat: artery, radius: 0.008, points: [[-0.12, -0.48, 0.28], [-0.24, -1.12, 0.25], [-0.32, -1.78, 0.2], [-0.34, -2.18, 0.18]] },
+    { side: 1, mat: artery, radius: 0.008, points: [[0.12, -0.48, 0.28], [0.24, -1.12, 0.25], [0.32, -1.78, 0.2], [0.34, -2.18, 0.18]] },
+    { side: -1, mat: vein, radius: 0.007, points: [[-0.02, -0.42, 0.23], [-0.18, -1.1, 0.22], [-0.28, -1.76, 0.19], [-0.3, -2.12, 0.16]] },
+    { side: 1, mat: vein, radius: 0.007, points: [[0.02, -0.42, 0.23], [0.18, -1.1, 0.22], [0.28, -1.76, 0.19], [0.3, -2.12, 0.16]] }
+  ].forEach((path) => createTube(path.points, path.radius, path.mat, `vascular-${path.side}`));
 
-  createTube([[0, 2.72, 0.16], [-0.16, 2.48, 0.2], [-0.32, 2.22, 0.24], [-0.48, 1.9, 0.25]], 0.006, nerve, "neck-nerve-left");
-  createTube([[0, 2.72, 0.16], [0.16, 2.48, 0.2], [0.32, 2.22, 0.24], [0.48, 1.9, 0.25]], 0.006, nerve, "neck-nerve-right");
+  createTube([[0, 2.6, 0.12], [-0.12, 2.3, 0.18], [-0.32, 1.94, 0.2], [-0.52, 1.78, 0.2]], 0.0045, nerve, "neck-nerve-left");
+  createTube([[0, 2.6, 0.12], [0.12, 2.3, 0.18], [0.32, 1.94, 0.2], [0.52, 1.78, 0.2]], 0.0045, nerve, "neck-nerve-right");
 }
 
 function createDiseaseLayers() {
-  disease.pancreasGlow = addGlowSphere([0, 0.74, 0.48], [0.62, 0.2, 0.12], 0xf4b740);
+  disease.pancreasGlow = addGlowSphere([0, 0.74, 0.4], [0.45, 0.15, 0.09], 0xf4b740);
   disease.glucoseField = new THREE.Group();
   disease.pressure = new THREE.Group();
-  disease.clot = createClotGroup([-0.38, -1.62, 0.2]);
-  disease.lungClot = createClotGroup([0.34, 1.55, 0.45], 0.68);
-  disease.brain = addGlowSphere([0, 2.92, 0.1], [0.44, 0.28, 0.32], 0xa78bfa);
-  disease.carotid = createClotGroup([-0.2, 2.36, 0.26], 0.52);
+  disease.clot = createClotGroup([-0.3, -1.58, 0.2], 0.76);
+  disease.lungClot = createClotGroup([0.28, 1.52, 0.38], 0.54);
+  disease.brain = addGlowSphere([0, 2.8, 0.1], [0.34, 0.22, 0.24], 0xa78bfa);
+  disease.carotid = createClotGroup([-0.16, 2.3, 0.24], 0.42);
   disease.kidney = new THREE.Group();
 
   for (let i = 0; i < 4; i += 1) {
     const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(0.38 + i * 0.19, 0.01, 8, 72),
+      new THREE.TorusGeometry(0.3 + i * 0.13, 0.008, 8, 72),
       new THREE.MeshBasicMaterial({ color: 0xef4b5f, transparent: true, opacity: 0.34, depthWrite: false })
     );
-    ring.position.set(0, 1.18 - i * 0.16, 0.42);
+    ring.position.set(0, 1.14 - i * 0.13, 0.36);
     ring.rotation.set(Math.PI / 2.35, 0, 0);
     disease.pressure.add(ring);
   }
   humanGroup.add(disease.pressure);
 
-  [[-0.38, 0.34, 0.22], [0.38, 0.34, 0.22]].forEach((pos) => {
-    const glow = addGlowSphere(pos, [0.2, 0.3, 0.16], 0xc084fc);
+  [[-0.31, 0.35, 0.2], [0.31, 0.35, 0.2]].forEach((pos) => {
+    const glow = addGlowSphere(pos, [0.15, 0.22, 0.12], 0xc084fc);
     disease.kidney.add(glow);
   });
   humanGroup.add(disease.kidney);
@@ -451,12 +550,12 @@ function createGlucoseParticles() {
 }
 
 function createAnatomyLabels() {
-  createAnatomyLabel("الدماغ", "#a78bfa", [0.62, 2.95, 0.25]);
-  createAnatomyLabel("الرئتان", "#48c7d8", [0.85, 1.66, 0.28]);
-  createAnatomyLabel("القلب", "#ef4b5f", [-0.58, 1.25, 0.72]);
-  createAnatomyLabel("البنكرياس", "#f4b740", [-0.72, 0.74, 0.74]);
-  createAnatomyLabel("الكلى", "#c084fc", [0.74, 0.34, 0.42]);
-  createAnatomyLabel("أوعية رئيسية", "#ff5d73", [0.66, 1.03, 0.76]);
+  createAnatomyLabel("الدماغ", "#a78bfa", [0.54, 2.78, 0.24]);
+  createAnatomyLabel("الرئتان", "#48c7d8", [0.65, 1.52, 0.3]);
+  createAnatomyLabel("القلب", "#ef4b5f", [-0.56, 1.18, 0.55]);
+  createAnatomyLabel("البنكرياس", "#f4b740", [-0.58, 0.72, 0.5]);
+  createAnatomyLabel("الكلى", "#c084fc", [0.58, 0.34, 0.38]);
+  createAnatomyLabel("الأوعية", "#ff5d73", [0.56, 0.96, 0.54]);
 }
 
 function addBrainFolds() {
@@ -465,7 +564,7 @@ function addBrainFolds() {
     const points = [];
     for (let j = 0; j < 24; j += 1) {
       const u = (j / 23) * Math.PI * 2;
-      points.push(new THREE.Vector3(Math.cos(u) * (0.12 + i * 0.025), 2.92 + Math.sin(u * 2 + i) * 0.018, 0.1 + Math.sin(u) * (0.07 + i * 0.018)));
+      points.push(new THREE.Vector3(Math.cos(u) * (0.09 + i * 0.02), 2.8 + Math.sin(u * 2 + i) * 0.014, 0.08 + Math.sin(u) * (0.055 + i * 0.014)));
     }
     humanGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), foldMat));
   }
@@ -612,7 +711,7 @@ function createAnatomyLabel(text, color, position) {
   texture.colorSpace = THREE.SRGBColorSpace;
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }));
   sprite.position.set(...position);
-  sprite.scale.set(0.78, 0.24, 1);
+  sprite.scale.set(0.54, 0.17, 1);
   humanGroup.add(sprite);
 }
 
@@ -635,11 +734,11 @@ function buildSensors(sensors) {
     if (!group) {
       group = new THREE.Group();
       const shell = new THREE.Mesh(
-        new THREE.SphereGeometry(0.066, 24, 18),
+        new THREE.SphereGeometry(0.045, 24, 18),
         new THREE.MeshStandardMaterial({
           color,
           emissive: color,
-          emissiveIntensity: 0.78,
+          emissiveIntensity: 0.62,
           roughness: 0.25,
           metalness: 0.12
         })
@@ -649,8 +748,8 @@ function buildSensors(sensors) {
       group.add(shell);
 
       const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(0.13, 0.006, 8, 32),
-        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.72 })
+        new THREE.TorusGeometry(0.09, 0.0045, 8, 32),
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.58 })
       );
       ring.rotation.x = Math.PI / 2;
       ring.name = "sensor-ring";
@@ -658,10 +757,10 @@ function buildSensors(sensors) {
       group.add(ring);
 
       const stem = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.006, 0.006, 0.28, 8),
-        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.24 })
+        new THREE.CylinderGeometry(0.004, 0.004, 0.18, 8),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.16 })
       );
-      stem.position.y = -0.14;
+      stem.position.y = -0.09;
       group.add(stem);
 
       group.userData.sensorId = sensor.id;
@@ -987,11 +1086,11 @@ function animate() {
 
   if (humanGroup) {
     const breathing = Math.sin(elapsed * 1.5) * 0.018;
-    bodyParts.leftLung?.scale.set(0.28 + breathing, 0.58 + breathing * 1.8, 0.17 + breathing);
-    bodyParts.rightLung?.scale.set(0.28 + breathing, 0.58 + breathing * 1.8, 0.17 + breathing);
+    bodyParts.leftLung?.scale.set(0.21 + breathing * 0.7, 0.43 + breathing * 1.25, 0.13 + breathing * 0.55);
+    bodyParts.rightLung?.scale.set(0.21 + breathing * 0.7, 0.43 + breathing * 1.25, 0.13 + breathing * 0.55);
     const bpm = Math.max(45, twinState?.summary?.heartRate || 72);
     const beat = Math.exp(-Math.pow(((elapsed % (60 / bpm)) / (60 / bpm) - 0.08) / 0.075, 2)) * 0.08;
-    bodyParts.heart?.scale.set(0.17 + beat, 0.25 + beat * 1.4, 0.16 + beat);
+    bodyParts.heart?.scale.set(0.13 + beat * 0.7, 0.19 + beat, 0.12 + beat * 0.55);
   }
 
   animateParticles(delta, elapsed);
