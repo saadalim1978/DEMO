@@ -4,6 +4,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 const dom = {
   scene: document.querySelector("#scene"),
+  scenePanel: document.querySelector(".scene-panel"),
   assetName: document.querySelector("#assetName"),
   scenarioName: document.querySelector("#scenarioName"),
   interventionName: document.querySelector("#interventionName"),
@@ -1441,8 +1442,9 @@ async function askAi(defaultQuestion) {
 
 function wireEvents() {
   window.addEventListener("resize", resize);
-  dom.refreshBtn.addEventListener("click", refreshTwin);
-  dom.resetCameraBtn.addEventListener("click", resetCamera);
+  document.addEventListener("fullscreenchange", updateSceneToolState);
+  dom.refreshBtn.addEventListener("click", handleRefreshClick);
+  dom.resetCameraBtn.addEventListener("click", toggleSceneFullscreen);
   dom.askBtn.addEventListener("click", () => askAi());
   dom.layerToggles.forEach((input) => {
     input.addEventListener("change", () => {
@@ -1498,6 +1500,49 @@ function focusSensor(sensorId) {
 function resetCamera() {
   camera.position.set(0.18, 0.72, 7.85);
   controls?.target.set(0, 0.45, 0.14);
+  controls?.update();
+}
+
+async function toggleSceneFullscreen() {
+  const isFullscreen = document.fullscreenElement === dom.scenePanel || document.body.classList.contains("scene-expanded");
+  try {
+    if (isFullscreen) {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      document.body.classList.remove("scene-expanded");
+    } else if (dom.scenePanel?.requestFullscreen) {
+      await dom.scenePanel.requestFullscreen();
+    } else {
+      document.body.classList.add("scene-expanded");
+    }
+  } catch {
+    document.body.classList.toggle("scene-expanded", !isFullscreen);
+  }
+  resetCamera();
+  updateSceneToolState();
+  setTimeout(resize, 80);
+}
+
+function updateSceneToolState() {
+  const expanded = document.fullscreenElement === dom.scenePanel || document.body.classList.contains("scene-expanded");
+  dom.resetCameraBtn.classList.toggle("is-active", expanded);
+  dom.resetCameraBtn.setAttribute("aria-pressed", String(expanded));
+  dom.resetCameraBtn.title = expanded ? "إغلاق عرض النموذج" : "تكبير عرض النموذج";
+  dom.resetCameraBtn.setAttribute("aria-label", dom.resetCameraBtn.title);
+  dom.resetCameraBtn.innerHTML = `<i data-lucide="${expanded ? "minimize-2" : "maximize-2"}"></i>`;
+  refreshIcons();
+}
+
+async function handleRefreshClick() {
+  dom.refreshBtn.disabled = true;
+  dom.refreshBtn.classList.add("is-busy");
+  try {
+    await refreshTwin();
+  } finally {
+    setTimeout(() => {
+      dom.refreshBtn.disabled = false;
+      dom.refreshBtn.classList.remove("is-busy");
+    }, 240);
+  }
 }
 
 function resize() {
