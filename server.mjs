@@ -289,8 +289,7 @@ function buildTwinState() {
 
   return {
     generatedAt: new Date(now).toISOString(),
-    disclaimer:
-      "هذه محاكاة تعليمية وليست جهازًا طبيًا أو أداة تشخيص. أي أعراض حقيقية مثل ألم صدر، ضيق نفس، علامات سكتة، أو تورم/ألم ساق مفاجئ تحتاج تواصلًا فوريًا مع الطوارئ أو الطبيب.",
+    disclaimer: "تم إنشاء المودل بواسطة المهندس سعد الشهري.",
     scenario: {
       id: activeScenario,
       updatedAt: new Date(scenarioUpdatedAt).toISOString(),
