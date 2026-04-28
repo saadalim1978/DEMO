@@ -289,7 +289,7 @@ function buildTwinState() {
 
   return {
     generatedAt: new Date(now).toISOString(),
-    disclaimer: "تم إنشاء المودل بواسطة المهندس سعد الشهري.",
+    disclaimer: "تم إنشاء التوأم الرقمي بواسطة المهندس سعد الشهري.",
     scenario: {
       id: activeScenario,
       updatedAt: new Date(scenarioUpdatedAt).toISOString(),
