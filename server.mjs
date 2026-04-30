@@ -342,12 +342,8 @@ function buildTwinState() {
       ldl: byId.ldl.value,
       clotRisk: byId.clotRisk.value,
       dDimer: byId.dDimer.value,
-      legFlow: byId.legFlow.value,
       neuroPerfusion: byId.neuroPerfusion.value,
       egfr: byId.egfr.value,
-      vascularStiffness: byId.vascularStiffness.value,
-      insulinResistance: byId.insulinResistance.value,
-      painScore: byId.painScore.value,
       modelConfidence: imaging.modelConfidence,
       openAlerts: openAlerts.length
     },
@@ -412,7 +408,6 @@ function registerImagingStudy(upload = {}) {
     qualityScore,
     confidence,
     affectedSystems: region.systems,
-    imageData: normalizeInlineImage(upload.imageData, upload.fileType),
     finding: buildImagingFinding(modality, region, qualityScore),
     modelImpact: `رفع موثوقية التوأم الرقمي عبر إضافة دليل تصوير ${modality.label} لمنطقة ${region.label}.`,
     createdAt: new Date().toISOString()
@@ -421,33 +416,22 @@ function registerImagingStudy(upload = {}) {
   return study;
 }
 
-function normalizeInlineImage(imageData, fileType = "") {
-  if (typeof imageData !== "string") return null;
-  const match = imageData.match(/^data:(image\/(?:png|jpe?g|webp));base64,/i);
-  if (!match) return null;
-  const declaredType = String(fileType || "").toLowerCase();
-  if (declaredType.startsWith("image/") && !/^image\/(?:png|jpe?g|webp)$/i.test(declaredType)) return null;
-  if (imageData.length > 7_500_000) return null;
-  return imageData;
-}
-
 function buildImagingSummary() {
-  const rawStudies = imagingStudies.slice(0, 6);
-  const studies = rawStudies.map(({ imageData, ...study }) => study);
-  const qualityAverage = rawStudies.length
-    ? Math.round(rawStudies.reduce((sum, study) => sum + study.qualityScore, 0) / rawStudies.length)
+  const studies = imagingStudies.slice(0, 6);
+  const qualityAverage = studies.length
+    ? Math.round(studies.reduce((sum, study) => sum + study.qualityScore, 0) / studies.length)
     : 0;
-  const modelConfidence = rawStudies.length ? clamp(72 + rawStudies.length * 4 + Math.round(qualityAverage * 0.14), 72, 96) : 72;
-  const coveredSystems = [...new Set(rawStudies.flatMap((study) => study.affectedSystems))];
+  const modelConfidence = studies.length ? clamp(72 + studies.length * 4 + Math.round(qualityAverage * 0.14), 72, 96) : 72;
+  const coveredSystems = [...new Set(studies.flatMap((study) => study.affectedSystems))];
   return {
     acceptedModalities: Object.values(imagingModalities).map((item) => item.label),
     studies,
     latest: studies[0] || null,
-    count: rawStudies.length,
+    count: studies.length,
     qualityAverage,
     modelConfidence,
     coveredSystems,
-    note: rawStudies.length
+    note: studies.length
       ? "تمت إضافة صور الأشعة كدليل مساعد لتحسين موثوقية التوأم الرقمي، وليست قراءة تشخيصية."
       : "لم تتم إضافة صور أشعة بعد. رفع صور CT أو MRI أو X-Ray أو Ultrasound يزيد موثوقية النموذج."
   };
@@ -672,302 +656,6 @@ function withCarePathwayIfRequested(analysis, question, state) {
   };
 }
 
-function isClinicalDecisionQuestion(question = "") {
-  return isPatientAdviceQuestion(question) || /تشخيص|شخص|الإجراء|اجراء|علاج|علاجي|تصرف|توقع|جرعة|جرعات|وصفة|دواء|diagnosis|diagnose|treatment|dose|prescription|procedure|management/i.test(question);
-}
-
-function isPatientAdviceQuestion(question = "") {
-  return /انصح|أنصح|تنصح|نصيح|وش\s*(اسوي|أسوي|اعمل|أعمل|افعل|أفعل|يجب|لازم)|ايش\s*(اسوي|أسوي|اعمل|أعمل)|إيش\s*(اسوي|أسوي|اعمل|أعمل)|ماذا\s*(افعل|أفعل|اعمل|أعمل)|كيف\s*(اتصرف|أتصرف)|وش\s*(الإجراء|الاجراء)|ما\s*(الإجراء|الاجراء)|الإجراء|الاجراء|تصرف|علاج|علاجي|what\s+should|what\s+do|recommend|advice|advise|procedure|management|treatment|next\s*(step|action)/i.test(question);
-}
-
-function buildClinicalResearchOutput(focus, state) {
-  const imagingLine = state.imaging?.latest
-    ? ` ويرتبط ذلك بآخر دليل تصوير ${state.imaging.latest.modalityLabel} لمنطقة ${state.imaging.latest.regionLabel}.`
-    : "";
-
-  if (focus === "clot") {
-    return {
-      answer:
-        `الانطباع البحثي: النمط الحالي يتوافق مع اشتباه مرتفع بجلطة وريدية عميقة في الساق مع احتمال خطورة رئوية إذا وُجد ضيق نفس أو ألم صدر؛ السبب أن D-dimer = ${state.summary.dDimer} ng/mL، وقابلية التخثر ${state.summary.clotRisk}%، وتدفق الساق ${state.summary.legFlow}%.${imagingLine} الإجراء السريري المتوقع: فرز عاجل، فحص الساق والأكسجة، دوبلر أوردة للساق، وإذا ظهرت أعراض صدرية أو نقص أكسجة يتم تقييم الانصمام الرئوي بالتصوير المناسب. إذا تأكدت الجلطة فخيارات الطبيب غالبًا تدور حول مضادات التخثر، والمراقبة، وفي الحالات الشديدة القسطرة أو إذابة الخثرة.`,
-      actions: [
-        "تصنيف الحالة كاشتباه مرتفع يحتاج تقييمًا عاجلًا.",
-        "طلب Doppler venous ultrasound للساق مع CBC وPT/INR وaPTT ووظائف كلى حسب بروتوكول المنشأة.",
-        "عند ضيق نفس أو ألم صدر أو انخفاض أكسجين: تقييم انصمام رئوي بتصوير CT pulmonary angiography أو بديله المناسب.",
-        "إذا تأكدت الجلطة: مناقشة مضاد تخثر تحت إشراف الطبيب، والحالات الشديدة تقيّم للقسطرة أو إذابة الخثرة."
-      ],
-      evidence: [
-        `D-dimer: ${state.summary.dDimer} ng/mL`,
-        `قابلية التخثر: ${state.summary.clotRisk}%`,
-        `تدفق الساق: ${state.summary.legFlow}%`,
-        `الأكسجين: ${state.summary.oxygen}%`
-      ]
-    };
-  }
-
-  if (focus === "stroke") {
-    return {
-      answer:
-        `الانطباع البحثي: النمط الحالي يتوافق مع اشتباه وعائي عصبي مرتفع إذا صاحبه ضعف مفاجئ أو اضطراب كلام أو تشوش رؤية؛ تروية الدماغ ${state.summary.neuroPerfusion}% مع قابلية تخثر ${state.summary.clotRisk}% وضغط ${state.summary.bloodPressure}.${imagingLine} الإجراء السريري المتوقع: تفعيل مسار السكتة، تحديد وقت بداية الأعراض، CT أو MRI للدماغ، فحوص سكر وضغط وتخثر، ثم يقرر الفريق الطبي أهلية إذابة الخثرة أو القسطرة حسب الزمن والصورة والموانع.`,
-      actions: [
-        "تفعيل مسار السكتة عند أي عرض عصبي مفاجئ.",
-        "تحديد وقت بداية الأعراض وطلب CT/MRI للدماغ.",
-        "مراجعة السكر والضغط والتخثر قبل أي تدخل.",
-        "مناقشة إذابة الخثرة أو القسطرة فقط بعد تأكيد الصورة ومعايير الأهلية."
-      ],
-      evidence: [
-        `تروية الدماغ: ${state.summary.neuroPerfusion}%`,
-        `ضغط الدم: ${state.summary.bloodPressure} mmHg`,
-        `قابلية التخثر: ${state.summary.clotRisk}%`
-      ]
-    };
-  }
-
-  if (focus === "pressure") {
-    return {
-      answer:
-        `الانطباع البحثي: المؤشرات تتوافق مع ضغط شرياني مرتفع يحتاج تصنيف شدة حسب القراءة والأعراض؛ القراءة الحالية ${state.summary.bloodPressure} مع نبض ${state.summary.heartRate} bpm ومؤشر تصلب وعائي ${state.summary.vascularStiffness}%.${imagingLine} الإجراء السريري المتوقع: إعادة القياس بطريقة صحيحة، البحث عن أعراض إنذار مثل ألم صدر أو ضيق نفس أو أعراض عصبية، طلب ECG ووظائف كلى وأملاح، ثم اختيار خطة خفض ضغط ومتابعة حسب تقييم الطبيب.`,
-      actions: [
-        "إعادة قياس الضغط بعد راحة وبكفة مناسبة.",
-        "فرز عاجل عند ألم صدر أو ضيق نفس أو أعراض عصبية.",
-        "طلب ECG ووظائف كلى وأملاح وبروتين بول حسب الحالة.",
-        "مناقشة فئات أدوية الضغط وتعديلات نمط الحياة تحت إشراف الطبيب."
-      ],
-      evidence: [
-        `ضغط الدم: ${state.summary.bloodPressure} mmHg`,
-        `النبض: ${state.summary.heartRate} bpm`,
-        `تصلب الأوعية: ${state.summary.vascularStiffness}%`
-      ]
-    };
-  }
-
-  if (focus === "diabetes") {
-    return {
-      answer:
-        `الانطباع البحثي: المؤشرات تتوافق مع اضطراب أيضي/سكري محتمل يحتاج تأكيد مخبري؛ سكر الدم ${state.summary.glucose} mg/dL، HbA1c ${state.summary.hba1c}%، ومقاومة الإنسولين ${state.summary.insulinResistance}%.${imagingLine} الإجراء السريري المتوقع: تأكيد القراءة، مراجعة أعراض التجفاف أو القيء أو الخمول، فحص كيتونات عند الارتفاع الشديد، ثم يناقش الطبيب خطة غذائية ودوائية أو إنسولين حسب التحاليل ووظائف الكلى.`,
-      actions: [
-        "تأكيد قراءة السكر وربطها بزمن الأكل والأعراض.",
-        "فحص كيتونات عند الارتفاع الشديد أو وجود قيء/خمول.",
-        "طلب HbA1c ووظائف كلى ودهون حسب المسار.",
-        "مناقشة فئات علاج السكر أو الإنسولين تحت إشراف الطبيب."
-      ],
-      evidence: [
-        `سكر الدم: ${state.summary.glucose} mg/dL`,
-        `HbA1c: ${state.summary.hba1c}%`,
-        `مقاومة الإنسولين: ${state.summary.insulinResistance}%`
-      ]
-    };
-  }
-
-  return {
-    answer:
-      `الانطباع البحثي: التوأم الرقمي يعرض حالة ${state.scenario.label} مع مؤشر صحة ${state.summary.health}% ومخاطر ${state.summary.risk}%.${imagingLine} الإجراء السريري المتوقع: تحديد العرض الرئيسي، مطابقة المؤشرات مع الفحص السريري، مراجعة التصوير والتحاليل، ثم اختيار التدخل بواسطة الطبيب حسب البروتوكول.`,
-    actions: [
-      "تحديد العرض الرئيسي ووقت بدايته.",
-      "ربط المؤشرات الحيوية بنتائج الأشعة والتحاليل.",
-      "تصنيف الخطورة ثم اختيار مسار الطوارئ أو العيادة."
-    ],
-    evidence: [
-      `مؤشر المخاطر: ${state.summary.risk}%`,
-      `موثوقية النموذج: ${state.summary.modelConfidence}%`
-    ]
-  };
-}
-
-function buildPatientAdviceOutput(focus, state) {
-  const imagingLine = state.imaging?.latest
-    ? ` راجع أيضًا دليل التصوير الأخير (${state.imaging.latest.modalityLabel} - ${state.imaging.latest.regionLabel}) مع المختص.`
-    : "";
-
-  if (focus === "clot") {
-    return {
-      answer:
-        `أنصح المريض أن يتعامل مع الحالة كاشتباه جلطة يحتاج تقييمًا عاجلًا، خصوصًا مع D-dimer = ${state.summary.dDimer} ng/mL وقابلية تخثر ${state.summary.clotRisk}% وتدفق ساق ${state.summary.legFlow}%. الخطوة المنطقية الآن هي عدم تأجيل الفحص، ومراجعة الطوارئ إذا يوجد ألم أو تورم مفاجئ في الساق أو ضيق نفس أو ألم صدر. يطلب الفريق الطبي غالبًا دوبلر لأوردة الساق، وتحاليل تخثر ووظائف كلى، وقد يطلب تصويرًا للرئة عند وجود أعراض صدرية. إذا تأكدت الجلطة فقرار مضاد التخثر أو القسطرة يكون بواسطة الطبيب حسب نتيجة الفحوص.${imagingLine}`,
-      actions: [
-        "أنصح المريض بمراجعة عاجلة إذا يوجد تورم/ألم ساق أو ضيق نفس أو ألم صدر.",
-        "إجراء دوبلر أوردة للساق وربطه بـ D-dimer وتحاليل التخثر.",
-        "مراقبة الأكسجين والنبض والأعراض الصدرية.",
-        "عدم بدء دواء من نفسه، بل مناقشة فئات العلاج مع الطبيب بعد تأكيد التشخيص."
-      ],
-      evidence: [
-        `D-dimer: ${state.summary.dDimer} ng/mL`,
-        `قابلية التخثر: ${state.summary.clotRisk}%`,
-        `تدفق الساق: ${state.summary.legFlow}%`
-      ]
-    };
-  }
-
-  if (focus === "stroke") {
-    return {
-      answer:
-        `أنصح المريض أن يتصرف بسرعة إذا ظهرت أعراض عصبية مفاجئة مثل ضعف جهة من الجسم، ميلان الوجه، اضطراب الكلام، صداع شديد مفاجئ، أو تشوش رؤية. المؤشرات الحالية ترفع الانتباه لأن تروية الدماغ ${state.summary.neuroPerfusion}% مع ضغط ${state.summary.bloodPressure}. الإجراء المنطقي هو تفعيل مسار السكتة، تحديد وقت بداية الأعراض، وعمل CT أو MRI للدماغ قبل أي قرار علاجي.${imagingLine}`,
-      actions: [
-        "الاتصال بالإسعاف فورًا عند أي عرض عصبي مفاجئ.",
-        "تحديد وقت بداية الأعراض بدقة.",
-        "إجراء CT/MRI للدماغ وفحوص السكر والضغط والتخثر.",
-        "مناقشة إذابة الخثرة أو القسطرة فقط إذا أكدت الصورة أهلية الحالة."
-      ],
-      evidence: [
-        `تروية الدماغ: ${state.summary.neuroPerfusion}%`,
-        `ضغط الدم: ${state.summary.bloodPressure} mmHg`,
-        `قابلية التخثر: ${state.summary.clotRisk}%`
-      ]
-    };
-  }
-
-  if (focus === "pressure") {
-    return {
-      answer:
-        `أنصح المريض بإعادة قياس الضغط بطريقة صحيحة بعد راحة، ثم التعامل مع النتيجة حسب الأعراض. القراءة الحالية ${state.summary.bloodPressure} مع نبض ${state.summary.heartRate} bpm، لذلك إذا وُجد ألم صدر أو ضيق نفس أو صداع شديد أو أعراض عصبية فالأفضل تقييم عاجل. إذا لا توجد أعراض خطرة، فالخطوة المنطقية هي متابعة قراءات الضغط، عمل تخطيط قلب وفحوص كلى وأملاح، ومراجعة الطبيب لاختيار خطة خفض ضغط مناسبة.${imagingLine}`,
-      actions: [
-        "إعادة قياس الضغط بعد 5 دقائق راحة وبوضعية صحيحة.",
-        "التوجه للطوارئ عند ألم صدر أو ضيق نفس أو أعراض عصبية.",
-        "متابعة قراءات الضغط في أوقات مختلفة.",
-        "مراجعة الطبيب لعمل ECG ووظائف كلى وأملاح واختيار الخطة المناسبة."
-      ],
-      evidence: [
-        `ضغط الدم: ${state.summary.bloodPressure} mmHg`,
-        `النبض: ${state.summary.heartRate} bpm`,
-        `تصلب الأوعية: ${state.summary.vascularStiffness}%`
-      ]
-    };
-  }
-
-  if (focus === "diabetes") {
-    return {
-      answer:
-        `أنصح المريض بتأكيد قراءة السكر وربطها بوقت الأكل والأعراض. المؤشرات الحالية تظهر سكر دم ${state.summary.glucose} mg/dL وHbA1c ${state.summary.hba1c}% ومقاومة إنسولين ${state.summary.insulinResistance}%. إذا توجد أعراض مثل عطش شديد، قيء، خمول، تنفس غير طبيعي، أو ارتفاع شديد متكرر، فالأفضل تقييم عاجل وفحص كيتونات. إذا الحالة مستقرة، تتم المتابعة بتحليل HbA1c ووظائف الكلى والدهون ومراجعة الطبيب لوضع خطة غذاء ونشاط ودواء مناسبة.${imagingLine}`,
-      actions: [
-        "تأكيد قراءة السكر ووقت القياس بالنسبة للأكل.",
-        "فحص الكيتونات عند ارتفاع شديد أو قيء/خمول.",
-        "طلب HbA1c ووظائف كلى ودهون.",
-        "مراجعة الطبيب لوضع خطة غذائية ودوائية مناسبة دون جرعات عشوائية."
-      ],
-      evidence: [
-        `سكر الدم: ${state.summary.glucose} mg/dL`,
-        `HbA1c: ${state.summary.hba1c}%`,
-        `مقاومة الإنسولين: ${state.summary.insulinResistance}%`
-      ]
-    };
-  }
-
-  return {
-    answer:
-      `أنصح المريض بالاستمرار في المتابعة الدورية لأن الحالة الحالية تبدو مستقرة نسبيًا: مؤشر الصحة ${state.summary.health}% ومؤشر المخاطر ${state.summary.risk}%. الإجراء المنطقي هو مراقبة الضغط والسكر والنبض والأكسجين، والمحافظة على النشاط والغذاء المتوازن، ومراجعة الطبيب عند ظهور أعراض جديدة أو تغير واضح في المؤشرات. إذا كان السؤال مرتبطًا بصورة أشعة أو عرض محدد، فالأفضل ربطه بالفحص السريري والتحاليل قبل اتخاذ قرار علاجي.${imagingLine}`,
-    actions: [
-      "مراقبة المؤشرات الحيوية بشكل دوري.",
-      "مراجعة الطبيب عند ظهور ألم صدر، ضيق نفس، ضعف مفاجئ، تورم ساق، أو ارتفاع شديد في السكر/الضغط.",
-      "ربط أي صورة أشعة أو تحليل جديد بالأعراض الحالية.",
-      "الحفاظ على نمط حياة صحي ومتابعة القراءات."
-    ],
-    evidence: [
-      `مؤشر الصحة: ${state.summary.health}%`,
-      `مؤشر المخاطر: ${state.summary.risk}%`,
-      `موثوقية النموذج: ${state.summary.modelConfidence}%`
-    ]
-  };
-}
-
-function withClinicalResearchIfRequested(analysis, question, state) {
-  if (!isClinicalDecisionQuestion(question)) return analysis;
-  const focus = inferFocus(question);
-  const careFocus = focus === "general" ? inferFocusFromState(state) : focus;
-  const wantsAdvice = isPatientAdviceQuestion(question);
-  const clinical = wantsAdvice ? buildPatientAdviceOutput(careFocus, state) : buildClinicalResearchOutput(careFocus, state);
-  const clinicalSeverity = severityForClinicalFocus(careFocus, state);
-  if (!analysis) {
-    return {
-      source: "local-ai",
-      answer: clinical.answer,
-      confidence: state.summary.risk >= 70 ? 0.86 : 0.78,
-      severity: clinicalSeverity,
-      actions: clinical.actions,
-      evidence: clinical.evidence
-    };
-  }
-
-  const answer = analysis.answer || "";
-  const needsTightening =
-    wantsAdvice ||
-    answer.length > 900 ||
-    /لا يبدأ|لا أستطيع|لا يمكنني|بدون طبيب|ليست قراءة تشخيصية|لا يحدد علاجًا شخصيًا|لم أجد صورة|تعليمي/i.test(answer);
-
-  if (!needsTightening) {
-    return {
-      ...analysis,
-      actions: uniqueStrings([...(analysis.actions || []), ...clinical.actions]).slice(0, 5),
-      evidence: uniqueStrings([...(analysis.evidence || []), ...clinical.evidence]).slice(0, 6)
-    };
-  }
-
-  return {
-    ...analysis,
-    answer: clinical.answer,
-    confidence: Math.max(Number(analysis.confidence || 0), state.summary.risk >= 70 ? 0.84 : 0.76),
-    severity: clinicalSeverity,
-    actions: uniqueStrings([...clinical.actions, ...(analysis.actions || [])]).slice(0, 5),
-    evidence: uniqueStrings([...clinical.evidence, ...(analysis.evidence || [])]).slice(0, 6)
-  };
-}
-
-function severityForClinicalFocus(focus, state) {
-  const systolic = Number(String(state.summary.bloodPressure || "0").split("/")[0]);
-  if (focus === "clot" && (state.summary.clotRisk >= 70 || state.summary.dDimer >= 800 || state.summary.oxygen < 94)) return "critical";
-  if (focus === "stroke" && (state.summary.neuroPerfusion <= 85 || systolic >= 180)) return "critical";
-  if (focus === "pressure" && (systolic >= 180 || state.summary.vascularStiffness >= 70)) return "critical";
-  if (focus === "diabetes" && (state.summary.glucose >= 250 || state.summary.hba1c >= 9)) return "critical";
-  if (state.summary.risk >= 70) return "critical";
-  if (state.summary.risk >= 40 || focus !== "general") return "watch";
-  return "stable";
-}
-
-function isImagingInterpretationQuestion(question = "") {
-  return /صورة|اشعة|أشعة|تصوير|سونار|radiology|x[-\s]?ray|\bct\b|\bmri\b|\bultrasound\b/i.test(question);
-}
-
-function buildImagingInterpretationFallback(state) {
-  const latest = state.imaging?.latest;
-  if (!latest) {
-    return {
-      answer: "لم أجد صورة أشعة مرفوعة داخل التوأم الرقمي. ارفع صورة CT أو MRI أو X-Ray أو Ultrasound ثم أعد السؤال.",
-      actions: ["رفع صورة واضحة مع تحديد نوع الأشعة والمنطقة.", "إضافة الأعراض الحالية ومدة بدايتها.", "مقارنة الانطباع مع تقرير أخصائي الأشعة."],
-      evidence: ["لا توجد صورة مرفوعة في الحالة الحالية."]
-    };
-  }
-
-  return {
-    answer:
-      `تم ربط صورة ${latest.modalityLabel} لمنطقة ${latest.regionLabel} بالتوأم الرقمي. إذا لم تظهر قراءة بصرية واضحة من OpenAI، فهذا يعني أن الصورة لم تكن بصيغة مدعومة أو أن التحليل البصري لم يكتمل. الانطباع الأولي الممكن يجب أن يصف ما يظهر في الصورة فقط مثل وجود عتامة، ارتشاح، تضخم، كسر، نزف، انسداد، أو علامة التهاب حسب نوع الصورة، ثم يقارنه بالمؤشرات الحيوية ولا يحوله إلى تشخيص نهائي بدون تقرير أخصائي.`,
-    actions: [
-      "استخدم PNG أو JPG أو WEBP واضحة حتى تُرسل الصورة فعليًا إلى OpenAI Vision.",
-      "اطلب من المساعد: اكتب انطباعًا تصويريًا أوليًا واذكر الموجودات المرئية والثقة والقيود.",
-      "قارن النتيجة مع تقرير أخصائي الأشعة قبل اعتماد أي نتيجة بحثية."
-    ],
-    evidence: [`آخر صورة: ${latest.modalityLabel} - ${latest.regionLabel}`, `موثوقية النموذج: ${state.imaging.modelConfidence}%`, latest.finding]
-  };
-}
-
-function withImagingInterpretationIfRequested(analysis, question, state) {
-  if (!isImagingInterpretationQuestion(question)) return analysis;
-  const fallback = buildImagingInterpretationFallback(state);
-  if (!analysis) {
-    return {
-      source: "local-ai",
-      answer: fallback.answer,
-      confidence: 0.68,
-      severity: state.summary.risk >= 70 ? "critical" : state.summary.risk >= 40 ? "watch" : "stable",
-      actions: fallback.actions,
-      evidence: fallback.evidence
-    };
-  }
-  const vague = !analysis.answer || /لا أستطيع|قد تكون|صورة الأشعة إلى حالة طبية|غير واضح|لم تتضمن/i.test(analysis.answer);
-  return {
-    ...analysis,
-    answer: vague ? `${analysis.answer || ""} ${fallback.answer}`.trim() : analysis.answer,
-    actions: uniqueStrings([...(analysis.actions || []), ...fallback.actions]).slice(0, 5),
-    evidence: uniqueStrings([...(analysis.evidence || []), ...fallback.evidence]).slice(0, 6)
-  };
-}
-
 function uniqueStrings(items) {
   const seen = new Set();
   return items.filter((item) => {
@@ -1017,9 +705,9 @@ async function openAiBodyAnalyst(question, state) {
           {
             role: "system",
             content:
-              "You are an Arabic clinical research decision-support analyst for a simulated human-body digital twin. Speak naturally like a clinical assistant. If the user asks what to do, what procedure to take, what to advise, or how to act, start with practical patient-facing advice such as: أنصح المريض... then give concrete next steps, red flags, confirmatory tests, and clinician-supervised treatment categories. Give direct, structured, clinician-like research output: working impression/suspected condition, confidence, rationale, next clinical action, confirmatory tests, and clinician-supervised treatment categories. Do not over-apologize and do not repeat safety disclaimers. Do not provide medication doses, prescriptions, or instructions to start/stop a medicine. When an image is attached, give a preliminary radiology-style visual impression, visible findings, important negatives if visible, confidence, limitations, and what a radiologist/clinician should confirm. If the user asks about العلاج, الإجراء العلاجي, treatment, procedure, or management, answer with a practical care pathway and likely options a clinician may consider, without doses. If values look urgent, state the escalation clearly. Return valid JSON only with keys: answer, severity, confidence, actions, evidence. The answer key is required and must contain a complete Arabic paragraph. severity must be stable, watch, or critical. confidence must be a number from 0 to 1. Keep answer and lists in Arabic."
+              "You are an Arabic human-body digital twin clinical decision-support analyst. Analyze the simulated sensor values, organs, scenario, intervention, trend, risk predictions, and imaging evidence. Do not provide a diagnosis, prescription, medication dose, or personalized treatment plan. If the user asks about العلاج, الإجراء العلاجي, treatment, procedure, or management, answer with a practical care pathway: urgent red flags, likely clinical assessments, imaging/labs a clinician may request, and possible clinician-supervised options. Never tell the user to start/stop a medicine. If values look urgent, clearly advise seeking emergency or real medical care. Return valid JSON only with keys: answer, severity, confidence, actions, evidence. The answer key is required and must contain a complete Arabic paragraph. severity must be stable, watch, or critical. confidence must be a number from 0 to 1. Keep answer and lists in Arabic."
           },
-          { role: "user", content: buildOpenAiUserContent(question, state) }
+          { role: "user", content: JSON.stringify({ question, state: buildOpenAiContext(state) }) }
         ]
       })
     });
@@ -1033,32 +721,6 @@ async function openAiBodyAnalyst(question, state) {
   } finally {
     clearTimeout(timeout);
   }
-}
-
-function buildOpenAiUserContent(question, state) {
-  const content = [
-    {
-      type: "input_text",
-      text: JSON.stringify({
-        question,
-        state: buildOpenAiContext(state),
-        instruction:
-          "قدّم مخرجًا بحثيًا منظمًا يشبه دعم القرار السريري. إذا كان السؤال بصيغة نصيحة أو إجراء أو ماذا أفعل، ابدأ بـ: أنصح المريض... ثم اذكر خطوات عملية. اذكر الانطباع الأولي، درجة الاشتباه، المبررات من المؤشرات والصورة، الإجراء السريري المتوقع، والفحوص المؤكدة. إذا كانت صورة أشعة مرفقة، اقرأها بصريًا وقدّم انطباعًا أوليًا واضحًا. لا تعط جرعات أو وصفات دوائية."
-      })
-    }
-  ];
-  const imageInput = latestVisionImageInput(state);
-  if (imageInput) content.push(imageInput);
-  return content;
-}
-
-function latestVisionImageInput(state) {
-  const latest = imagingStudies[0];
-  if (!latest?.imageData || !state.imaging?.latest) return null;
-  return {
-    type: "input_image",
-    image_url: latest.imageData
-  };
 }
 
 function buildOpenAiContext(state) {
@@ -1099,7 +761,7 @@ function buildOpenAiContext(state) {
       count: state.imaging.count,
       modelConfidence: state.imaging.modelConfidence,
       latest: state.imaging.latest
-        ? pickFields(state.imaging.latest, ["modalityLabel", "regionLabel", "confidence", "finding", "modelImpact", "fileName", "fileType"])
+        ? pickFields(state.imaging.latest, ["modalityLabel", "regionLabel", "confidence", "finding", "modelImpact"])
         : null,
       coveredSystems: state.imaging.coveredSystems
     },
@@ -1297,10 +959,7 @@ const server = createServer(async (request, response) => {
       const state = buildTwinState();
       const question = String(body.question || "حلل حالة التوأم الرقمي للجسم الآن.");
       const aiAnswer = await openAiBodyAnalyst(question, state);
-      const careAnswer = withCarePathwayIfRequested(aiAnswer, question, state);
-      const imagingAnswer = withImagingInterpretationIfRequested(careAnswer, question, state);
-      const enhancedAnswer = withClinicalResearchIfRequested(imagingAnswer, question, state);
-      sendJson(response, 200, enhancedAnswer || localBodyAnalyst(question, state));
+      sendJson(response, 200, withCarePathwayIfRequested(aiAnswer, question, state) || localBodyAnalyst(question, state));
       return;
     }
 
