@@ -673,7 +673,11 @@ function withCarePathwayIfRequested(analysis, question, state) {
 }
 
 function isClinicalDecisionQuestion(question = "") {
-  return /تشخيص|شخص|الإجراء|اجراء|علاج|علاجي|تصرف|توقع|جرعة|جرعات|وصفة|دواء|diagnosis|diagnose|treatment|dose|prescription|procedure|management/i.test(question);
+  return isPatientAdviceQuestion(question) || /تشخيص|شخص|الإجراء|اجراء|علاج|علاجي|تصرف|توقع|جرعة|جرعات|وصفة|دواء|diagnosis|diagnose|treatment|dose|prescription|procedure|management/i.test(question);
+}
+
+function isPatientAdviceQuestion(question = "") {
+  return /انصح|أنصح|تنصح|نصيح|وش\s*(اسوي|أسوي|اعمل|أعمل|افعل|أفعل|يجب|لازم)|ايش\s*(اسوي|أسوي|اعمل|أعمل)|إيش\s*(اسوي|أسوي|اعمل|أعمل)|ماذا\s*(افعل|أفعل|اعمل|أعمل)|كيف\s*(اتصرف|أتصرف)|وش\s*(الإجراء|الاجراء)|ما\s*(الإجراء|الاجراء)|الإجراء|الاجراء|تصرف|علاج|علاجي|what\s+should|what\s+do|recommend|advice|advise|procedure|management|treatment|next\s*(step|action)/i.test(question);
 }
 
 function buildClinicalResearchOutput(focus, state) {
@@ -769,11 +773,106 @@ function buildClinicalResearchOutput(focus, state) {
   };
 }
 
+function buildPatientAdviceOutput(focus, state) {
+  const imagingLine = state.imaging?.latest
+    ? ` راجع أيضًا دليل التصوير الأخير (${state.imaging.latest.modalityLabel} - ${state.imaging.latest.regionLabel}) مع المختص.`
+    : "";
+
+  if (focus === "clot") {
+    return {
+      answer:
+        `أنصح المريض أن يتعامل مع الحالة كاشتباه جلطة يحتاج تقييمًا عاجلًا، خصوصًا مع D-dimer = ${state.summary.dDimer} ng/mL وقابلية تخثر ${state.summary.clotRisk}% وتدفق ساق ${state.summary.legFlow}%. الخطوة المنطقية الآن هي عدم تأجيل الفحص، ومراجعة الطوارئ إذا يوجد ألم أو تورم مفاجئ في الساق أو ضيق نفس أو ألم صدر. يطلب الفريق الطبي غالبًا دوبلر لأوردة الساق، وتحاليل تخثر ووظائف كلى، وقد يطلب تصويرًا للرئة عند وجود أعراض صدرية. إذا تأكدت الجلطة فقرار مضاد التخثر أو القسطرة يكون بواسطة الطبيب حسب نتيجة الفحوص.${imagingLine}`,
+      actions: [
+        "أنصح المريض بمراجعة عاجلة إذا يوجد تورم/ألم ساق أو ضيق نفس أو ألم صدر.",
+        "إجراء دوبلر أوردة للساق وربطه بـ D-dimer وتحاليل التخثر.",
+        "مراقبة الأكسجين والنبض والأعراض الصدرية.",
+        "عدم بدء دواء من نفسه، بل مناقشة فئات العلاج مع الطبيب بعد تأكيد التشخيص."
+      ],
+      evidence: [
+        `D-dimer: ${state.summary.dDimer} ng/mL`,
+        `قابلية التخثر: ${state.summary.clotRisk}%`,
+        `تدفق الساق: ${state.summary.legFlow}%`
+      ]
+    };
+  }
+
+  if (focus === "stroke") {
+    return {
+      answer:
+        `أنصح المريض أن يتصرف بسرعة إذا ظهرت أعراض عصبية مفاجئة مثل ضعف جهة من الجسم، ميلان الوجه، اضطراب الكلام، صداع شديد مفاجئ، أو تشوش رؤية. المؤشرات الحالية ترفع الانتباه لأن تروية الدماغ ${state.summary.neuroPerfusion}% مع ضغط ${state.summary.bloodPressure}. الإجراء المنطقي هو تفعيل مسار السكتة، تحديد وقت بداية الأعراض، وعمل CT أو MRI للدماغ قبل أي قرار علاجي.${imagingLine}`,
+      actions: [
+        "الاتصال بالإسعاف فورًا عند أي عرض عصبي مفاجئ.",
+        "تحديد وقت بداية الأعراض بدقة.",
+        "إجراء CT/MRI للدماغ وفحوص السكر والضغط والتخثر.",
+        "مناقشة إذابة الخثرة أو القسطرة فقط إذا أكدت الصورة أهلية الحالة."
+      ],
+      evidence: [
+        `تروية الدماغ: ${state.summary.neuroPerfusion}%`,
+        `ضغط الدم: ${state.summary.bloodPressure} mmHg`,
+        `قابلية التخثر: ${state.summary.clotRisk}%`
+      ]
+    };
+  }
+
+  if (focus === "pressure") {
+    return {
+      answer:
+        `أنصح المريض بإعادة قياس الضغط بطريقة صحيحة بعد راحة، ثم التعامل مع النتيجة حسب الأعراض. القراءة الحالية ${state.summary.bloodPressure} مع نبض ${state.summary.heartRate} bpm، لذلك إذا وُجد ألم صدر أو ضيق نفس أو صداع شديد أو أعراض عصبية فالأفضل تقييم عاجل. إذا لا توجد أعراض خطرة، فالخطوة المنطقية هي متابعة قراءات الضغط، عمل تخطيط قلب وفحوص كلى وأملاح، ومراجعة الطبيب لاختيار خطة خفض ضغط مناسبة.${imagingLine}`,
+      actions: [
+        "إعادة قياس الضغط بعد 5 دقائق راحة وبوضعية صحيحة.",
+        "التوجه للطوارئ عند ألم صدر أو ضيق نفس أو أعراض عصبية.",
+        "متابعة قراءات الضغط في أوقات مختلفة.",
+        "مراجعة الطبيب لعمل ECG ووظائف كلى وأملاح واختيار الخطة المناسبة."
+      ],
+      evidence: [
+        `ضغط الدم: ${state.summary.bloodPressure} mmHg`,
+        `النبض: ${state.summary.heartRate} bpm`,
+        `تصلب الأوعية: ${state.summary.vascularStiffness}%`
+      ]
+    };
+  }
+
+  if (focus === "diabetes") {
+    return {
+      answer:
+        `أنصح المريض بتأكيد قراءة السكر وربطها بوقت الأكل والأعراض. المؤشرات الحالية تظهر سكر دم ${state.summary.glucose} mg/dL وHbA1c ${state.summary.hba1c}% ومقاومة إنسولين ${state.summary.insulinResistance}%. إذا توجد أعراض مثل عطش شديد، قيء، خمول، تنفس غير طبيعي، أو ارتفاع شديد متكرر، فالأفضل تقييم عاجل وفحص كيتونات. إذا الحالة مستقرة، تتم المتابعة بتحليل HbA1c ووظائف الكلى والدهون ومراجعة الطبيب لوضع خطة غذاء ونشاط ودواء مناسبة.${imagingLine}`,
+      actions: [
+        "تأكيد قراءة السكر ووقت القياس بالنسبة للأكل.",
+        "فحص الكيتونات عند ارتفاع شديد أو قيء/خمول.",
+        "طلب HbA1c ووظائف كلى ودهون.",
+        "مراجعة الطبيب لوضع خطة غذائية ودوائية مناسبة دون جرعات عشوائية."
+      ],
+      evidence: [
+        `سكر الدم: ${state.summary.glucose} mg/dL`,
+        `HbA1c: ${state.summary.hba1c}%`,
+        `مقاومة الإنسولين: ${state.summary.insulinResistance}%`
+      ]
+    };
+  }
+
+  return {
+    answer:
+      `أنصح المريض بالاستمرار في المتابعة الدورية لأن الحالة الحالية تبدو مستقرة نسبيًا: مؤشر الصحة ${state.summary.health}% ومؤشر المخاطر ${state.summary.risk}%. الإجراء المنطقي هو مراقبة الضغط والسكر والنبض والأكسجين، والمحافظة على النشاط والغذاء المتوازن، ومراجعة الطبيب عند ظهور أعراض جديدة أو تغير واضح في المؤشرات. إذا كان السؤال مرتبطًا بصورة أشعة أو عرض محدد، فالأفضل ربطه بالفحص السريري والتحاليل قبل اتخاذ قرار علاجي.${imagingLine}`,
+    actions: [
+      "مراقبة المؤشرات الحيوية بشكل دوري.",
+      "مراجعة الطبيب عند ظهور ألم صدر، ضيق نفس، ضعف مفاجئ، تورم ساق، أو ارتفاع شديد في السكر/الضغط.",
+      "ربط أي صورة أشعة أو تحليل جديد بالأعراض الحالية.",
+      "الحفاظ على نمط حياة صحي ومتابعة القراءات."
+    ],
+    evidence: [
+      `مؤشر الصحة: ${state.summary.health}%`,
+      `مؤشر المخاطر: ${state.summary.risk}%`,
+      `موثوقية النموذج: ${state.summary.modelConfidence}%`
+    ]
+  };
+}
+
 function withClinicalResearchIfRequested(analysis, question, state) {
   if (!isClinicalDecisionQuestion(question)) return analysis;
   const focus = inferFocus(question);
   const careFocus = focus === "general" ? inferFocusFromState(state) : focus;
-  const clinical = buildClinicalResearchOutput(careFocus, state);
+  const wantsAdvice = isPatientAdviceQuestion(question);
+  const clinical = wantsAdvice ? buildPatientAdviceOutput(careFocus, state) : buildClinicalResearchOutput(careFocus, state);
   const clinicalSeverity = severityForClinicalFocus(careFocus, state);
   if (!analysis) {
     return {
@@ -788,6 +887,7 @@ function withClinicalResearchIfRequested(analysis, question, state) {
 
   const answer = analysis.answer || "";
   const needsTightening =
+    wantsAdvice ||
     answer.length > 900 ||
     /لا يبدأ|لا أستطيع|لا يمكنني|بدون طبيب|ليست قراءة تشخيصية|لا يحدد علاجًا شخصيًا|لم أجد صورة|تعليمي/i.test(answer);
 
@@ -917,7 +1017,7 @@ async function openAiBodyAnalyst(question, state) {
           {
             role: "system",
             content:
-              "You are an Arabic clinical research decision-support analyst for a simulated human-body digital twin. Give direct, structured, clinician-like research output: working impression/suspected condition, confidence, rationale, next clinical action, confirmatory tests, and clinician-supervised treatment categories. Do not over-apologize and do not repeat safety disclaimers. Do not provide medication doses, prescriptions, or instructions to start/stop a medicine. When an image is attached, give a preliminary radiology-style visual impression, visible findings, important negatives if visible, confidence, limitations, and what a radiologist/clinician should confirm. If the user asks about العلاج, الإجراء العلاجي, treatment, procedure, or management, answer with a practical care pathway and likely options a clinician may consider, without doses. If values look urgent, state the escalation clearly. Return valid JSON only with keys: answer, severity, confidence, actions, evidence. The answer key is required and must contain a complete Arabic paragraph. severity must be stable, watch, or critical. confidence must be a number from 0 to 1. Keep answer and lists in Arabic."
+              "You are an Arabic clinical research decision-support analyst for a simulated human-body digital twin. Speak naturally like a clinical assistant. If the user asks what to do, what procedure to take, what to advise, or how to act, start with practical patient-facing advice such as: أنصح المريض... then give concrete next steps, red flags, confirmatory tests, and clinician-supervised treatment categories. Give direct, structured, clinician-like research output: working impression/suspected condition, confidence, rationale, next clinical action, confirmatory tests, and clinician-supervised treatment categories. Do not over-apologize and do not repeat safety disclaimers. Do not provide medication doses, prescriptions, or instructions to start/stop a medicine. When an image is attached, give a preliminary radiology-style visual impression, visible findings, important negatives if visible, confidence, limitations, and what a radiologist/clinician should confirm. If the user asks about العلاج, الإجراء العلاجي, treatment, procedure, or management, answer with a practical care pathway and likely options a clinician may consider, without doses. If values look urgent, state the escalation clearly. Return valid JSON only with keys: answer, severity, confidence, actions, evidence. The answer key is required and must contain a complete Arabic paragraph. severity must be stable, watch, or critical. confidence must be a number from 0 to 1. Keep answer and lists in Arabic."
           },
           { role: "user", content: buildOpenAiUserContent(question, state) }
         ]
@@ -943,7 +1043,7 @@ function buildOpenAiUserContent(question, state) {
         question,
         state: buildOpenAiContext(state),
         instruction:
-          "قدّم مخرجًا بحثيًا منظمًا يشبه دعم القرار السريري: الانطباع الأولي، درجة الاشتباه، المبررات من المؤشرات والصورة، الإجراء السريري المتوقع، والفحوص المؤكدة. إذا كانت صورة أشعة مرفقة، اقرأها بصريًا وقدّم انطباعًا أوليًا واضحًا. لا تعط جرعات أو وصفات دوائية."
+          "قدّم مخرجًا بحثيًا منظمًا يشبه دعم القرار السريري. إذا كان السؤال بصيغة نصيحة أو إجراء أو ماذا أفعل، ابدأ بـ: أنصح المريض... ثم اذكر خطوات عملية. اذكر الانطباع الأولي، درجة الاشتباه، المبررات من المؤشرات والصورة، الإجراء السريري المتوقع، والفحوص المؤكدة. إذا كانت صورة أشعة مرفقة، اقرأها بصريًا وقدّم انطباعًا أوليًا واضحًا. لا تعط جرعات أو وصفات دوائية."
       })
     }
   ];
