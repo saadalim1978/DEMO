@@ -205,7 +205,7 @@ let organAssets = [
     key: "smallIntestine",
     file: "VH_F_Small_Intestine.glb",
     label: "Small Intestine",
-    position: [0, 0.02, 0.1],
+    position: [0, 0.12, 0.1],
     fit: [0.5, 0.42, 0.18],
     rotation: [0, Math.PI, 0],
     material: { color: 0xffb3a7, emissive: 0x4e1b16, opacity: 0.84 }
@@ -214,7 +214,7 @@ let organAssets = [
     key: "largeIntestine",
     file: "SBU_F_Intestine_Large.glb",
     label: "Large Intestine",
-    position: [0, 0.0, 0.08],
+    position: [0, 0.1, 0.08],
     fit: [0.58, 0.5, 0.2],
     rotation: [0, Math.PI, 0],
     material: { color: 0xffb3a7, emissive: 0x4e1b16, opacity: 0.76 }
@@ -223,7 +223,7 @@ let organAssets = [
     key: "bladder",
     file: "VH_F_Urinary_Bladder.glb",
     label: "Bladder",
-    position: [0, -0.42, 0.08],
+    position: [0, -0.34, 0.08],
     fit: [0.16, 0.17, 0.14],
     rotation: [0, Math.PI, 0],
     material: { color: 0xff77aa, emissive: 0x4c0b24, opacity: 0.86 }
@@ -271,7 +271,7 @@ if (renderer) requestAnimationFrame(animate);
 
 async function loadAnatomyManifest() {
   try {
-    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-12", { cache: "no-store" });
+    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-14", { cache: "no-store" });
     if (!response.ok) throw new Error(`Manifest HTTP ${response.status}`);
     const manifest = await response.json();
     if (manifest.bodyShell) bodyShellAsset = normalizeBodyShell(manifest.bodyShell);
@@ -1025,7 +1025,7 @@ function createDigestiveSystem() {
     }
     createTube(points, 0.018, intestineMat, `intestine-${row}`);
   }
-  addEllipsoid("bladder", [0, -0.46, 0.34], [0.095, 0.11, 0.08], organMaterial(0xff77aa, 0x4c0b24, 0.8));
+  addEllipsoid("bladder", [0, -0.38, 0.34], [0.095, 0.11, 0.08], organMaterial(0xff77aa, 0x4c0b24, 0.8));
 }
 
 function createVascularAndNerveNetwork() {
@@ -1188,7 +1188,7 @@ function createAnatomyLabels() {
   createAnatomyLabel("المعدة", "#ff9f80", [0.58, 0.64, 0.18]);
   createAnatomyLabel("البنكرياس", "#f4b740", [-0.52, 0.64, 0.18]);
   createAnatomyLabel("الكلى", "#c084fc", [0.52, 0.5, 0.16]);
-  createAnatomyLabel("المثانة", "#ff77aa", [0.45, -0.42, 0.16]);
+  createAnatomyLabel("المثانة", "#ff77aa", [0.45, -0.34, 0.16]);
   createAnatomyLabel("الأوعية", "#ff5d73", [0.48, 0.92, 0.18]);
 }
 

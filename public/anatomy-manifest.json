@@ -1,5 +1,5 @@
 {
-  "version": "2026-04-30.educational-organ-scale-1",
+  "version": "2026-04-30.intestine-bladder-lift-1",
   "bodyShell": {
     "file": "VH_M_Skin.glb",
     "label": "NIH 3D Skin, Male",
@@ -85,7 +85,7 @@
       "key": "smallIntestine",
       "file": "VH_F_Small_Intestine.glb",
       "label": "Small Intestine",
-      "position": [0, 0.02, 0.1],
+      "position": [0, 0.12, 0.1],
       "fit": [0.5, 0.42, 0.18],
       "rotation": [0, 3.141592653589793, 0],
       "material": { "color": "#ffb3a7", "emissive": "#4e1b16", "opacity": 0.84 }
@@ -94,7 +94,7 @@
       "key": "largeIntestine",
       "file": "SBU_F_Intestine_Large.glb",
       "label": "Large Intestine",
-      "position": [0, 0.0, 0.08],
+      "position": [0, 0.1, 0.08],
       "fit": [0.58, 0.5, 0.2],
       "rotation": [0, 3.141592653589793, 0],
       "material": { "color": "#ffb3a7", "emissive": "#4e1b16", "opacity": 0.76 }
@@ -103,7 +103,7 @@
       "key": "bladder",
       "file": "VH_F_Urinary_Bladder.glb",
       "label": "Bladder",
-      "position": [0, -0.42, 0.08],
+      "position": [0, -0.34, 0.08],
       "fit": [0.16, 0.17, 0.14],
       "rotation": [0, 3.141592653589793, 0],
       "material": { "color": "#ff77aa", "emissive": "#4c0b24", "opacity": 0.86 }
