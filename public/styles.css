@@ -77,14 +77,14 @@ button {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: 420px;
+  min-width: 470px;
 }
 
 .brand-logo {
   display: block;
-  width: 220px;
-  height: 56px;
-  flex: 0 0 220px;
+  width: 260px;
+  height: 76px;
+  flex: 0 0 260px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: #050505;
@@ -1125,9 +1125,9 @@ textarea:focus {
   }
 
   .brand-logo {
-    width: 168px;
-    height: 46px;
-    flex-basis: 168px;
+    width: 210px;
+    height: 62px;
+    flex-basis: 210px;
   }
 
   .scenario-switcher {
