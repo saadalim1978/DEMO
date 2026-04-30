@@ -1,5 +1,5 @@
 {
-  "version": "2026-05-01.skin-envelope-2",
+  "version": "2026-05-01.brain-arm-vessels-1",
   "_notes": [
     "Organ and vessel coordinates are unchanged; only the skin envelope uses stretch fitting for visualization containment.",
     "Body shell calibrated with fit [3.08, 5.28, 1.38] so hands, feet, vessels, brain, and organs sit inside the external skin.",
@@ -129,9 +129,9 @@
   "brain": {
     "key": "brain",
     "label": "Brain",
-    "position": [0, 2.32, 0.0],
+    "position": [0, 2.62, 0.02],
     "size": [0.16, 0.13, 0.18],
-    "labelOffset": [0.45, 0.05, 0.16],
+    "labelOffset": [0.45, 0.02, 0.16],
     "material": { "color": "#a78bfa", "emissive": "#221146", "opacity": 0.78 }
   }
 }

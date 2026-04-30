@@ -273,7 +273,7 @@ if (renderer) requestAnimationFrame(animate);
 
 async function loadAnatomyManifest() {
   try {
-    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-17", { cache: "no-store" });
+    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-18", { cache: "no-store" });
     if (!response.ok) throw new Error(`Manifest HTTP ${response.status}`);
     const manifest = await response.json();
     if (manifest.bodyShell) bodyShellAsset = normalizeBodyShell(manifest.bodyShell);
@@ -388,12 +388,12 @@ function addBodyTwinModel() {
       value: {
         bodyShell: bodyShellAsset,
         organs: organAssets,
-        brain: { key: "brain", label: "Brain", position: [0, 2.32, 0.0], size: [0.16, 0.13, 0.18] }
+        brain: { key: "brain", label: "Brain", position: [0, 2.62, 0.02], size: [0.16, 0.13, 0.18] }
       }
     }
   });
   withLayer("organs", () => {
-    bodyParts.brain = addEllipsoid("brain", [0, 2.32, 0.0], [0.16, 0.13, 0.18], organMaterial(0xa78bfa, 0x221146, 0.78));
+    bodyParts.brain = addEllipsoid("brain", [0, 2.62, 0.02], [0.16, 0.13, 0.18], organMaterial(0xa78bfa, 0x221146, 0.78));
     bodyParts.brain.userData.organKey = "brain";
     registerOrganDisplayObject(bodyParts.brain, "brain");
     addBrainFolds();
@@ -1052,25 +1052,25 @@ function createVascularAndNerveNetwork() {
       name: "arm-artery-left",
       mat: artery,
       radius: 0.006,
-      points: [[-0.3, 1.42, 0.08], [-0.62, 1.18, 0.09], [-0.88, 0.86, 0.1], [-1.13, 0.58, 0.11], [-1.28, 0.38, 0.12]]
+      points: [[-0.56, 1.58, 0.11], [-0.76, 1.25, 0.12], [-0.94, 0.92, 0.12], [-1.12, 0.58, 0.13], [-1.28, 0.38, 0.13]]
     },
     {
       name: "arm-artery-right",
       mat: artery,
       radius: 0.006,
-      points: [[0.3, 1.42, 0.08], [0.62, 1.18, 0.09], [0.88, 0.86, 0.1], [1.13, 0.58, 0.11], [1.28, 0.38, 0.12]]
+      points: [[0.56, 1.58, 0.11], [0.76, 1.25, 0.12], [0.94, 0.92, 0.12], [1.12, 0.58, 0.13], [1.28, 0.38, 0.13]]
     },
     {
       name: "arm-vein-left",
       mat: vein,
       radius: 0.0055,
-      points: [[-0.24, 1.32, 0.14], [-0.56, 1.04, 0.14], [-0.82, 0.74, 0.15], [-1.08, 0.5, 0.16], [-1.24, 0.34, 0.16]]
+      points: [[-0.62, 1.54, 0.16], [-0.82, 1.2, 0.17], [-0.99, 0.86, 0.17], [-1.14, 0.54, 0.18], [-1.24, 0.34, 0.17]]
     },
     {
       name: "arm-vein-right",
       mat: vein,
       radius: 0.0055,
-      points: [[0.24, 1.32, 0.14], [0.56, 1.04, 0.14], [0.82, 0.74, 0.15], [1.08, 0.5, 0.16], [1.24, 0.34, 0.16]]
+      points: [[0.62, 1.54, 0.16], [0.82, 1.2, 0.17], [0.99, 0.86, 0.17], [1.14, 0.54, 0.18], [1.24, 0.34, 0.17]]
     },
     {
       name: "leg-artery-guide-left",
@@ -1133,7 +1133,7 @@ function createDiseaseLayers() {
   disease.pressure = new THREE.Group();
   disease.clot = createClotGroup([-0.18, -1.58, 0.02], 0.68);
   disease.lungClot = createClotGroup([0.22, 1.42, 0.08], 0.5);
-  disease.brain = addGlowSphere([0, 2.48, 0.02], [0.3, 0.2, 0.22], 0xa78bfa);
+  disease.brain = addGlowSphere([0, 2.66, 0.03], [0.3, 0.2, 0.22], 0xa78bfa);
   disease.carotid = createClotGroup([-0.08, 2.24, 0.03], 0.36);
   disease.kidney = new THREE.Group();
 
@@ -1195,7 +1195,7 @@ function createGlucoseParticles() {
 }
 
 function createAnatomyLabels() {
-  createAnatomyLabel("الدماغ", "#a78bfa", [0.45, 2.37, 0.16]);
+  createAnatomyLabel("الدماغ", "#a78bfa", [0.45, 2.64, 0.16]);
   createAnatomyLabel("الرئتان", "#48c7d8", [0.55, 1.37, 0.18]);
   createAnatomyLabel("القلب", "#ef4b5f", [-0.5, 1.18, 0.18]);
   createAnatomyLabel("الكبد", "#9a4d2f", [-0.62, 0.92, 0.18]);
@@ -1213,7 +1213,7 @@ function addBrainFolds() {
     const points = [];
     for (let j = 0; j < 24; j += 1) {
       const u = (j / 23) * Math.PI * 2;
-      points.push(new THREE.Vector3(Math.cos(u) * (0.06 + i * 0.014), 2.32 + Math.sin(u * 2 + i) * 0.01, 0.0 + Math.sin(u) * (0.04 + i * 0.01)));
+      points.push(new THREE.Vector3(Math.cos(u) * (0.06 + i * 0.014), 2.62 + Math.sin(u * 2 + i) * 0.01, 0.02 + Math.sin(u) * (0.04 + i * 0.01)));
     }
     addToActiveLayer(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), foldMat));
   }
