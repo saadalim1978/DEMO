@@ -1316,6 +1316,7 @@ function addVesselFlow(points, radius, material, name) {
   const length = points.reduce((sum, point, index) => (index === 0 ? 0 : sum + point.distanceTo(points[index - 1])), 0);
   const count = Math.max(2, Math.min(10, Math.round(length * 4.2)));
   const isVein = /vein/i.test(name);
+  const flowDirection = isVein ? -1 : 1;
   const color = isVein ? 0x6ee7ff : 0xff7a86;
   const flowMaterial = new THREE.MeshBasicMaterial({
     color,
@@ -1332,6 +1333,8 @@ function addVesselFlow(points, radius, material, name) {
       t,
       path: curve,
       speed: (isVein ? 0.34 : 0.48) + (i % 4) * 0.035,
+      flowDirection,
+      flowKind: isVein ? "vein" : "artery",
       flow: true,
       vesselName: name,
       baseScale: isVein ? 0.9 : 1.05,
@@ -1962,8 +1965,9 @@ function animateParticles(delta, elapsed) {
   bloodParticles.forEach((particle) => {
     const isLegOrVein = /leg|foot|vein/i.test(particle.userData.vesselName || "");
     const clotDrag = twinState?.summary?.clotRisk > 65 && (particle.userData.t > 0.55 || isLegOrVein) ? 0.42 : 1;
-    particle.userData.t += delta * particle.userData.speed * 0.18 * clotDrag;
-    if (particle.userData.t > 1) particle.userData.t = 0;
+    const direction = particle.userData.flowDirection || 1;
+    particle.userData.t += delta * particle.userData.speed * 0.18 * clotDrag * direction;
+    particle.userData.t = wrapFlowProgress(particle.userData.t);
     particle.position.copy(particle.userData.path.getPointAt(particle.userData.t));
     const lowOxygen = twinState?.summary?.oxygen < 94;
     particle.material.color.setHex(lowOxygen ? 0xef4b5f : particle.userData.color || 0xffd4d4);
@@ -1976,6 +1980,11 @@ function animateParticles(delta, elapsed) {
     particle.position.y = particle.userData.baseY + Math.sin(elapsed * particle.userData.speed + particle.userData.phase) * 0.08;
     particle.rotation.y += delta;
   });
+}
+
+function wrapFlowProgress(value) {
+  if (value >= 1 || value < 0) return ((value % 1) + 1) % 1;
+  return value;
 }
 
 function animateDiseaseLayers(elapsed) {
