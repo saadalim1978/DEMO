@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { initAnatomyDebug, updateDebugHelpers } from "/anatomy-debug.js";
 
 const dom = {
   scene: document.querySelector("#scene"),
@@ -131,7 +132,7 @@ let bodyShellAsset = {
   file: "VH_M_Skin.glb",
   label: "NIH 3D Skin, Male",
   source: "NIH 3D",
-  fit: [2.96, 5.15, 0.9],
+  fit: [1.7, 5.1, 0.85],
   position: [0, 0.18, 0],
   rotation: [0, 0, 0]
 };
@@ -141,53 +142,53 @@ let organAssets = [
     key: "lungs",
     file: "3d-vh-f-lung.glb",
     label: "Lungs",
-    position: [0, 1.39, 0.04],
-    fit: [0.64, 0.74, 0.25],
+    position: [0, 1.32, 0.02],
+    fit: [0.78, 0.82, 0.32],
     rotation: [0, Math.PI, 0],
-    material: { color: 0x48c7d8, emissive: 0x07334a, opacity: 0.72 }
+    material: { color: 0x48c7d8, emissive: 0x07334a, opacity: 0.62 }
   },
   {
     key: "heart",
     file: "VH_M_Heart.glb",
     label: "Heart",
-    position: [-0.08, 1.14, 0.13],
-    fit: [0.24, 0.3, 0.2],
-    rotation: [0, -0.2, 0],
+    position: [0.06, 1.18, 0.06],
+    fit: [0.22, 0.26, 0.18],
+    rotation: [0, -0.25, -0.18],
     material: { color: 0xef4b5f, emissive: 0x4c0712, opacity: 0.96 }
   },
   {
     key: "liver",
     file: "VH_M_Liver.glb",
     label: "Liver",
-    position: [-0.3, 0.82, 0.08],
-    fit: [0.64, 0.31, 0.24],
+    position: [-0.12, 0.92, 0.05],
+    fit: [0.5, 0.26, 0.22],
     rotation: [0, Math.PI, 0],
-    material: { color: 0x9a4d2f, emissive: 0x341006, opacity: 0.88 }
+    material: { color: 0x9a4d2f, emissive: 0x341006, opacity: 0.85 }
   },
   {
     key: "stomach",
     file: "realistic_stomach.glb",
     label: "Stomach",
-    position: [0.22, 0.64, 0.11],
-    fit: [0.24, 0.3, 0.18],
-    rotation: [0, -0.25, 0],
-    material: { color: 0xff9f80, emissive: 0x44140c, opacity: 0.9 }
+    position: [0.1, 0.78, 0.06],
+    fit: [0.26, 0.28, 0.18],
+    rotation: [0, -0.35, 0],
+    material: { color: 0xff9f80, emissive: 0x44140c, opacity: 0.88 }
   },
   {
     key: "pancreas",
     file: "3d-vh-m-pancreas.glb",
     label: "Pancreas",
-    position: [0.04, 0.61, 0.14],
-    fit: [0.38, 0.09, 0.09],
-    rotation: [0, Math.PI, 0],
+    position: [0.0, 0.7, -0.04],
+    fit: [0.34, 0.08, 0.08],
+    rotation: [0, Math.PI, 0.05],
     material: { color: 0xf4b740, emissive: 0x5a3600, opacity: 0.95 }
   },
   {
     key: "leftKidney",
     file: "VH_M_Kidney_L.glb",
     label: "Left Kidney",
-    position: [0.27, 0.56, -0.15],
-    fit: [0.14, 0.23, 0.1],
+    position: [0.13, 0.62, -0.14],
+    fit: [0.12, 0.22, 0.1],
     rotation: [0, Math.PI, -0.18],
     material: { color: 0xc084fc, emissive: 0x28113c, opacity: 0.9 }
   },
@@ -195,8 +196,8 @@ let organAssets = [
     key: "rightKidney",
     file: "VH_M_Kidney_L.glb",
     label: "Right Kidney",
-    position: [-0.27, 0.56, -0.15],
-    fit: [0.14, 0.23, 0.1],
+    position: [-0.13, 0.6, -0.14],
+    fit: [0.12, 0.22, 0.1],
     rotation: [0, 0, 0.18],
     mirrorX: true,
     material: { color: 0xc084fc, emissive: 0x28113c, opacity: 0.9 }
@@ -205,26 +206,26 @@ let organAssets = [
     key: "smallIntestine",
     file: "VH_F_Small_Intestine.glb",
     label: "Small Intestine",
-    position: [0, 0.12, 0.1],
-    fit: [0.5, 0.42, 0.18],
+    position: [0, 0.32, 0.05],
+    fit: [0.42, 0.36, 0.18],
     rotation: [0, Math.PI, 0],
-    material: { color: 0xffb3a7, emissive: 0x4e1b16, opacity: 0.84 }
+    material: { color: 0xffb3a7, emissive: 0x4e1b16, opacity: 0.78 }
   },
   {
     key: "largeIntestine",
     file: "SBU_F_Intestine_Large.glb",
     label: "Large Intestine",
-    position: [0, 0.1, 0.08],
-    fit: [0.58, 0.5, 0.2],
+    position: [0, 0.36, 0.04],
+    fit: [0.5, 0.44, 0.2],
     rotation: [0, Math.PI, 0],
-    material: { color: 0xffb3a7, emissive: 0x4e1b16, opacity: 0.76 }
+    material: { color: 0xd68a7c, emissive: 0x4e1b16, opacity: 0.7 }
   },
   {
     key: "bladder",
     file: "VH_F_Urinary_Bladder.glb",
     label: "Bladder",
-    position: [0, -0.34, 0.08],
-    fit: [0.16, 0.17, 0.14],
+    position: [0, -0.12, 0.05],
+    fit: [0.14, 0.14, 0.12],
     rotation: [0, Math.PI, 0],
     material: { color: 0xff77aa, emissive: 0x4c0b24, opacity: 0.86 }
   }
@@ -271,7 +272,7 @@ if (renderer) requestAnimationFrame(animate);
 
 async function loadAnatomyManifest() {
   try {
-    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-14", { cache: "no-store" });
+    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-15", { cache: "no-store" });
     if (!response.ok) throw new Error(`Manifest HTTP ${response.status}`);
     const manifest = await response.json();
     if (manifest.bodyShell) bodyShellAsset = normalizeBodyShell(manifest.bodyShell);
@@ -292,7 +293,7 @@ async function loadAnatomyManifest() {
 function normalizeBodyShell(asset) {
   return {
     ...asset,
-    fit: vectorOr(asset.fit, [2.96, 5.15, 0.9]),
+    fit: vectorOr(asset.fit, [1.7, 5.1, 0.85]),
     position: vectorOr(asset.position, [0, 0.18, 0]),
     rotation: vectorOr(asset.rotation, [0, 0, 0])
   };
@@ -378,8 +379,19 @@ function addBodyTwinModel() {
     addHumanSilhouette();
   });
   loadReadyMadeOrgans();
+  initAnatomyDebug({
+    scene,
+    bodyParts,
+    manifestRef: {
+      value: {
+        bodyShell: bodyShellAsset,
+        organs: organAssets,
+        brain: { key: "brain", label: "Brain", position: [0, 2.32, 0.0], size: [0.16, 0.13, 0.18] }
+      }
+    }
+  });
   withLayer("organs", () => {
-    bodyParts.brain = addEllipsoid("brain", [0, 2.48, 0.02], [0.22, 0.14, 0.18], organMaterial(0xa78bfa, 0x221146, 0.78));
+    bodyParts.brain = addEllipsoid("brain", [0, 2.32, 0.0], [0.16, 0.13, 0.18], organMaterial(0xa78bfa, 0x221146, 0.78));
     bodyParts.brain.userData.organKey = "brain";
     registerOrganDisplayObject(bodyParts.brain, "brain");
     addBrainFolds();
@@ -1181,15 +1193,16 @@ function createGlucoseParticles() {
 }
 
 function createAnatomyLabels() {
-  createAnatomyLabel("الدماغ", "#a78bfa", [0.5, 2.48, 0.18]);
-  createAnatomyLabel("الرئتان", "#48c7d8", [0.58, 1.4, 0.18]);
-  createAnatomyLabel("القلب", "#ef4b5f", [-0.52, 1.08, 0.2]);
-  createAnatomyLabel("الكبد", "#9a4d2f", [-0.58, 0.82, 0.18]);
-  createAnatomyLabel("المعدة", "#ff9f80", [0.58, 0.64, 0.18]);
-  createAnatomyLabel("البنكرياس", "#f4b740", [-0.52, 0.64, 0.18]);
-  createAnatomyLabel("الكلى", "#c084fc", [0.52, 0.5, 0.16]);
-  createAnatomyLabel("المثانة", "#ff77aa", [0.45, -0.34, 0.16]);
-  createAnatomyLabel("الأوعية", "#ff5d73", [0.48, 0.92, 0.18]);
+  createAnatomyLabel("الدماغ", "#a78bfa", [0.45, 2.37, 0.16]);
+  createAnatomyLabel("الرئتان", "#48c7d8", [0.55, 1.37, 0.18]);
+  createAnatomyLabel("القلب", "#ef4b5f", [-0.5, 1.18, 0.18]);
+  createAnatomyLabel("الكبد", "#9a4d2f", [-0.62, 0.92, 0.18]);
+  createAnatomyLabel("المعدة", "#ff9f80", [0.6, 0.78, 0.18]);
+  createAnatomyLabel("البنكرياس", "#f4b740", [-0.5, 0.7, 0.18]);
+  createAnatomyLabel("الكلى", "#c084fc", [0.55, 0.62, 0.18]);
+  createAnatomyLabel("الأمعاء", "#ffb3a7", [0.55, 0.34, 0.18]);
+  createAnatomyLabel("المثانة", "#ff77aa", [0.5, -0.12, 0.18]);
+  createAnatomyLabel("الأوعية", "#ff5d73", [-0.6, 0.5, 0.18]);
 }
 
 function addBrainFolds() {
@@ -1198,7 +1211,7 @@ function addBrainFolds() {
     const points = [];
     for (let j = 0; j < 24; j += 1) {
       const u = (j / 23) * Math.PI * 2;
-      points.push(new THREE.Vector3(Math.cos(u) * (0.085 + i * 0.018), 2.48 + Math.sin(u * 2 + i) * 0.012, 0.02 + Math.sin(u) * (0.05 + i * 0.012)));
+      points.push(new THREE.Vector3(Math.cos(u) * (0.06 + i * 0.014), 2.32 + Math.sin(u * 2 + i) * 0.01, 0.0 + Math.sin(u) * (0.04 + i * 0.01)));
     }
     addToActiveLayer(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), foldMat));
   }
@@ -1829,6 +1842,7 @@ function resize() {
 function animate() {
   const delta = clock.getDelta();
   const elapsed = clock.elapsedTime;
+  updateDebugHelpers();
   controls?.update();
 
   if (humanGroup) {
