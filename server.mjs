@@ -528,6 +528,8 @@ function buildRecommendations(byId, risk, metabolicRisk, vascularRisk, scenario,
 
 function localBodyAnalyst(question, state) {
   const focus = inferFocus(question);
+  const careFocus = focus === "general" ? inferFocusFromState(state) : focus;
+  const carePathway = isCarePathwayQuestion(question) ? buildCarePathway(careFocus, state) : null;
   const alerts = state.sensors.filter((sensor) => sensor.status !== "normal");
   const strongest = alerts[0] || state.sensors.find((sensor) => sensor.id === "glucose");
   const intro =
@@ -542,7 +544,7 @@ function localBodyAnalyst(question, state) {
     intro,
     `السيناريو الحالي: ${state.scenario.label}. مؤشر الصحة ${state.summary.health}% ومؤشر المخاطر ${state.summary.risk}%.`,
     focusLine,
-    state.recommendations[1] || state.recommendations[0],
+    carePathway?.answer || state.recommendations[1] || state.recommendations[0],
     "تنبيه: هذا شرح تعليمي وليس تشخيصًا طبيًا."
   ].join(" ");
 
@@ -551,7 +553,7 @@ function localBodyAnalyst(question, state) {
     answer,
     confidence: state.summary.risk >= 70 ? 0.85 : 0.77,
     severity: state.summary.risk >= 70 ? "critical" : state.summary.risk >= 40 ? "watch" : "stable",
-    actions: state.recommendations.slice(0, 3),
+    actions: carePathway?.actions || state.recommendations.slice(0, 3),
     evidence: [
       `موثوقية النموذج: ${state.summary.modelConfidence}%`,
       state.imaging.latest ? `آخر تصوير: ${state.imaging.latest.modalityLabel} - ${state.imaging.latest.regionLabel}` : "لا توجد صور أشعة مرفوعة بعد",
@@ -561,6 +563,108 @@ function localBodyAnalyst(question, state) {
       `تروية الدماغ: ${state.summary.neuroPerfusion}%`
     ]
   };
+}
+
+function isCarePathwayQuestion(question = "") {
+  return /علاج|علاجي|الإجراء|اجراء|خطة|تدخل|تصرف|care|treatment|procedure|management|therapy/i.test(question);
+}
+
+function inferFocusFromState(state) {
+  if (state.scenario?.disease === "thrombosis" || state.summary.clotRisk >= 35 || state.summary.dDimer >= 500) return "clot";
+  if (state.scenario?.disease === "stroke" || state.summary.neuroPerfusion <= 85) return "stroke";
+  if (state.scenario?.disease === "hypertension" || Number(String(state.summary.bloodPressure).split("/")[0]) >= 130) return "pressure";
+  if (state.scenario?.disease === "diabetes" || state.summary.glucose >= 126 || state.summary.hba1c >= 5.7) return "diabetes";
+  return "general";
+}
+
+function buildCarePathway(focus, state) {
+  const emergencyPrefix =
+    state.summary.risk >= 70
+      ? "بما أن المؤشرات في المحاكاة عالية الخطورة، فالمسار الآمن يكون بتقييم طبي عاجل."
+      : "الإجراء يعتمد على الفحص السريري والتصوير والتحاليل، وليس على الديمو وحده.";
+
+  if (focus === "clot") {
+    return {
+      answer:
+        `${emergencyPrefix} في مسار الجلطات المحتمل: يتم تقييم أعراض مثل تورم أو ألم الساق أو ضيق النفس، ثم قد يطلب الطبيب فحص دوبلر للأوردة أو CT للرئة مع D-dimer وتحاليل التخثر. إذا تأكدت جلطة، فالخيارات التي يناقشها الفريق الطبي قد تشمل مضادات التخثر، أو إذابة/قسطرة للجلطة في الحالات الشديدة، مع أكسجين ومراقبة عند وجود نقص أكسجة. لا يبدأ أي دواء أو جرعة بدون طبيب.`,
+      actions: [
+        "إذا ظهر ضيق نفس، ألم صدر، إغماء، أو تورم ساق مفاجئ: التوجه للطوارئ فورًا.",
+        "طلب تقييم طبي مع فحص دوبلر/CT حسب مكان الاشتباه وتحاليل التخثر.",
+        "مناقشة مضادات التخثر أو القسطرة/إذابة الجلطة فقط إذا أكد الطبيب التشخيص."
+      ]
+    };
+  }
+
+  if (focus === "stroke") {
+    return {
+      answer:
+        `${emergencyPrefix} في مسار السكتة المحتملة: أي ضعف مفاجئ في الوجه أو الذراع، اضطراب الكلام، صداع شديد مفاجئ، أو تشوش رؤية يستدعي الطوارئ. الإجراء الطبي يبدأ بتحديد وقت بداية الأعراض، CT أو MRI للدماغ، فحوصات سكر وضغط وتخثر، ثم قد يناقش الفريق الطبي إذابة جلطة أو قسطرة إزالة الخثرة إذا كانت الحالة مناسبة زمنياً وطبيًا.`,
+      actions: [
+        "عند أعراض سكتة مفاجئة: الاتصال بالإسعاف فورًا وعدم الانتظار.",
+        "تحديد وقت بداية الأعراض وتجهيز الأدوية/الأمراض السابقة للطبيب.",
+        "التقييم بالتصوير CT/MRI قبل أي قرار علاجي."
+      ]
+    };
+  }
+
+  if (focus === "pressure") {
+    return {
+      answer:
+        `${emergencyPrefix} في مسار ارتفاع الضغط: يعاد القياس بطريقة صحيحة، وتراجع الأعراض المصاحبة مثل ألم الصدر أو ضيق النفس أو ضعف عصبي. إذا كان الضغط شديدًا أو معه أعراض، فالتقييم العاجل مهم. الطبيب قد يناقش أدوية خفض الضغط، تحاليل كلى وأملاح، وتخطيط قلب، مع متابعة نمط الحياة حسب الحالة.`,
+      actions: [
+        "إعادة قياس الضغط بعد راحة وبوضعية صحيحة.",
+        "الطوارئ عند ألم صدر، ضيق نفس، ضعف عصبي، أو قراءات شديدة جدًا.",
+        "مراجعة الطبيب لاختيار أدوية وفحوصات مناسبة دون بدء علاج عشوائي."
+      ]
+    };
+  }
+
+  if (focus === "diabetes") {
+    return {
+      answer:
+        `${emergencyPrefix} في مسار ارتفاع السكر: يتم تأكيد القراءة، مراجعة الأعراض مثل عطش شديد أو قيء أو خمول، وفحص الكيتونات عند الارتفاع الشديد. الطبيب قد يناقش تعديل الخطة الغذائية والدوائية أو الإنسولين حسب الحالة والتحاليل، مع متابعة HbA1c ووظائف الكلى.`,
+      actions: [
+        "تأكيد قراءة السكر ومراجعة الأعراض العامة.",
+        "التقييم العاجل عند قيء، خمول شديد، تنفس غير طبيعي، أو سكر مرتفع جدًا.",
+        "مراجعة الطبيب لتعديل الخطة العلاجية بناءً على التحاليل."
+      ]
+    };
+  }
+
+  return {
+    answer:
+      `${emergencyPrefix} المسار العام يكون: تحديد الأعراض، قياس العلامات الحيوية، مراجعة صور الأشعة والتحاليل، ثم اختيار التدخل المناسب بواسطة الطبيب. الديمو يساعد على ترتيب الأولويات ولا يحدد علاجًا شخصيًا.`,
+    actions: [
+      "حدد العرض الأساسي ومدة بدايته.",
+      "اربط المؤشرات الحيوية بنتائج الأشعة والتحاليل.",
+      "راجع الطبيب لاختيار الإجراء العلاجي المناسب."
+    ]
+  };
+}
+
+function withCarePathwayIfRequested(analysis, question, state) {
+  if (!analysis || !isCarePathwayQuestion(question)) return analysis;
+  const focus = inferFocus(question);
+  const careFocus = focus === "general" ? inferFocusFromState(state) : focus;
+  const carePathway = buildCarePathway(careFocus, state);
+  const alreadySpecific = /دوبلر|قسطرة|مضادات التخثر|CT|MRI|الطوارئ|إذابة/i.test(analysis.answer || "");
+  return {
+    ...analysis,
+    answer: alreadySpecific ? analysis.answer : `${analysis.answer} ${carePathway.answer}`,
+    actions: uniqueStrings([...(analysis.actions || []), ...carePathway.actions]).slice(0, 5),
+    evidence: analysis.evidence || []
+  };
+}
+
+function uniqueStrings(items) {
+  const seen = new Set();
+  return items.filter((item) => {
+    if (typeof item !== "string" || !item.trim()) return false;
+    const key = item.trim();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function buildFocusLine(focus, state, strongest) {
@@ -601,7 +705,7 @@ async function openAiBodyAnalyst(question, state) {
           {
             role: "system",
             content:
-              "You are an Arabic educational human-body digital twin analyst. Analyze the simulated sensor values, organs, scenario, intervention, trend, and risk predictions. Do not provide diagnosis, prescriptions, or treatment instructions. If values look urgent, advise seeking real medical care. Return valid JSON only with keys: answer, severity, confidence, actions, evidence. severity must be stable, watch, or critical. confidence must be a number from 0 to 1. Keep answer and lists in Arabic."
+              "You are an Arabic educational human-body digital twin analyst. Analyze the simulated sensor values, organs, scenario, intervention, trend, risk predictions, and imaging evidence. Do not provide a diagnosis, prescription, medication dose, or personalized treatment plan. If the user asks about العلاج, الإجراء العلاجي, treatment, procedure, or management, answer with a safe educational care pathway: urgent red flags, likely clinical assessments, imaging/labs a clinician may request, and possible clinician-supervised options. Never tell the user to start/stop a medicine. If values look urgent, clearly advise seeking emergency or real medical care. Return valid JSON only with keys: answer, severity, confidence, actions, evidence. severity must be stable, watch, or critical. confidence must be a number from 0 to 1. Keep answer and lists in Arabic."
           },
           { role: "user", content: JSON.stringify({ question, state: buildOpenAiContext(state) }) }
         ]
@@ -839,7 +943,7 @@ const server = createServer(async (request, response) => {
       const state = buildTwinState();
       const question = String(body.question || "حلل حالة التوأم الرقمي للجسم الآن.");
       const aiAnswer = await openAiBodyAnalyst(question, state);
-      sendJson(response, 200, aiAnswer || localBodyAnalyst(question, state));
+      sendJson(response, 200, withCarePathwayIfRequested(aiAnswer, question, state) || localBodyAnalyst(question, state));
       return;
     }
 
