@@ -280,7 +280,7 @@ if (renderer) requestAnimationFrame(animate);
 
 async function loadAnatomyManifest() {
   try {
-    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-21", { cache: "no-store" });
+    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-22", { cache: "no-store" });
     if (!response.ok) throw new Error(`Manifest HTTP ${response.status}`);
     const manifest = await response.json();
     if (manifest.bodyShell) bodyShellAsset = normalizeBodyShell(manifest.bodyShell);
@@ -1656,7 +1656,7 @@ function iconForIntervention(id) {
 function renderPredictions(prediction) {
   const rows = [
     ["دقة النموذج", `${prediction.modelConfidence || 72}%`, "مدعومة بالمؤشرات وصور الأشعة"],
-    ["خطر السكري", `${Math.round(prediction.diabetesProbability * 100)}%`, "نموذج أيضي تعليمي"],
+    ["خطر السكري", `${Math.round(prediction.diabetesProbability * 100)}%`, "محاكاة أيضية"],
     ["خطر الضغط", `${Math.round(prediction.hypertensionProbability * 100)}%`, "اعتمادًا على الضغط وتيبس الأوعية"],
     ["خطر الجلطات", `${Math.round(prediction.clotProbability * 100)}%`, "قابلية التخثر وD-dimer"],
     ["إشارات سكتة", `${Math.round(prediction.strokeSignalProbability * 100)}%`, prediction.suggestedMonitoring]

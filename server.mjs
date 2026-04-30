@@ -20,7 +20,7 @@ const scenarios = {
   baseline: {
     label: "جسم مستقر",
     shortLabel: "مستقر",
-    description: "محاكاة تعليمية لجسم افتراضي بمؤشرات أيضية ووعائية ضمن النطاق.",
+    description: "محاكاة صحية رقمية لجسم افتراضي بمؤشرات أيضية ووعائية ضمن النطاق.",
     severity: 0.08,
     disease: "baseline",
     modifiers: {}
@@ -322,7 +322,7 @@ function buildTwinState() {
     asset: {
       id: "BODY-TWIN-DEMO-001",
       name: "توأم رقمي للجسم البشري",
-      subject: "حالة افتراضية تعليمية",
+      subject: "حالة افتراضية للمحاكاة الصحية",
       location: "مختبر محاكاة",
       model: "AI + API + 3D",
       uptimeMinutes: Math.round((now - scenarioUpdatedAt + 1000 * 60 * 45) / 60000),
@@ -501,7 +501,7 @@ function buildPrediction(byId, risk, metabolicRisk, vascularRisk, scenario, imag
 }
 
 function buildRecommendations(byId, risk, metabolicRisk, vascularRisk, scenario, imaging) {
-  const recs = ["استخدم النتائج كعرض تعليمي فقط، ولا تعتمد عليها لتشخيص أو علاج حالة حقيقية."];
+  const recs = ["استخدم النتائج كمؤشرات مساندة للقرار ولا تعتمد عليها وحدها لتشخيص أو علاج حالة حقيقية."];
   if (!imaging?.count) {
     recs.push("يمكن رفع صور CT أو MRI أو X-Ray أو Ultrasound لإضافة دليل تصوير يرفع موثوقية التوأم الرقمي.");
   } else {
@@ -545,7 +545,7 @@ function localBodyAnalyst(question, state) {
     `السيناريو الحالي: ${state.scenario.label}. مؤشر الصحة ${state.summary.health}% ومؤشر المخاطر ${state.summary.risk}%.`,
     focusLine,
     carePathway?.answer || state.recommendations[1] || state.recommendations[0],
-    "تنبيه: هذا شرح تعليمي وليس تشخيصًا طبيًا."
+    "تنبيه: هذه معلومات إرشادية عامة ولا تغني عن تقييم الطبيب."
   ].join(" ");
 
   return {
@@ -705,7 +705,7 @@ async function openAiBodyAnalyst(question, state) {
           {
             role: "system",
             content:
-              "You are an Arabic educational human-body digital twin analyst. Analyze the simulated sensor values, organs, scenario, intervention, trend, risk predictions, and imaging evidence. Do not provide a diagnosis, prescription, medication dose, or personalized treatment plan. If the user asks about العلاج, الإجراء العلاجي, treatment, procedure, or management, answer with a safe educational care pathway: urgent red flags, likely clinical assessments, imaging/labs a clinician may request, and possible clinician-supervised options. Never tell the user to start/stop a medicine. If values look urgent, clearly advise seeking emergency or real medical care. Return valid JSON only with keys: answer, severity, confidence, actions, evidence. severity must be stable, watch, or critical. confidence must be a number from 0 to 1. Keep answer and lists in Arabic."
+              "You are an Arabic human-body digital twin clinical decision-support analyst. Analyze the simulated sensor values, organs, scenario, intervention, trend, risk predictions, and imaging evidence. Do not provide a diagnosis, prescription, medication dose, or personalized treatment plan. If the user asks about العلاج, الإجراء العلاجي, treatment, procedure, or management, answer with a practical care pathway: urgent red flags, likely clinical assessments, imaging/labs a clinician may request, and possible clinician-supervised options. Never tell the user to start/stop a medicine. If values look urgent, clearly advise seeking emergency or real medical care. Return valid JSON only with keys: answer, severity, confidence, actions, evidence. The answer key is required and must contain a complete Arabic paragraph. severity must be stable, watch, or critical. confidence must be a number from 0 to 1. Keep answer and lists in Arabic."
           },
           { role: "user", content: JSON.stringify({ question, state: buildOpenAiContext(state) }) }
         ]
@@ -809,15 +809,31 @@ function parseAiJson(text) {
 
 function normalizeOpenAiAnalysis(parsed, model) {
   const severity = ["stable", "watch", "critical"].includes(parsed.severity) ? parsed.severity : "watch";
+  const actions = toStringList(parsed.actions).slice(0, 5);
+  const evidence = toStringList(parsed.evidence).slice(0, 6);
+  const answer =
+    typeof parsed.answer === "string" && parsed.answer.trim()
+      ? parsed.answer.trim()
+      : buildOpenAiFallbackAnswer(actions, evidence);
   return {
     source: "openai",
     model,
-    answer: typeof parsed.answer === "string" && parsed.answer.trim() ? parsed.answer.trim() : "تم تحليل المؤشرات عبر OpenAI، لكن الاستجابة لم تتضمن ملخصًا كافيًا.",
+    answer,
     confidence: clamp(Number(parsed.confidence || 0.8), 0, 1),
     severity,
-    actions: toStringList(parsed.actions).slice(0, 5),
-    evidence: toStringList(parsed.evidence).slice(0, 6)
+    actions,
+    evidence
   };
+}
+
+function buildOpenAiFallbackAnswer(actions, evidence) {
+  const evidenceLine = evidence.length
+    ? `تم تحليل المؤشرات، وأبرز الدلائل: ${evidence.slice(0, 3).join("، ")}.`
+    : "تم تحليل المؤشرات الحيوية والسيناريو الحالي.";
+  const actionLine = actions.length
+    ? `الخطوة المقترحة: ${actions[0]}`
+    : "يوصى بمراجعة مسار الرعاية المناسب وربط المؤشرات بنتائج الفحص والتصوير.";
+  return `${evidenceLine} ${actionLine}`;
 }
 
 function toStringList(value) {
