@@ -31,7 +31,8 @@ const dom = {
   refreshBtn: document.querySelector("#refreshBtn"),
   resetCameraBtn: document.querySelector("#resetCameraBtn"),
   layerToggles: document.querySelectorAll("[data-layer-toggle]"),
-  cutawayToggle: document.querySelector("#cutawayToggle")
+  cutawayToggle: document.querySelector("#cutawayToggle"),
+  teachingModeToggle: document.querySelector("#teachingModeToggle")
 };
 
 const statusColors = {
@@ -98,6 +99,23 @@ const sensorOrganMap = {
   inflammation: "intestines",
   painScore: "vessels"
 };
+
+const teachingOrganScales = {
+  brain: 1.24,
+  lungs: 1.16,
+  heart: 1.3,
+  liver: 1.2,
+  stomach: 1.24,
+  pancreas: 1.38,
+  leftKidney: 1.28,
+  rightKidney: 1.28,
+  kidneys: 1.28,
+  smallIntestine: 1.13,
+  largeIntestine: 1.13,
+  intestines: 1.13,
+  bladder: 1.25
+};
+
 const layerState = {
   skin: true,
   organs: true,
@@ -107,6 +125,7 @@ const layerState = {
   effects: true
 };
 let cutawayEnabled = true;
+let teachingModeEnabled = true;
 
 let bodyShellAsset = {
   file: "VH_M_Skin.glb",
@@ -252,7 +271,7 @@ if (renderer) requestAnimationFrame(animate);
 
 async function loadAnatomyManifest() {
   try {
-    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-11", { cache: "no-store" });
+    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-12", { cache: "no-store" });
     if (!response.ok) throw new Error(`Manifest HTTP ${response.status}`);
     const manifest = await response.json();
     if (manifest.bodyShell) bodyShellAsset = normalizeBodyShell(manifest.bodyShell);
@@ -362,6 +381,7 @@ function addBodyTwinModel() {
   withLayer("organs", () => {
     bodyParts.brain = addEllipsoid("brain", [0, 2.48, 0.02], [0.22, 0.14, 0.18], organMaterial(0xa78bfa, 0x221146, 0.78));
     bodyParts.brain.userData.organKey = "brain";
+    registerOrganDisplayObject(bodyParts.brain, "brain");
     addBrainFolds();
   });
 
@@ -462,6 +482,7 @@ function addBodyTwinModel() {
   withLayer("labels", createAnatomyLabels);
   applyLayerVisibility();
   applyCutawayMode();
+  applyTeachingMode();
 }
 
 function createLayerGroups() {
@@ -501,11 +522,49 @@ function applyCutawayMode() {
   bodyParts.skin?.traverse((child) => {
     if (!child.isMesh || !child.material) return;
     child.material.clippingPlanes = cutawayEnabled ? [cutawayPlane] : [];
-    child.material.opacity = cutawayEnabled ? 0.28 : 0.46;
+    child.material.opacity = skinShellOpacity();
     child.material.needsUpdate = true;
   });
   document.body.dataset.cutaway = cutawayEnabled ? "on" : "off";
   if (dom.cutawayToggle) dom.cutawayToggle.checked = cutawayEnabled;
+}
+
+function skinShellOpacity() {
+  if (teachingModeEnabled) return cutawayEnabled ? 0.18 : 0.32;
+  return cutawayEnabled ? 0.28 : 0.46;
+}
+
+function applyTeachingMode() {
+  document.body.dataset.anatomyDisplay = teachingModeEnabled ? "teaching" : "realistic";
+  Object.entries(bodyParts).forEach(([key, object]) => {
+    if (!object || key === "skin") return;
+    applyOrganDisplayScale(object);
+  });
+  applyCutawayMode();
+  if (dom.teachingModeToggle) dom.teachingModeToggle.checked = teachingModeEnabled;
+}
+
+function registerOrganDisplayObject(object, key) {
+  object.userData.organKey = object.userData.organKey || organGroupKey(key);
+  object.userData.displayKey = key;
+  object.userData.baseScale = object.scale.clone();
+  object.userData.teachingScale = teachingScaleFor(key);
+  applyOrganDisplayScale(object);
+  return object;
+}
+
+function teachingScaleFor(key) {
+  return teachingOrganScales[key] || teachingOrganScales[organGroupKey(key)] || 1.18;
+}
+
+function displayScaleForObject(object) {
+  return teachingModeEnabled ? object.userData.teachingScale || 1 : 1;
+}
+
+function applyOrganDisplayScale(object, multiplier = [1, 1, 1]) {
+  const base = object.userData.baseScale || new THREE.Vector3(1, 1, 1);
+  const display = displayScaleForObject(object);
+  object.scale.set(base.x * display * multiplier[0], base.y * display * multiplier[1], base.z * display * multiplier[2]);
 }
 
 async function loadNihBodyShell() {
@@ -568,7 +627,7 @@ function skinShellMaterial() {
     emissive: 0x2c1210,
     emissiveIntensity: 0.04,
     transparent: true,
-    opacity: cutawayEnabled ? 0.28 : 0.46,
+    opacity: skinShellOpacity(),
     depthWrite: false,
     side: THREE.DoubleSide,
     clippingPlanes: cutawayEnabled ? [cutawayPlane] : [],
@@ -665,6 +724,7 @@ function prepareOrganModel(sceneModel, asset) {
   wrapper.rotation.set(...asset.rotation);
   wrapper.userData.asset = asset;
   wrapper.userData.organKey = organKey;
+  registerOrganDisplayObject(wrapper, asset.key);
   return wrapper;
 }
 
@@ -1646,6 +1706,10 @@ function wireEvents() {
     cutawayEnabled = dom.cutawayToggle.checked;
     applyCutawayMode();
   });
+  dom.teachingModeToggle?.addEventListener("change", () => {
+    teachingModeEnabled = dom.teachingModeToggle.checked;
+    applyTeachingMode();
+  });
 
   dom.questionInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) askAi();
@@ -1770,11 +1834,11 @@ function animate() {
   if (humanGroup) {
     const breathing = Math.sin(elapsed * 1.5) * 0.018;
     if (bodyParts.lungs) {
-      bodyParts.lungs.scale.set(1 + breathing * 0.65, 1 + breathing * 1.05, 1 + breathing * 0.45);
+      applyOrganDisplayScale(bodyParts.lungs, [1 + breathing * 0.65, 1 + breathing * 1.05, 1 + breathing * 0.45]);
     }
     const bpm = Math.max(45, twinState?.summary?.heartRate || 72);
     const beat = Math.exp(-Math.pow(((elapsed % (60 / bpm)) / (60 / bpm) - 0.08) / 0.075, 2)) * 0.08;
-    bodyParts.heart?.scale.setScalar(1 + beat * 1.4);
+    if (bodyParts.heart) applyOrganDisplayScale(bodyParts.heart, [1 + beat * 1.4, 1 + beat * 1.4, 1 + beat * 1.4]);
   }
 
   animateParticles(delta, elapsed);

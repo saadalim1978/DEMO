@@ -753,7 +753,7 @@ body[data-scenario="heart_failure"] .fallback-heart {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
-  width: min(340px, calc(100% - 28px));
+  width: min(380px, calc(100% - 28px));
 }
 
 .layer-toggle {
@@ -792,7 +792,8 @@ body[data-scenario="heart_failure"] .fallback-heart {
   background: rgba(26, 63, 70, 0.78);
 }
 
-.cutaway-toggle {
+.cutaway-toggle,
+.education-toggle {
   grid-column: auto;
 }
 
@@ -1177,7 +1178,8 @@ textarea:focus {
     width: auto;
   }
 
-  .cutaway-toggle {
+  .cutaway-toggle,
+  .education-toggle {
     grid-column: auto;
   }
 
