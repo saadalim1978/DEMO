@@ -92,6 +92,16 @@ $env:OPENAI_MODEL="gpt-4o-mini"
 & "C:\Users\user\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe" server.mjs
 ```
 
+على Render أضف المتغيرات من صفحة الخدمة ثم Environment:
+
+- `OPENAI_API_KEY`: مفتاح OpenAI الحقيقي. لا تضعه داخل GitHub.
+- `OPENAI_MODEL`: اختياري، الافتراضي `gpt-4o-mini`.
+- `OPENAI_TIMEOUT_MS`: اختياري، الافتراضي `15000`.
+
+ملف `render.yaml` يعرّف `OPENAI_API_KEY` بـ `sync: false` حتى يطلب Render القيمة كسرّ ولا يرفعها إلى المستودع. إذا كانت الخدمة منشأة مسبقًا، أضف المفتاح يدويًا من Render Dashboard ثم اعمل Manual Deploy أو Sync للـ Blueprint.
+
+عند وجود المفتاح سيستخدم `/api/ai/ask` تحليل OpenAI. إذا لم يوجد المفتاح أو تعذر الاتصال، يرجع التطبيق تلقائيًا إلى التحليل المحلي.
+
 ## مراجع عامة
 
 - [Human Organs GLB data](https://github.com/code4fukui/human_organs) by Taisuke Fukuno, with organ data sourced from NIH 3D Print Exchange.

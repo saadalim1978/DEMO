@@ -8,6 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, "public");
 const port = Number(process.env.PORT || 4321);
 const host = process.env.HOST || (process.env.RENDER ? "0.0.0.0" : "127.0.0.1");
+const defaultOpenAiModel = "gpt-4o-mini";
 
 let activeScenario = "baseline";
 let activeIntervention = "observe";
@@ -481,10 +482,15 @@ function inferFocus(question = "") {
 async function openAiBodyAnalyst(question, state) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
+  const model = (process.env.OPENAI_MODEL || defaultOpenAiModel).trim() || defaultOpenAiModel;
+  const timeoutMs = clamp(Number(process.env.OPENAI_TIMEOUT_MS || 15000), 3000, 30000);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
-    const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
+      signal: controller.signal,
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json"
@@ -495,9 +501,9 @@ async function openAiBodyAnalyst(question, state) {
           {
             role: "system",
             content:
-              "You are an Arabic educational human-body digital twin analyst. Do not provide diagnosis or treatment instructions. Return concise JSON only with keys: answer, severity, confidence, actions, evidence."
+              "You are an Arabic educational human-body digital twin analyst. Analyze the simulated sensor values, organs, scenario, intervention, trend, and risk predictions. Do not provide diagnosis, prescriptions, or treatment instructions. If values look urgent, advise seeking real medical care. Return valid JSON only with keys: answer, severity, confidence, actions, evidence. severity must be stable, watch, or critical. confidence must be a number from 0 to 1. Keep answer and lists in Arabic."
           },
-          { role: "user", content: JSON.stringify({ question, state }) }
+          { role: "user", content: JSON.stringify({ question, state: buildOpenAiContext(state) }) }
         ]
       })
     });
@@ -505,18 +511,106 @@ async function openAiBodyAnalyst(question, state) {
     const data = await response.json();
     const text = data.output_text || extractResponseText(data);
     if (!text) return null;
-    const parsed = JSON.parse(text.replace(/^```json\s*/i, "").replace(/```$/i, ""));
-    return {
-      source: "openai",
-      answer: parsed.answer,
-      confidence: Number(parsed.confidence || 0.8),
-      severity: parsed.severity || "watch",
-      actions: Array.isArray(parsed.actions) ? parsed.actions : [],
-      evidence: Array.isArray(parsed.evidence) ? parsed.evidence : []
-    };
+    return normalizeOpenAiAnalysis(parseAiJson(text), model);
   } catch {
     return null;
+  } finally {
+    clearTimeout(timeout);
   }
+}
+
+function buildOpenAiContext(state) {
+  const keySensorIds = [
+    "glucose",
+    "hba1c",
+    "insulinResistance",
+    "systolic",
+    "diastolic",
+    "heartRate",
+    "oxygen",
+    "ldl",
+    "triglycerides",
+    "bmi",
+    "clotRisk",
+    "dDimer",
+    "legFlow",
+    "egfr",
+    "neuroPerfusion",
+    "vascularStiffness",
+    "inflammation",
+    "painScore"
+  ];
+  const sensorsById = new Map(state.sensors.map((sensor) => [sensor.id, sensor]));
+  const keySensors = keySensorIds.map((id) => sensorsById.get(id)).filter(Boolean).map(formatSensorForAi);
+  const activeAlerts = state.sensors
+    .filter((sensor) => sensor.status !== "normal")
+    .sort((a, b) => severityRank(b.status) - severityRank(a.status))
+    .slice(0, 8)
+    .map(formatSensorForAi);
+
+  return {
+    scenario: pickFields(state.scenario, ["label", "shortLabel", "description", "disease", "severity"]),
+    intervention: pickFields(state.intervention, ["label", "description"]),
+    summary: state.summary,
+    prediction: state.prediction,
+    keySensors,
+    activeAlerts,
+    organFindings: state.lesions.map((lesion) => pickFields(lesion, ["id", "type", "label", "severity"])),
+    recentEvents: state.events.map((event) => pickFields(event, ["level", "title", "message"])),
+    recommendations: state.recommendations
+  };
+}
+
+function formatSensorForAi(sensor) {
+  return pickFields(sensor, ["id", "name", "value", "unit", "status", "trend", "zone"]);
+}
+
+function pickFields(source, fields) {
+  const picked = {};
+  for (const field of fields) {
+    if (source && source[field] !== undefined) picked[field] = source[field];
+  }
+  return picked;
+}
+
+function severityRank(status) {
+  if (status === "critical") return 3;
+  if (status === "warning") return 2;
+  return 1;
+}
+
+function parseAiJson(text) {
+  const cleaned = text
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/```$/i, "")
+    .trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const start = cleaned.indexOf("{");
+    const end = cleaned.lastIndexOf("}");
+    if (start >= 0 && end > start) return JSON.parse(cleaned.slice(start, end + 1));
+    throw new Error("OpenAI response was not JSON");
+  }
+}
+
+function normalizeOpenAiAnalysis(parsed, model) {
+  const severity = ["stable", "watch", "critical"].includes(parsed.severity) ? parsed.severity : "watch";
+  return {
+    source: "openai",
+    model,
+    answer: typeof parsed.answer === "string" && parsed.answer.trim() ? parsed.answer.trim() : "تم تحليل المؤشرات عبر OpenAI، لكن الاستجابة لم تتضمن ملخصًا كافيًا.",
+    confidence: clamp(Number(parsed.confidence || 0.8), 0, 1),
+    severity,
+    actions: toStringList(parsed.actions).slice(0, 5),
+    evidence: toStringList(parsed.evidence).slice(0, 6)
+  };
+}
+
+function toStringList(value) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim());
 }
 
 function extractResponseText(data) {

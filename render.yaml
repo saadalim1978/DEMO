@@ -11,3 +11,9 @@ services:
         value: 22.22.0
       - key: NODE_ENV
         value: production
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: OPENAI_TIMEOUT_MS
+        value: 15000
