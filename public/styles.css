@@ -684,6 +684,66 @@ body[data-scenario="heart_failure"] .fallback-heart {
   gap: 8px;
 }
 
+.organ-link-card {
+  position: absolute;
+  z-index: 6;
+  left: 14px;
+  top: 118px;
+  width: min(300px, calc(100% - 28px));
+  padding: 11px;
+  border: 1px solid rgba(72, 199, 216, 0.34);
+  border-radius: 8px;
+  background: rgba(12, 13, 16, 0.74);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 14px 42px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+}
+
+.organ-kicker {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--cyan);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.organ-link-card strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.organ-metric-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.organ-metric-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 26px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.organ-metric-chip.warning {
+  border-color: rgba(244, 183, 64, 0.56);
+  color: #ffe1a1;
+}
+
+.organ-metric-chip.critical {
+  border-color: rgba(239, 75, 95, 0.64);
+  color: #ffd0d6;
+}
+
 .layer-controls {
   position: absolute;
   z-index: 6;
@@ -1102,6 +1162,13 @@ textarea:focus {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .organ-link-card {
+    top: 248px;
+    left: 14px;
+    right: 14px;
+    width: auto;
+  }
+
   .cutaway-toggle {
     grid-column: auto;
   }
@@ -1135,6 +1202,28 @@ textarea:focus {
     left: 66px;
     right: 14px;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .organ-link-card {
+    top: 138px;
+    right: 14px;
+    left: 14px;
+    padding: 8px;
+  }
+
+  .organ-link-card strong {
+    margin-bottom: 5px;
+    font-size: 13px;
+  }
+
+  .organ-kicker,
+  .organ-metric-chip {
+    font-size: 10px;
+  }
+
+  .organ-metric-chip {
+    min-height: 22px;
+    padding: 3px 6px;
   }
 
   .intervention-list {

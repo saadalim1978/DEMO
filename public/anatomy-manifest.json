@@ -1,5 +1,5 @@
 {
-  "version": "2026-04-27.organs-2",
+  "version": "2026-04-30.organs-links-3",
   "bodyShell": {
     "file": "VH_M_Skin.glb",
     "label": "NIH 3D Skin, Male",
@@ -21,8 +21,8 @@
       "key": "lungs",
       "file": "3d-vh-f-lung.glb",
       "label": "Lungs",
-      "position": [0, 1.36, 0.04],
-      "fit": [0.62, 0.72, 0.25],
+      "position": [0, 1.39, 0.04],
+      "fit": [0.64, 0.74, 0.25],
       "rotation": [0, 3.141592653589793, 0],
       "material": { "color": "#48c7d8", "emissive": "#07334a", "opacity": 0.72 }
     },
@@ -30,7 +30,7 @@
       "key": "heart",
       "file": "VH_M_Heart.glb",
       "label": "Heart",
-      "position": [-0.08, 1.12, 0.12],
+      "position": [-0.08, 1.14, 0.13],
       "fit": [0.24, 0.3, 0.2],
       "rotation": [0, -0.2, 0],
       "material": { "color": "#ef4b5f", "emissive": "#4c0712", "opacity": 0.96 }
@@ -39,8 +39,8 @@
       "key": "liver",
       "file": "VH_M_Liver.glb",
       "label": "Liver",
-      "position": [-0.28, 0.78, 0.08],
-      "fit": [0.62, 0.3, 0.24],
+      "position": [-0.3, 0.82, 0.08],
+      "fit": [0.64, 0.31, 0.24],
       "rotation": [0, 3.141592653589793, 0],
       "material": { "color": "#9a4d2f", "emissive": "#341006", "opacity": 0.88 }
     },
@@ -48,7 +48,7 @@
       "key": "stomach",
       "file": "realistic_stomach.glb",
       "label": "Stomach",
-      "position": [0.2, 0.58, 0.1],
+      "position": [0.22, 0.64, 0.11],
       "fit": [0.24, 0.3, 0.18],
       "rotation": [0, -0.25, 0],
       "material": { "color": "#ff9f80", "emissive": "#44140c", "opacity": 0.9 }
@@ -57,7 +57,7 @@
       "key": "pancreas",
       "file": "3d-vh-m-pancreas.glb",
       "label": "Pancreas",
-      "position": [0.02, 0.62, 0.13],
+      "position": [0.04, 0.61, 0.14],
       "fit": [0.38, 0.09, 0.09],
       "rotation": [0, 3.141592653589793, 0],
       "material": { "color": "#f4b740", "emissive": "#5a3600", "opacity": 0.95 }
@@ -66,8 +66,8 @@
       "key": "leftKidney",
       "file": "VH_M_Kidney_L.glb",
       "label": "Left Kidney",
-      "position": [0.24, 0.5, -0.12],
-      "fit": [0.14, 0.24, 0.1],
+      "position": [0.27, 0.56, -0.15],
+      "fit": [0.14, 0.23, 0.1],
       "rotation": [0, 3.141592653589793, -0.18],
       "material": { "color": "#c084fc", "emissive": "#28113c", "opacity": 0.9 }
     },
@@ -75,8 +75,8 @@
       "key": "rightKidney",
       "file": "VH_M_Kidney_L.glb",
       "label": "Right Kidney",
-      "position": [-0.24, 0.5, -0.12],
-      "fit": [0.14, 0.24, 0.1],
+      "position": [-0.27, 0.56, -0.15],
+      "fit": [0.14, 0.23, 0.1],
       "rotation": [0, 0, 0.18],
       "mirrorX": true,
       "material": { "color": "#c084fc", "emissive": "#28113c", "opacity": 0.9 }
@@ -85,7 +85,7 @@
       "key": "smallIntestine",
       "file": "VH_F_Small_Intestine.glb",
       "label": "Small Intestine",
-      "position": [0, 0.08, 0.08],
+      "position": [0, 0.02, 0.1],
       "fit": [0.5, 0.42, 0.18],
       "rotation": [0, 3.141592653589793, 0],
       "material": { "color": "#ffb3a7", "emissive": "#4e1b16", "opacity": 0.84 }
@@ -94,7 +94,7 @@
       "key": "largeIntestine",
       "file": "SBU_F_Intestine_Large.glb",
       "label": "Large Intestine",
-      "position": [0, 0.05, 0.06],
+      "position": [0, 0.0, 0.08],
       "fit": [0.58, 0.5, 0.2],
       "rotation": [0, 3.141592653589793, 0],
       "material": { "color": "#ffb3a7", "emissive": "#4e1b16", "opacity": 0.76 }
@@ -103,8 +103,8 @@
       "key": "bladder",
       "file": "VH_F_Urinary_Bladder.glb",
       "label": "Bladder",
-      "position": [0, -0.32, 0.08],
-      "fit": [0.16, 0.18, 0.14],
+      "position": [0, -0.42, 0.08],
+      "fit": [0.16, 0.17, 0.14],
       "rotation": [0, 3.141592653589793, 0],
       "material": { "color": "#ff77aa", "emissive": "#4c0b24", "opacity": 0.86 }
     }

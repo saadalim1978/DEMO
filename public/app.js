@@ -10,6 +10,9 @@ const dom = {
   interventionName: document.querySelector("#interventionName"),
   lastUpdate: document.querySelector("#lastUpdate"),
   disclaimer: document.querySelector("#disclaimer"),
+  organLinkCard: document.querySelector("#organLinkCard"),
+  organLinkName: document.querySelector("#organLinkName"),
+  organLinkMetrics: document.querySelector("#organLinkMetrics"),
   healthMetric: document.querySelector("#healthMetric"),
   riskMetric: document.querySelector("#riskMetric"),
   perfusionMetric: document.querySelector("#perfusionMetric"),
@@ -56,12 +59,45 @@ let glucoseParticles = [];
 let webglSignalChecked = false;
 let framesWithoutSignal = 0;
 let activeLayerGroup = null;
+let selectedOrganKey = "pancreas";
 
 const disease = {};
 const bodyParts = {};
 const layerGroups = {};
 const gltfLoader = new GLTFLoader();
 const cutawayPlane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0.08);
+const organHighlights = new Map();
+const organMetricLinks = {
+  brain: { label: "الدماغ", color: "#a78bfa", sensors: ["neuroPerfusion"] },
+  heart: { label: "القلب", color: "#ef4b5f", sensors: ["heartRate", "systolic", "diastolic"] },
+  lungs: { label: "الرئتان", color: "#48c7d8", sensors: ["oxygen"] },
+  liver: { label: "الكبد", color: "#9a4d2f", sensors: ["ldl", "triglycerides", "inflammation"] },
+  stomach: { label: "المعدة", color: "#ff9f80", sensors: ["bmi", "inflammation"] },
+  pancreas: { label: "البنكرياس", color: "#f4b740", sensors: ["glucose", "hba1c", "insulinResistance"] },
+  kidneys: { label: "الكلى", color: "#c084fc", sensors: ["egfr", "systolic", "diastolic"] },
+  bladder: { label: "المثانة", color: "#ff77aa", sensors: ["egfr"] },
+  intestines: { label: "الأمعاء", color: "#ffb3a7", sensors: ["bmi", "inflammation", "triglycerides"] },
+  vessels: { label: "الأوعية الدموية", color: "#ff5d73", sensors: ["systolic", "diastolic", "clotRisk", "dDimer", "legFlow", "vascularStiffness"] }
+};
+const sensorOrganMap = {
+  glucose: "pancreas",
+  hba1c: "pancreas",
+  insulinResistance: "pancreas",
+  heartRate: "heart",
+  oxygen: "lungs",
+  ldl: "liver",
+  triglycerides: "liver",
+  egfr: "kidneys",
+  systolic: "vessels",
+  diastolic: "vessels",
+  clotRisk: "vessels",
+  dDimer: "vessels",
+  legFlow: "vessels",
+  vascularStiffness: "vessels",
+  bmi: "intestines",
+  inflammation: "intestines",
+  painScore: "vessels"
+};
 const layerState = {
   skin: true,
   organs: true,
@@ -86,8 +122,8 @@ let organAssets = [
     key: "lungs",
     file: "3d-vh-f-lung.glb",
     label: "Lungs",
-    position: [0, 1.36, 0.04],
-    fit: [0.62, 0.72, 0.25],
+    position: [0, 1.39, 0.04],
+    fit: [0.64, 0.74, 0.25],
     rotation: [0, Math.PI, 0],
     material: { color: 0x48c7d8, emissive: 0x07334a, opacity: 0.72 }
   },
@@ -95,7 +131,7 @@ let organAssets = [
     key: "heart",
     file: "VH_M_Heart.glb",
     label: "Heart",
-    position: [-0.08, 1.12, 0.12],
+    position: [-0.08, 1.14, 0.13],
     fit: [0.24, 0.3, 0.2],
     rotation: [0, -0.2, 0],
     material: { color: 0xef4b5f, emissive: 0x4c0712, opacity: 0.96 }
@@ -104,8 +140,8 @@ let organAssets = [
     key: "liver",
     file: "VH_M_Liver.glb",
     label: "Liver",
-    position: [-0.28, 0.78, 0.08],
-    fit: [0.62, 0.3, 0.24],
+    position: [-0.3, 0.82, 0.08],
+    fit: [0.64, 0.31, 0.24],
     rotation: [0, Math.PI, 0],
     material: { color: 0x9a4d2f, emissive: 0x341006, opacity: 0.88 }
   },
@@ -113,7 +149,7 @@ let organAssets = [
     key: "stomach",
     file: "realistic_stomach.glb",
     label: "Stomach",
-    position: [0.2, 0.58, 0.1],
+    position: [0.22, 0.64, 0.11],
     fit: [0.24, 0.3, 0.18],
     rotation: [0, -0.25, 0],
     material: { color: 0xff9f80, emissive: 0x44140c, opacity: 0.9 }
@@ -122,7 +158,7 @@ let organAssets = [
     key: "pancreas",
     file: "3d-vh-m-pancreas.glb",
     label: "Pancreas",
-    position: [0.02, 0.62, 0.13],
+    position: [0.04, 0.61, 0.14],
     fit: [0.38, 0.09, 0.09],
     rotation: [0, Math.PI, 0],
     material: { color: 0xf4b740, emissive: 0x5a3600, opacity: 0.95 }
@@ -131,8 +167,8 @@ let organAssets = [
     key: "leftKidney",
     file: "VH_M_Kidney_L.glb",
     label: "Left Kidney",
-    position: [0.24, 0.5, -0.12],
-    fit: [0.14, 0.24, 0.1],
+    position: [0.27, 0.56, -0.15],
+    fit: [0.14, 0.23, 0.1],
     rotation: [0, Math.PI, -0.18],
     material: { color: 0xc084fc, emissive: 0x28113c, opacity: 0.9 }
   },
@@ -140,8 +176,8 @@ let organAssets = [
     key: "rightKidney",
     file: "VH_M_Kidney_L.glb",
     label: "Right Kidney",
-    position: [-0.24, 0.5, -0.12],
-    fit: [0.14, 0.24, 0.1],
+    position: [-0.27, 0.56, -0.15],
+    fit: [0.14, 0.23, 0.1],
     rotation: [0, 0, 0.18],
     mirrorX: true,
     material: { color: 0xc084fc, emissive: 0x28113c, opacity: 0.9 }
@@ -150,7 +186,7 @@ let organAssets = [
     key: "smallIntestine",
     file: "VH_F_Small_Intestine.glb",
     label: "Small Intestine",
-    position: [0, 0.08, 0.08],
+    position: [0, 0.02, 0.1],
     fit: [0.5, 0.42, 0.18],
     rotation: [0, Math.PI, 0],
     material: { color: 0xffb3a7, emissive: 0x4e1b16, opacity: 0.84 }
@@ -159,7 +195,7 @@ let organAssets = [
     key: "largeIntestine",
     file: "SBU_F_Intestine_Large.glb",
     label: "Large Intestine",
-    position: [0, 0.05, 0.06],
+    position: [0, 0.0, 0.08],
     fit: [0.58, 0.5, 0.2],
     rotation: [0, Math.PI, 0],
     material: { color: 0xffb3a7, emissive: 0x4e1b16, opacity: 0.76 }
@@ -168,8 +204,8 @@ let organAssets = [
     key: "bladder",
     file: "VH_F_Urinary_Bladder.glb",
     label: "Bladder",
-    position: [0, -0.32, 0.08],
-    fit: [0.16, 0.18, 0.14],
+    position: [0, -0.42, 0.08],
+    fit: [0.16, 0.17, 0.14],
     rotation: [0, Math.PI, 0],
     material: { color: 0xff77aa, emissive: 0x4c0b24, opacity: 0.86 }
   }
@@ -216,7 +252,7 @@ if (renderer) requestAnimationFrame(animate);
 
 async function loadAnatomyManifest() {
   try {
-    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-8", { cache: "no-store" });
+    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-11", { cache: "no-store" });
     if (!response.ok) throw new Error(`Manifest HTTP ${response.status}`);
     const manifest = await response.json();
     if (manifest.bodyShell) bodyShellAsset = normalizeBodyShell(manifest.bodyShell);
@@ -325,6 +361,7 @@ function addBodyTwinModel() {
   loadReadyMadeOrgans();
   withLayer("organs", () => {
     bodyParts.brain = addEllipsoid("brain", [0, 2.48, 0.02], [0.22, 0.14, 0.18], organMaterial(0xa78bfa, 0x221146, 0.78));
+    bodyParts.brain.userData.organKey = "brain";
     addBrainFolds();
   });
 
@@ -597,6 +634,7 @@ function prepareOrganModel(sceneModel, asset) {
   const wrapper = new THREE.Group();
   wrapper.name = asset.key;
   sceneModel.name = `${asset.key}-source`;
+  const organKey = organGroupKey(asset.key);
 
   sceneModel.traverse((child) => {
     if (!child.isMesh) return;
@@ -604,6 +642,8 @@ function prepareOrganModel(sceneModel, asset) {
     child.receiveShadow = true;
     child.frustumCulled = false;
     child.material = organAssetMaterial(asset.material);
+    child.userData.organKey = organKey;
+    child.userData.organPartKey = asset.key;
   });
 
   const box = new THREE.Box3().setFromObject(sceneModel);
@@ -624,6 +664,7 @@ function prepareOrganModel(sceneModel, asset) {
   wrapper.position.set(...asset.position);
   wrapper.rotation.set(...asset.rotation);
   wrapper.userData.asset = asset;
+  wrapper.userData.organKey = organKey;
   return wrapper;
 }
 
@@ -639,6 +680,106 @@ function organAssetMaterial(config) {
     transparent: true,
     opacity: config.opacity
   });
+}
+
+function organGroupKey(key = "") {
+  if (key === "leftKidney" || key === "rightKidney") return "kidneys";
+  if (key === "smallIntestine" || key === "largeIntestine") return "intestines";
+  return key;
+}
+
+function sensorsForOrgan(organKey, state = twinState) {
+  const link = organMetricLinks[organKey];
+  if (!link || !state?.sensors) return [];
+  return link.sensors.map((id) => state.sensors.find((sensor) => sensor.id === id)).filter(Boolean);
+}
+
+function organObjects(organKey) {
+  const keys = {
+    kidneys: ["leftKidney", "rightKidney"],
+    intestines: ["smallIntestine", "largeIntestine"],
+    vessels: []
+  }[organKey] || [organKey];
+  return keys.map((key) => bodyParts[key]).filter(Boolean);
+}
+
+function organMeshes() {
+  const meshes = [];
+  Object.values(bodyParts).forEach((object) => {
+    object?.traverse?.((child) => {
+      if (child.isMesh && child.userData.organKey) meshes.push(child);
+    });
+  });
+  return meshes;
+}
+
+function rememberMaterialBase(material) {
+  if (!material || material.userData.organBase) return;
+  material.userData.organBase = {
+    emissive: material.emissive?.getHex?.() || 0x000000,
+    emissiveIntensity: material.emissiveIntensity || 0,
+    opacity: material.opacity ?? 1
+  };
+}
+
+function setOrganMaterialHighlight(object, active, color = 0xffffff) {
+  object?.traverse?.((child) => {
+    if (!child.isMesh || !child.material) return;
+    const materials = Array.isArray(child.material) ? child.material : [child.material];
+    materials.forEach((material) => {
+      rememberMaterialBase(material);
+      const base = material.userData.organBase;
+      if (active) {
+        material.emissive?.setHex?.(color);
+        material.emissiveIntensity = Math.max(base.emissiveIntensity + 0.45, 0.58);
+        if (material.transparent) material.opacity = Math.min(1, base.opacity + 0.14);
+      } else {
+        material.emissive?.setHex?.(base.emissive);
+        material.emissiveIntensity = base.emissiveIntensity;
+        if (material.transparent) material.opacity = base.opacity;
+      }
+      material.needsUpdate = true;
+    });
+  });
+}
+
+function updateOrganLinks(state = twinState) {
+  const organKey = selectedOrganKey || sensorOrganMap[selectedSensorId] || "pancreas";
+  const link = organMetricLinks[organKey] || organMetricLinks.pancreas;
+  Object.entries(bodyParts).forEach(([key, object]) => {
+    if (key !== "skin") setOrganMaterialHighlight(object, false);
+  });
+  organObjects(organKey).forEach((object) => setOrganMaterialHighlight(object, true, colorToHex(link.color, 0xffffff)));
+  layerGroups.vessels?.traverse((child) => {
+    if (!child.isMesh || !child.material?.emissive) return;
+    rememberMaterialBase(child.material);
+    const base = child.material.userData.organBase;
+    const active = organKey === "vessels";
+    child.material.emissiveIntensity = active ? Math.max(base.emissiveIntensity + 0.18, 0.42) : base.emissiveIntensity;
+    child.material.needsUpdate = true;
+  });
+  if (!dom.organLinkCard || !state?.sensors) return;
+  dom.organLinkName.textContent = link.label;
+  dom.organLinkMetrics.innerHTML = sensorsForOrgan(organKey, state)
+    .map((sensor) => `<span class="organ-metric-chip ${sensor.status}">${escapeHtml(sensor.name)}: ${sensor.value} ${escapeHtml(sensor.unit)}</span>`)
+    .join("");
+}
+
+function selectOrgan(organKey) {
+  selectedOrganKey = organMetricLinks[organKey] ? organKey : organGroupKey(organKey);
+  const sensors = sensorsForOrgan(selectedOrganKey);
+  if (sensors[0]) selectedSensorId = sensors[0].id;
+  focusOrgan(selectedOrganKey);
+  renderTwin(twinState);
+}
+
+function focusOrgan(organKey) {
+  const objects = organObjects(organKey);
+  if (!objects.length || !controls) return;
+  const box = new THREE.Box3();
+  objects.forEach((object) => box.expandByObject(object));
+  if (box.isEmpty()) return;
+  controls.target.copy(box.getCenter(new THREE.Vector3()));
 }
 
 function addHumanSilhouette() {
@@ -933,7 +1074,7 @@ function createDiseaseLayers() {
   }
   addToActiveLayer(disease.pressure);
 
-  [[0.24, 0.5, -0.12], [-0.24, 0.5, -0.12]].forEach((pos) => {
+  [[0.27, 0.56, -0.15], [-0.27, 0.56, -0.15]].forEach((pos) => {
     const glow = addGlowSphere(pos, [0.13, 0.2, 0.1], 0xc084fc);
     disease.kidney.add(glow);
   });
@@ -945,7 +1086,7 @@ function createDiseaseLayers() {
 }
 
 function createBloodParticles() {
-  const material = new THREE.MeshBasicMaterial({ color: 0xffc8c8 });
+  const material = new THREE.MeshBasicMaterial({ color: 0xffd4d4, transparent: true, opacity: 0.82 });
   const path = new THREE.CatmullRomCurve3([
     new THREE.Vector3(-0.06, 1.12, 0.1),
     new THREE.Vector3(0, 1.66, 0.07),
@@ -957,10 +1098,10 @@ function createBloodParticles() {
   ]);
 
   for (let i = 0; i < 46; i += 1) {
-    const particle = new THREE.Mesh(new THREE.SphereGeometry(0.018, 8, 8), material.clone());
+    const particle = new THREE.Mesh(new THREE.SphereGeometry(0.016, 10, 10), material.clone());
     const t = i / 46;
     particle.position.copy(path.getPointAt(t));
-    particle.userData = { t, path, speed: 0.45 + (i % 5) * 0.045 };
+    particle.userData = { t, path, speed: 0.45 + (i % 5) * 0.045, flow: true, baseScale: 1, pulse: i * 0.7 };
     bloodParticles.push(particle);
     addToActiveLayer(particle);
   }
@@ -983,8 +1124,11 @@ function createAnatomyLabels() {
   createAnatomyLabel("الدماغ", "#a78bfa", [0.5, 2.48, 0.18]);
   createAnatomyLabel("الرئتان", "#48c7d8", [0.58, 1.4, 0.18]);
   createAnatomyLabel("القلب", "#ef4b5f", [-0.52, 1.08, 0.2]);
+  createAnatomyLabel("الكبد", "#9a4d2f", [-0.58, 0.82, 0.18]);
+  createAnatomyLabel("المعدة", "#ff9f80", [0.58, 0.64, 0.18]);
   createAnatomyLabel("البنكرياس", "#f4b740", [-0.52, 0.64, 0.18]);
   createAnatomyLabel("الكلى", "#c084fc", [0.52, 0.5, 0.16]);
+  createAnatomyLabel("المثانة", "#ff77aa", [0.45, -0.42, 0.16]);
   createAnatomyLabel("الأوعية", "#ff5d73", [0.48, 0.92, 0.18]);
 }
 
@@ -1066,12 +1210,54 @@ function capsuleBetween(start, end, radius, material) {
 }
 
 function createTube(points, radius, material, name = "") {
-  const curve = new THREE.CatmullRomCurve3(points.map((point) => new THREE.Vector3(...point)));
+  const vectors = points.map(vectorFromPoint);
+  const curve = new THREE.CatmullRomCurve3(vectors);
   const mesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 96, radius, 18, false), material);
   mesh.name = name;
   mesh.castShadow = true;
   addToActiveLayer(mesh);
+  addVesselFlow(vectors, radius, material, name);
   return mesh;
+}
+
+function vectorFromPoint(point) {
+  return point?.isVector3 ? point.clone() : new THREE.Vector3(...point);
+}
+
+function shouldShowVesselFlow(name = "") {
+  return /(aorta|artery|vein|carotid|vascular|hand-|foot-)/i.test(name) && !/nerve/i.test(name);
+}
+
+function addVesselFlow(points, radius, material, name) {
+  if (!shouldShowVesselFlow(name)) return;
+  const length = points.reduce((sum, point, index) => (index === 0 ? 0 : sum + point.distanceTo(points[index - 1])), 0);
+  const count = Math.max(2, Math.min(10, Math.round(length * 4.2)));
+  const isVein = /vein/i.test(name);
+  const color = isVein ? 0x6ee7ff : 0xff7a86;
+  const flowMaterial = new THREE.MeshBasicMaterial({
+    color,
+    transparent: true,
+    opacity: isVein ? 0.92 : 0.95,
+    depthWrite: false
+  });
+  const curve = new THREE.CatmullRomCurve3(points);
+  for (let i = 0; i < count; i += 1) {
+    const particle = new THREE.Mesh(new THREE.SphereGeometry(Math.max(radius * 1.8, 0.012), 12, 12), flowMaterial.clone());
+    const t = i / count;
+    particle.position.copy(curve.getPointAt(t));
+    particle.userData = {
+      t,
+      path: curve,
+      speed: (isVein ? 0.34 : 0.48) + (i % 4) * 0.035,
+      flow: true,
+      vesselName: name,
+      baseScale: isVein ? 0.9 : 1.05,
+      pulse: i * 0.8,
+      color
+    };
+    bloodParticles.push(particle);
+    addToActiveLayer(particle);
+  }
 }
 
 function cylinderBetween(start, end, radius, material) {
@@ -1112,13 +1298,15 @@ function boneMaterial() {
 }
 
 function vesselMaterial(color, emissive, emissiveIntensity = 0.22) {
-  return new THREE.MeshStandardMaterial({
+  const material = new THREE.MeshStandardMaterial({
     color,
     roughness: 0.34,
     metalness: 0.24,
     emissive,
     emissiveIntensity
   });
+  material.userData.flowColor = color;
+  return material;
 }
 
 function createAnatomyLabel(text, color, position) {
@@ -1255,6 +1443,7 @@ function renderTwin(state) {
   if (renderer && humanGroup) {
     updateDiseaseVisuals(state);
     buildSensors(state.sensors);
+    updateOrganLinks(state);
   }
   renderSensors(state.sensors);
   renderInterventions(state.interventions);
@@ -1340,6 +1529,7 @@ function renderSensors(sensors) {
     `;
     item.addEventListener("click", () => {
       selectedSensorId = sensor.id;
+      selectedOrganKey = sensorOrganMap[sensor.id] || selectedOrganKey;
       focusSensor(sensor.id);
       renderTwin(twinState);
     });
@@ -1484,7 +1674,14 @@ function wireEvents() {
     const sensorId = hit?.object?.userData?.sensorId;
     if (sensorId) {
       selectedSensorId = sensorId;
+      selectedOrganKey = sensorOrganMap[sensorId] || selectedOrganKey;
       renderTwin(twinState);
+      return;
+    }
+    const organHit = raycaster.intersectObjects(organMeshes(), true)[0];
+    const organKey = organHit?.object?.userData?.organKey;
+    if (organKey) {
+      selectOrgan(organKey);
     }
   });
 }
@@ -1590,11 +1787,16 @@ function animate() {
 
 function animateParticles(delta, elapsed) {
   bloodParticles.forEach((particle) => {
-    const clotDrag = twinState?.summary?.clotRisk > 65 && particle.userData.t > 0.55 ? 0.42 : 1;
+    const isLegOrVein = /leg|foot|vein/i.test(particle.userData.vesselName || "");
+    const clotDrag = twinState?.summary?.clotRisk > 65 && (particle.userData.t > 0.55 || isLegOrVein) ? 0.42 : 1;
     particle.userData.t += delta * particle.userData.speed * 0.18 * clotDrag;
     if (particle.userData.t > 1) particle.userData.t = 0;
     particle.position.copy(particle.userData.path.getPointAt(particle.userData.t));
-    particle.material.color.set(twinState?.summary?.oxygen < 94 ? 0xef4b5f : 0xffc8c8);
+    const lowOxygen = twinState?.summary?.oxygen < 94;
+    particle.material.color.setHex(lowOxygen ? 0xef4b5f : particle.userData.color || 0xffd4d4);
+    const pulse = particle.userData.baseScale * (1 + Math.sin(elapsed * 8 + particle.userData.pulse) * 0.22);
+    particle.scale.setScalar(pulse);
+    if (particle.material.transparent) particle.material.opacity = 0.58 + Math.sin(elapsed * 5 + particle.userData.pulse) * 0.18 + (clotDrag < 1 ? -0.18 : 0);
   });
 
   glucoseParticles.forEach((particle) => {
