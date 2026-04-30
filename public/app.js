@@ -103,17 +103,17 @@ const sensorOrganMap = {
 const teachingOrganScales = {
   brain: 1.24,
   lungs: 1.16,
-  heart: 1.42,
+  heart: 1.3,
   liver: 1.2,
   stomach: 1.24,
-  pancreas: 1.72,
+  pancreas: 1.38,
   leftKidney: 1.28,
   rightKidney: 1.28,
   kidneys: 1.28,
   smallIntestine: 1.13,
   largeIntestine: 1.13,
   intestines: 1.13,
-  bladder: 1.48
+  bladder: 1.25
 };
 
 const layerState = {
@@ -150,8 +150,8 @@ let organAssets = [
     key: "heart",
     file: "VH_M_Heart.glb",
     label: "Heart",
-    position: [-0.02, 1.16, 0.2],
-    fit: [0.31, 0.38, 0.26],
+    position: [-0.08, 1.14, 0.13],
+    fit: [0.24, 0.3, 0.2],
     rotation: [0, -0.2, 0],
     material: { color: 0xef4b5f, emissive: 0x4c0712, opacity: 0.96 }
   },
@@ -177,8 +177,8 @@ let organAssets = [
     key: "pancreas",
     file: "3d-vh-m-pancreas.glb",
     label: "Pancreas",
-    position: [-0.02, 0.66, 0.2],
-    fit: [0.68, 0.18, 0.16],
+    position: [0.04, 0.61, 0.14],
+    fit: [0.38, 0.09, 0.09],
     rotation: [0, Math.PI, 0],
     material: { color: 0xf4b740, emissive: 0x5a3600, opacity: 0.95 }
   },
@@ -223,8 +223,8 @@ let organAssets = [
     key: "bladder",
     file: "VH_F_Urinary_Bladder.glb",
     label: "Bladder",
-    position: [0.02, -0.28, 0.16],
-    fit: [0.2, 0.22, 0.18],
+    position: [0, -0.42, 0.08],
+    fit: [0.16, 0.17, 0.14],
     rotation: [0, Math.PI, 0],
     material: { color: 0xff77aa, emissive: 0x4c0b24, opacity: 0.86 }
   }
@@ -271,7 +271,7 @@ if (renderer) requestAnimationFrame(animate);
 
 async function loadAnatomyManifest() {
   try {
-    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-13", { cache: "no-store" });
+    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-12", { cache: "no-store" });
     if (!response.ok) throw new Error(`Manifest HTTP ${response.status}`);
     const manifest = await response.json();
     if (manifest.bodyShell) bodyShellAsset = normalizeBodyShell(manifest.bodyShell);
@@ -539,9 +539,6 @@ function applyTeachingMode() {
   Object.entries(bodyParts).forEach(([key, object]) => {
     if (!object || key === "skin") return;
     applyOrganDisplayScale(object);
-    object.traverse?.((child) => {
-      if (child.userData?.teachingProxy) child.visible = teachingModeEnabled;
-    });
   });
   applyCutawayMode();
   if (dom.teachingModeToggle) dom.teachingModeToggle.checked = teachingModeEnabled;
@@ -723,40 +720,12 @@ function prepareOrganModel(sceneModel, asset) {
   );
 
   wrapper.add(sceneModel);
-  const teachingProxy = createTeachingOrganProxy(asset);
-  if (teachingProxy) wrapper.add(teachingProxy);
   wrapper.position.set(...asset.position);
   wrapper.rotation.set(...asset.rotation);
   wrapper.userData.asset = asset;
   wrapper.userData.organKey = organKey;
   registerOrganDisplayObject(wrapper, asset.key);
   return wrapper;
-}
-
-function createTeachingOrganProxy(asset) {
-  const material = organAssetMaterial({
-    ...asset.material,
-    opacity: Math.min(0.92, (asset.material?.opacity ?? 0.85) + 0.05)
-  });
-  let mesh = null;
-  if (asset.key === "pancreas") {
-    mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 24), material);
-    mesh.scale.set(0.28, 0.055, 0.04);
-    mesh.rotation.set(0, 0.04, -0.12);
-  } else if (asset.key === "bladder") {
-    mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 32), material);
-    mesh.scale.set(0.105, 0.12, 0.09);
-    mesh.position.set(0, 0.015, 0.005);
-  }
-  if (!mesh) return null;
-  mesh.name = `${asset.key}-teaching-proxy`;
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  mesh.visible = teachingModeEnabled;
-  mesh.userData.organKey = organGroupKey(asset.key);
-  mesh.userData.organPartKey = asset.key;
-  mesh.userData.teachingProxy = true;
-  return mesh;
 }
 
 function organAssetMaterial(config) {
@@ -1145,7 +1114,7 @@ function createFootVessels(side, artery, vein) {
 }
 
 function createDiseaseLayers() {
-  disease.pancreasGlow = addGlowSphere([-0.02, 0.66, 0.2], [0.44, 0.16, 0.1], 0xf4b740);
+  disease.pancreasGlow = addGlowSphere([-0.04, 0.66, 0.13], [0.38, 0.12, 0.08], 0xf4b740);
   disease.glucoseField = new THREE.Group();
   disease.pressure = new THREE.Group();
   disease.clot = createClotGroup([-0.18, -1.58, 0.02], 0.68);
@@ -1214,12 +1183,12 @@ function createGlucoseParticles() {
 function createAnatomyLabels() {
   createAnatomyLabel("الدماغ", "#a78bfa", [0.5, 2.48, 0.18]);
   createAnatomyLabel("الرئتان", "#48c7d8", [0.58, 1.4, 0.18]);
-  createAnatomyLabel("القلب", "#ef4b5f", [-0.56, 1.16, 0.26]);
+  createAnatomyLabel("القلب", "#ef4b5f", [-0.52, 1.08, 0.2]);
   createAnatomyLabel("الكبد", "#9a4d2f", [-0.58, 0.82, 0.18]);
   createAnatomyLabel("المعدة", "#ff9f80", [0.58, 0.64, 0.18]);
-  createAnatomyLabel("البنكرياس", "#f4b740", [-0.56, 0.66, 0.24]);
+  createAnatomyLabel("البنكرياس", "#f4b740", [-0.52, 0.64, 0.18]);
   createAnatomyLabel("الكلى", "#c084fc", [0.52, 0.5, 0.16]);
-  createAnatomyLabel("المثانة", "#ff77aa", [0.45, -0.28, 0.2]);
+  createAnatomyLabel("المثانة", "#ff77aa", [0.45, -0.42, 0.16]);
   createAnatomyLabel("الأوعية", "#ff5d73", [0.48, 0.92, 0.18]);
 }
 
