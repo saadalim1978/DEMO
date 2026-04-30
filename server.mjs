@@ -179,12 +179,12 @@ const interventions = {
 };
 
 const sensorTemplates = [
-  { id: "glucose", name: "سكر الدم", metric: "glucose", unit: "mg/dL", base: 96, amplitude: 7, decimals: 0, phase: 0.6, zone: "البنكرياس", position: [0.04, 0.61, 0.16], warningHigh: 126, criticalHigh: 180, warningLow: 70, criticalLow: 55 },
-  { id: "hba1c", name: "السكر التراكمي", metric: "hba1c", unit: "%", base: 5.3, amplitude: 0.08, decimals: 1, phase: 2.3, zone: "الأيض", position: [0.17, 0.62, 0.15], warningHigh: 5.7, criticalHigh: 6.5 },
-  { id: "insulinResistance", name: "مقاومة الإنسولين", metric: "insulinResistance", unit: "%", base: 18, amplitude: 3, decimals: 0, phase: 1.2, zone: "الأيض", position: [-0.12, 0.66, 0.15], warningHigh: 45, criticalHigh: 70 },
+  { id: "glucose", name: "سكر الدم", metric: "glucose", unit: "mg/dL", base: 96, amplitude: 7, decimals: 0, phase: 0.6, zone: "البنكرياس", position: [-0.02, 0.66, 0.23], warningHigh: 126, criticalHigh: 180, warningLow: 70, criticalLow: 55 },
+  { id: "hba1c", name: "السكر التراكمي", metric: "hba1c", unit: "%", base: 5.3, amplitude: 0.08, decimals: 1, phase: 2.3, zone: "الأيض", position: [0.08, 0.69, 0.22], warningHigh: 5.7, criticalHigh: 6.5 },
+  { id: "insulinResistance", name: "مقاومة الإنسولين", metric: "insulinResistance", unit: "%", base: 18, amplitude: 3, decimals: 0, phase: 1.2, zone: "الأيض", position: [-0.12, 0.63, 0.22], warningHigh: 45, criticalHigh: 70 },
   { id: "systolic", name: "ضغط الدم الانقباضي", metric: "systolic", unit: "mmHg", base: 118, amplitude: 5, decimals: 0, phase: 1.8, zone: "الأوعية", position: [0, 1.5, 0.08], warningHigh: 130, criticalHigh: 180, warningLow: 90, criticalLow: 75 },
   { id: "diastolic", name: "ضغط الدم الانبساطي", metric: "diastolic", unit: "mmHg", base: 76, amplitude: 3, decimals: 0, phase: 2.8, zone: "الأوعية", position: [0.18, 1.28, 0.08], warningHigh: 80, criticalHigh: 120, warningLow: 55, criticalLow: 45 },
-  { id: "heartRate", name: "معدل النبض", metric: "heartRate", unit: "bpm", base: 72, amplitude: 4, decimals: 0, phase: 0.4, zone: "القلب", position: [-0.12, 1.12, 0.14], warningHigh: 110, criticalHigh: 140, warningLow: 50, criticalLow: 38 },
+  { id: "heartRate", name: "معدل النبض", metric: "heartRate", unit: "bpm", base: 72, amplitude: 4, decimals: 0, phase: 0.4, zone: "القلب", position: [-0.02, 1.16, 0.24], warningHigh: 110, criticalHigh: 140, warningLow: 50, criticalLow: 38 },
   { id: "oxygen", name: "تشبع الأكسجين", metric: "oxygen", unit: "%", base: 98, amplitude: 0.8, decimals: 0, phase: 3.1, zone: "الرئتان", position: [0.36, 1.44, 0.09], warningLow: 94, criticalLow: 90 },
   { id: "ldl", name: "LDL كوليسترول", metric: "ldl", unit: "mg/dL", base: 96, amplitude: 8, decimals: 0, phase: 4.2, zone: "الدهون", position: [-0.3, 0.82, 0.12], warningHigh: 130, criticalHigh: 190 },
   { id: "triglycerides", name: "الدهون الثلاثية", metric: "triglycerides", unit: "mg/dL", base: 118, amplitude: 12, decimals: 0, phase: 1.7, zone: "الدهون", position: [-0.18, 0.72, 0.12], warningHigh: 150, criticalHigh: 300 },
@@ -341,8 +341,8 @@ function buildTwinState() {
 function buildLesions(byId, scenario) {
   const lesions = [];
   if (scenario.disease === "diabetes" || byId.glucose.value >= 126 || byId.hba1c.value >= 5.7) {
-    lesions.push({ id: "pancreas-stress", type: "diabetes", label: "إجهاد البنكرياس", severity: clamp((byId.glucose.value - 110) / 110, 0.18, 1), position: [-0.04, 0.66, 0.13], color: "#f4b740" });
-    lesions.push({ id: "glucose-field", type: "glucose", label: "ارتفاع السكر حول الأوعية", severity: clamp((byId.glucose.value - 110) / 120, 0.12, 1), position: [0, 0.55, 0.08], color: "#ffd166" });
+    lesions.push({ id: "pancreas-stress", type: "diabetes", label: "إجهاد البنكرياس", severity: clamp((byId.glucose.value - 110) / 110, 0.18, 1), position: [-0.02, 0.66, 0.2], color: "#f4b740" });
+    lesions.push({ id: "glucose-field", type: "glucose", label: "ارتفاع السكر حول الأوعية", severity: clamp((byId.glucose.value - 110) / 120, 0.12, 1), position: [0, 0.58, 0.14], color: "#ffd166" });
   }
   if (scenario.disease === "hypertension" || byId.systolic.value >= 130 || byId.vascularStiffness.value >= 45) {
     lesions.push({ id: "arterial-pressure", type: "hypertension", label: "ضغط عال على الشرايين", severity: clamp((byId.systolic.value - 120) / 75, 0.18, 1), position: [0, 1.1, 0.1], color: "#ef4b5f" });

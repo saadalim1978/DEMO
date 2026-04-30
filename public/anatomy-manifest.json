@@ -1,5 +1,5 @@
 {
-  "version": "2026-04-30.educational-organ-scale-1",
+  "version": "2026-04-30.organ-placement-2",
   "bodyShell": {
     "file": "VH_M_Skin.glb",
     "label": "NIH 3D Skin, Male",
@@ -30,8 +30,8 @@
       "key": "heart",
       "file": "VH_M_Heart.glb",
       "label": "Heart",
-      "position": [-0.08, 1.14, 0.13],
-      "fit": [0.24, 0.3, 0.2],
+      "position": [-0.02, 1.16, 0.2],
+      "fit": [0.31, 0.38, 0.26],
       "rotation": [0, -0.2, 0],
       "material": { "color": "#ef4b5f", "emissive": "#4c0712", "opacity": 0.96 }
     },
@@ -57,8 +57,8 @@
       "key": "pancreas",
       "file": "3d-vh-m-pancreas.glb",
       "label": "Pancreas",
-      "position": [0.04, 0.61, 0.14],
-      "fit": [0.38, 0.09, 0.09],
+      "position": [-0.02, 0.66, 0.2],
+      "fit": [0.68, 0.18, 0.16],
       "rotation": [0, 3.141592653589793, 0],
       "material": { "color": "#f4b740", "emissive": "#5a3600", "opacity": 0.95 }
     },
@@ -103,8 +103,8 @@
       "key": "bladder",
       "file": "VH_F_Urinary_Bladder.glb",
       "label": "Bladder",
-      "position": [0, -0.42, 0.08],
-      "fit": [0.16, 0.17, 0.14],
+      "position": [0.02, -0.28, 0.16],
+      "fit": [0.2, 0.22, 0.18],
       "rotation": [0, 3.141592653589793, 0],
       "material": { "color": "#ff77aa", "emissive": "#4c0b24", "opacity": 0.86 }
     }
