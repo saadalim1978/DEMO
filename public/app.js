@@ -132,7 +132,8 @@ let bodyShellAsset = {
   file: "VH_M_Skin.glb",
   label: "NIH 3D Skin, Male",
   source: "NIH 3D",
-  fit: [2.55, 5.28, 1.25],
+  fit: [3.08, 5.28, 1.38],
+  fitMode: "stretch",
   position: [0, 0.16, 0.03],
   rotation: [0, 0, 0]
 };
@@ -272,7 +273,7 @@ if (renderer) requestAnimationFrame(animate);
 
 async function loadAnatomyManifest() {
   try {
-    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-16", { cache: "no-store" });
+    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-17", { cache: "no-store" });
     if (!response.ok) throw new Error(`Manifest HTTP ${response.status}`);
     const manifest = await response.json();
     if (manifest.bodyShell) bodyShellAsset = normalizeBodyShell(manifest.bodyShell);
@@ -293,7 +294,8 @@ async function loadAnatomyManifest() {
 function normalizeBodyShell(asset) {
   return {
     ...asset,
-    fit: vectorOr(asset.fit, [2.55, 5.28, 1.25]),
+    fit: vectorOr(asset.fit, [3.08, 5.28, 1.38]),
+    fitMode: typeof asset.fitMode === "string" ? asset.fitMode : "stretch",
     position: vectorOr(asset.position, [0, 0.16, 0.03]),
     rotation: vectorOr(asset.rotation, [0, 0, 0])
   };
@@ -603,7 +605,7 @@ function prepareBodyShell(sceneModel) {
     child.material = skinShellMaterial();
   });
 
-  fitModelToBox(sceneModel, bodyShellAsset.fit);
+  fitModelToBox(sceneModel, bodyShellAsset.fit, bodyShellAsset.fitMode);
   wrapper.add(sceneModel);
   wrapper.position.set(...bodyShellAsset.position);
   wrapper.rotation.set(...bodyShellAsset.rotation);
@@ -614,14 +616,14 @@ function prepareBodyShell(sceneModel) {
   return wrapper;
 }
 
-function fitModelToBox(sceneModel, fitBox) {
+function fitModelToBox(sceneModel, fitBox, fitMode = "uniform") {
   const box = new THREE.Box3().setFromObject(sceneModel);
   const size = box.getSize(new THREE.Vector3());
   const center = box.getCenter(new THREE.Vector3());
   const fit = new THREE.Vector3(...fitBox);
-  const scale = Math.min(fit.x / size.x, fit.y / size.y, fit.z / size.z);
-
-  sceneModel.scale.setScalar(scale);
+  const scale = new THREE.Vector3(fit.x / size.x, fit.y / size.y, fit.z / size.z);
+  if (fitMode === "stretch") sceneModel.scale.copy(scale);
+  else sceneModel.scale.setScalar(Math.min(scale.x, scale.y, scale.z));
   sceneModel.position.set(
     -center.x * sceneModel.scale.x,
     -center.y * sceneModel.scale.y,
