@@ -426,8 +426,8 @@ function addBodyTwinModel() {
         [-0.1, -0.4, 0.07],
         [-0.27, -0.82, 0.08],
         [-0.35, -1.38, 0.09],
-        [-0.43, -2.08, 0.12],
-        [-0.46, -2.24, 0.2]
+        [-0.42, -2.08, 0.06],
+        [-0.43, -2.24, 0.08]
       ],
       0.04,
       vesselRed,
@@ -438,8 +438,8 @@ function addBodyTwinModel() {
         [0.02, -0.36, 0.05],
         [0.27, -0.82, 0.08],
         [0.35, -1.38, 0.09],
-        [0.43, -2.08, 0.12],
-        [0.46, -2.24, 0.2]
+        [0.42, -2.08, 0.06],
+        [0.43, -2.24, 0.08]
       ],
       0.036,
       vesselRed,
@@ -452,8 +452,8 @@ function addBodyTwinModel() {
         [-0.08, -0.48, 0.06],
         [-0.26, -1.1, 0.08],
         [-0.38, -1.78, 0.11],
-        [-0.41, -2.12, 0.16],
-        [-0.35, -2.27, 0.21]
+        [-0.39, -2.12, 0.075],
+        [-0.33, -2.25, 0.09]
       ],
       0.035,
       vesselBlue,
@@ -465,8 +465,8 @@ function addBodyTwinModel() {
         [0.16, 0.42, 0.05],
         [0.26, -0.78, 0.07],
         [0.38, -1.5, 0.1],
-        [0.41, -2.12, 0.16],
-        [0.35, -2.27, 0.21]
+        [0.39, -2.12, 0.075],
+        [0.33, -2.25, 0.09]
       ],
       0.032,
       vesselBlue,
@@ -1083,25 +1083,25 @@ function createVascularAndNerveNetwork() {
       name: "leg-artery-guide-left",
       mat: artery,
       radius: 0.006,
-      points: [[-0.1, -0.48, 0.07], [-0.24, -0.92, 0.08], [-0.34, -1.45, 0.1], [-0.43, -2.08, 0.13], [-0.48, -2.24, 0.2]]
+      points: [[-0.1, -0.48, 0.07], [-0.24, -0.92, 0.08], [-0.34, -1.45, 0.09], [-0.42, -2.08, 0.06], [-0.43, -2.24, 0.08]]
     },
     {
       name: "leg-artery-guide-right",
       mat: artery,
       radius: 0.006,
-      points: [[0.1, -0.48, 0.07], [0.24, -0.92, 0.08], [0.34, -1.45, 0.1], [0.43, -2.08, 0.13], [0.48, -2.24, 0.2]]
+      points: [[0.1, -0.48, 0.07], [0.24, -0.92, 0.08], [0.34, -1.45, 0.09], [0.42, -2.08, 0.06], [0.43, -2.24, 0.08]]
     },
     {
       name: "leg-vein-guide-left",
       mat: vein,
       radius: 0.0055,
-      points: [[-0.04, -0.42, 0.13], [-0.18, -0.98, 0.14], [-0.29, -1.56, 0.16], [-0.39, -2.1, 0.17], [-0.33, -2.28, 0.21]]
+      points: [[-0.04, -0.42, 0.13], [-0.18, -0.98, 0.13], [-0.29, -1.56, 0.11], [-0.39, -2.1, 0.075], [-0.33, -2.25, 0.09]]
     },
     {
       name: "leg-vein-guide-right",
       mat: vein,
       radius: 0.0055,
-      points: [[0.04, -0.42, 0.13], [0.18, -0.98, 0.14], [0.29, -1.56, 0.16], [0.39, -2.1, 0.17], [0.33, -2.28, 0.21]]
+      points: [[0.04, -0.42, 0.13], [0.18, -0.98, 0.13], [0.29, -1.56, 0.11], [0.39, -2.1, 0.075], [0.33, -2.25, 0.09]]
     }
   ].forEach((path) => createTube(path.points, path.radius, path.mat, path.name));
 
@@ -1125,13 +1125,14 @@ function createHandVessels(side, artery, vein) {
 }
 
 function createFootVessels(side, artery, vein) {
-  const arteryArch = [side * 0.48, -2.24, 0.2];
-  const veinArch = [side * 0.33, -2.28, 0.21];
+  const arteryArch = [side * 0.43, -2.22, 0.08];
+  const veinArch = [side * 0.31, -2.23, 0.095];
   for (let i = 0; i < 5; i += 1) {
     const toeX = side * (0.32 + i * 0.05);
-    const toeY = -2.3 + (i - 2) * 0.004;
-    createTube([arteryArch, [toeX, toeY, 0.2]], 0.004, artery, `foot-artery-${side}-${i}`);
-    createTube([veinArch, [toeX, toeY + 0.01, 0.22]], 0.0032, vein, `foot-vein-${side}-${i}`);
+    const toeY = -2.275 + (i - 2) * 0.004;
+    const toeDepth = 0.095 + i * 0.004;
+    createTube([arteryArch, [toeX, toeY, toeDepth]], 0.004, artery, `foot-artery-${side}-${i}`);
+    createTube([veinArch, [toeX, toeY + 0.01, toeDepth + 0.012]], 0.0032, vein, `foot-vein-${side}-${i}`);
   }
 }
 
