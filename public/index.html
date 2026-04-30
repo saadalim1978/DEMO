@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>توأم رقمي للجسم | AI + API + 3D</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="/styles.css?v=body-anatomy-20" />
+    <link rel="stylesheet" href="/styles.css?v=body-anatomy-21" />
     <script type="importmap">
       {
         "imports": {
@@ -203,6 +203,45 @@
             </div>
           </section>
 
+          <section class="panel-section imaging-box">
+            <div class="section-heading">
+              <h2>صور الأشعة</h2>
+              <span id="imagingConfidence" class="badge neutral">دقة 72%</span>
+            </div>
+            <div class="imaging-upload-grid">
+              <label class="field-label">
+                <span>النوع</span>
+                <select id="imagingModality">
+                  <option value="ct">CT</option>
+                  <option value="mri">MRI</option>
+                  <option value="xray">X-Ray</option>
+                  <option value="ultrasound">Ultrasound</option>
+                </select>
+              </label>
+              <label class="field-label">
+                <span>المنطقة</span>
+                <select id="imagingRegion">
+                  <option value="wholeBody">كامل الجسم</option>
+                  <option value="brain">الدماغ</option>
+                  <option value="chest">الصدر</option>
+                  <option value="abdomen">البطن</option>
+                  <option value="pelvis">الحوض</option>
+                  <option value="vascular">الأوعية</option>
+                </select>
+              </label>
+              <label class="file-picker">
+                <input id="imagingFile" type="file" accept="image/*,.dcm,.dicom,.nii,.nii.gz" />
+                <span><i data-lucide="image-plus"></i> اختيار صورة</span>
+              </label>
+              <button id="uploadImagingBtn" class="primary-button" type="button">
+                <i data-lucide="upload-cloud"></i>
+                <span>رفع</span>
+              </button>
+            </div>
+            <div id="imagingStatus" class="imaging-status">لم يتم رفع صور أشعة بعد</div>
+            <div id="imagingList" class="imaging-list"></div>
+          </section>
+
           <section class="panel-section">
             <div class="section-heading">
               <h2>التنبؤات</h2>
@@ -222,6 +261,6 @@
       </main>
     </div>
 
-    <script type="module" src="/app.js?v=body-anatomy-20"></script>
+    <script type="module" src="/app.js?v=body-anatomy-21"></script>
   </body>
 </html>

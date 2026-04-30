@@ -14,6 +14,7 @@ let activeScenario = "baseline";
 let activeIntervention = "observe";
 let scenarioUpdatedAt = Date.now();
 let interventionUpdatedAt = Date.now();
+let imagingStudies = [];
 
 const scenarios = {
   baseline: {
@@ -208,6 +209,22 @@ const anatomy = [
   { id: "vessels", name: "الأوعية", color: "#ff5d73", region: "vascular" }
 ];
 
+const imagingModalities = {
+  ct: { id: "ct", label: "CT", weight: 10, focus: ["الرئتان", "الأوعية", "البطن"] },
+  mri: { id: "mri", label: "MRI", weight: 12, focus: ["الدماغ", "الأعصاب", "الأنسجة"] },
+  xray: { id: "xray", label: "X-Ray", weight: 7, focus: ["الصدر", "العظام", "الرئتان"] },
+  ultrasound: { id: "ultrasound", label: "Ultrasound", weight: 8, focus: ["الكبد", "الكلى", "البطن"] }
+};
+
+const imagingRegions = {
+  brain: { id: "brain", label: "الدماغ", systems: ["brain", "vessels"], risk: "stroke" },
+  chest: { id: "chest", label: "الصدر", systems: ["lungs", "heart", "vessels"], risk: "cardio" },
+  abdomen: { id: "abdomen", label: "البطن", systems: ["liver", "stomach", "pancreas", "intestines"], risk: "metabolic" },
+  pelvis: { id: "pelvis", label: "الحوض", systems: ["kidneys", "bladder", "vessels"], risk: "renal" },
+  vascular: { id: "vascular", label: "الأوعية", systems: ["vessels", "heart"], risk: "vascular" },
+  wholeBody: { id: "wholeBody", label: "كامل الجسم", systems: ["brain", "heart", "lungs", "kidneys", "vessels"], risk: "global" }
+};
+
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -282,6 +299,7 @@ function buildTwinState() {
   const byId = Object.fromEntries(sensors.map((sensor) => [sensor.id, sensor]));
   const openAlerts = sensors.filter((sensor) => sensor.status !== "normal");
   const sensorRisk = sensors.reduce((sum, sensor) => sum + severityWeight(sensor.status) * 5.4, 0);
+  const imaging = buildImagingSummary();
   const risk = clamp(Math.round(9 + scenario.severity * 42 + sensorRisk), 0, 100);
   const vascularRisk = clamp(Math.round((byId.systolic.value - 100) * 0.55 + byId.ldl.value * 0.18 + byId.clotRisk.value * 0.38 + byId.vascularStiffness.value * 0.5), 0, 100);
   const metabolicRisk = clamp(Math.round((byId.glucose.value - 80) * 0.34 + (byId.hba1c.value - 4.8) * 16 + byId.insulinResistance.value * 0.42 + Math.max(0, byId.bmi.value - 24) * 2.2), 0, 100);
@@ -326,15 +344,17 @@ function buildTwinState() {
       dDimer: byId.dDimer.value,
       neuroPerfusion: byId.neuroPerfusion.value,
       egfr: byId.egfr.value,
+      modelConfidence: imaging.modelConfidence,
       openAlerts: openAlerts.length
     },
     anatomy,
     sensors,
     lesions: buildLesions(byId, scenario),
     interventions: buildInterventionOptions(),
-    events: buildEvents(openAlerts, scenario, intervention),
-    prediction: buildPrediction(byId, risk, metabolicRisk, vascularRisk, scenario),
-    recommendations: buildRecommendations(byId, risk, metabolicRisk, vascularRisk, scenario)
+    imaging,
+    events: buildEvents(openAlerts, scenario, intervention, imaging),
+    prediction: buildPrediction(byId, risk, metabolicRisk, vascularRisk, scenario, imaging),
+    recommendations: buildRecommendations(byId, risk, metabolicRisk, vascularRisk, scenario, imaging)
   };
 }
 
@@ -370,7 +390,71 @@ function buildInterventionOptions() {
   }));
 }
 
-function buildEvents(alerts, scenario, intervention) {
+function registerImagingStudy(upload = {}) {
+  const modality = imagingModalities[upload.modality] || imagingModalities.ct;
+  const region = imagingRegions[upload.region] || imagingRegions.wholeBody;
+  const fileSize = clamp(Number(upload.fileSize || 0), 0, 12 * 1024 * 1024);
+  const qualityScore = estimateImagingQuality(upload, fileSize);
+  const confidence = clamp(Math.round(58 + modality.weight * 1.8 + qualityScore * 0.24), 55, 96);
+  const study = {
+    id: `IMG-${Date.now().toString(36).toUpperCase()}`,
+    modality: modality.id,
+    modalityLabel: modality.label,
+    region: region.id,
+    regionLabel: region.label,
+    fileName: sanitizeFileName(upload.fileName || `${modality.label}-image`),
+    fileType: String(upload.fileType || "image/medical"),
+    fileSize,
+    qualityScore,
+    confidence,
+    affectedSystems: region.systems,
+    finding: buildImagingFinding(modality, region, qualityScore),
+    modelImpact: `رفع موثوقية التوأم الرقمي عبر إضافة دليل تصوير ${modality.label} لمنطقة ${region.label}.`,
+    createdAt: new Date().toISOString()
+  };
+  imagingStudies = [study, ...imagingStudies].slice(0, 6);
+  return study;
+}
+
+function buildImagingSummary() {
+  const studies = imagingStudies.slice(0, 6);
+  const qualityAverage = studies.length
+    ? Math.round(studies.reduce((sum, study) => sum + study.qualityScore, 0) / studies.length)
+    : 0;
+  const modelConfidence = studies.length ? clamp(72 + studies.length * 4 + Math.round(qualityAverage * 0.14), 72, 96) : 72;
+  const coveredSystems = [...new Set(studies.flatMap((study) => study.affectedSystems))];
+  return {
+    acceptedModalities: Object.values(imagingModalities).map((item) => item.label),
+    studies,
+    latest: studies[0] || null,
+    count: studies.length,
+    qualityAverage,
+    modelConfidence,
+    coveredSystems,
+    note: studies.length
+      ? "تمت إضافة صور الأشعة كدليل مساعد لتحسين موثوقية التوأم الرقمي، وليست قراءة تشخيصية."
+      : "لم تتم إضافة صور أشعة بعد. رفع صور CT أو MRI أو X-Ray أو Ultrasound يزيد موثوقية النموذج."
+  };
+}
+
+function estimateImagingQuality(upload, fileSize) {
+  const hasImagePayload = typeof upload.imageData === "string" && upload.imageData.startsWith("data:");
+  const sizeScore = fileSize >= 500000 ? 30 : fileSize >= 120000 ? 22 : fileSize > 0 ? 14 : 8;
+  const typeScore = /^image\//i.test(String(upload.fileType || "")) || /\.dcm$/i.test(String(upload.fileName || "")) ? 24 : 14;
+  const payloadScore = hasImagePayload ? 18 : 6;
+  return clamp(sizeScore + typeScore + payloadScore + 18, 35, 95);
+}
+
+function buildImagingFinding(modality, region, qualityScore) {
+  const qualityLabel = qualityScore >= 78 ? "جودة عالية" : qualityScore >= 58 ? "جودة متوسطة" : "جودة محدودة";
+  return `${qualityLabel}: تم ربط ${modality.label} بمنطقة ${region.label} لتقوية مطابقة الأعضاء والمؤشرات داخل النموذج.`;
+}
+
+function sanitizeFileName(name) {
+  return String(name).replace(/[^\p{L}\p{N}._ -]/gu, "").trim().slice(0, 96) || "medical-image";
+}
+
+function buildEvents(alerts, scenario, intervention, imaging) {
   const scenarioEvent = {
     level: "info",
     title: scenario.label,
@@ -383,16 +467,24 @@ function buildEvents(alerts, scenario, intervention) {
     message: intervention.description,
     timestamp: new Date(interventionUpdatedAt).toISOString()
   };
+  const imagingEvent = imaging?.latest
+    ? {
+        level: "watch",
+        title: `دليل تصوير: ${imaging.latest.modalityLabel}`,
+        message: `${imaging.latest.regionLabel} · ثقة ${imaging.latest.confidence}% · ${imaging.latest.fileName}`,
+        timestamp: imaging.latest.createdAt
+      }
+    : null;
   const alertEvents = alerts.map((sensor, index) => ({
     level: sensor.status,
     title: sensor.status === "critical" ? "إنذار حرج" : "تنبيه",
     message: `${sensor.name}: ${sensor.value} ${sensor.unit}`,
     timestamp: new Date(Date.now() - (index + 1) * 45000).toISOString()
   }));
-  return [scenarioEvent, interventionEvent, ...alertEvents].slice(0, 8);
+  return [scenarioEvent, interventionEvent, imagingEvent, ...alertEvents].filter(Boolean).slice(0, 8);
 }
 
-function buildPrediction(byId, risk, metabolicRisk, vascularRisk, scenario) {
+function buildPrediction(byId, risk, metabolicRisk, vascularRisk, scenario, imaging) {
   const diabetesProbability = clamp(Number(((metabolicRisk / 100) * 0.72 + (byId.hba1c.value >= 6.5 ? 0.18 : 0.03)).toFixed(2)), 0.03, 0.96);
   const hypertensionProbability = clamp(Number(((vascularRisk / 100) * 0.62 + (byId.systolic.value >= 140 ? 0.18 : 0.04)).toFixed(2)), 0.03, 0.96);
   const clotProbability = clamp(Number((byId.clotRisk.value * 0.009 + (byId.dDimer.value >= 500 ? 0.18 : 0.03) + (scenario.disease === "thrombosis" ? 0.2 : 0)).toFixed(2)), 0.03, 0.96);
@@ -403,12 +495,18 @@ function buildPrediction(byId, risk, metabolicRisk, vascularRisk, scenario) {
     hypertensionProbability,
     clotProbability,
     strokeSignalProbability,
+    modelConfidence: imaging?.modelConfidence || 72,
     suggestedMonitoring: risk >= 70 ? "مراقبة محاكاة دقيقة كل دقيقة" : risk >= 40 ? "مراقبة نشطة كل 5 دقائق" : "مراقبة روتينية"
   };
 }
 
-function buildRecommendations(byId, risk, metabolicRisk, vascularRisk, scenario) {
+function buildRecommendations(byId, risk, metabolicRisk, vascularRisk, scenario, imaging) {
   const recs = ["استخدم النتائج كعرض تعليمي فقط، ولا تعتمد عليها لتشخيص أو علاج حالة حقيقية."];
+  if (!imaging?.count) {
+    recs.push("يمكن رفع صور CT أو MRI أو X-Ray أو Ultrasound لإضافة دليل تصوير يرفع موثوقية التوأم الرقمي.");
+  } else {
+    recs.push(`آخر دليل تصوير: ${imaging.latest.modalityLabel} لمنطقة ${imaging.latest.regionLabel} رفع موثوقية النموذج إلى ${imaging.modelConfidence}%.`);
+  }
   if (scenario.disease === "diabetes" || metabolicRisk >= 55) {
     recs.push("ارتفاع السكر أو السكر التراكمي في الواقع يحتاج تأكيدًا بفحوصات مخبرية ومراجعة مختص.");
     recs.push("في المحاكاة: جرّب تدخل ضبط السكر أو نمط الحياة ولاحظ أثره على البنكرياس والكلى.");
@@ -455,6 +553,8 @@ function localBodyAnalyst(question, state) {
     severity: state.summary.risk >= 70 ? "critical" : state.summary.risk >= 40 ? "watch" : "stable",
     actions: state.recommendations.slice(0, 3),
     evidence: [
+      `موثوقية النموذج: ${state.summary.modelConfidence}%`,
+      state.imaging.latest ? `آخر تصوير: ${state.imaging.latest.modalityLabel} - ${state.imaging.latest.regionLabel}` : "لا توجد صور أشعة مرفوعة بعد",
       `سكر الدم: ${state.summary.glucose} mg/dL`,
       `ضغط الدم: ${state.summary.bloodPressure} mmHg`,
       `قابلية التخثر: ${state.summary.clotRisk}%`,
@@ -553,6 +653,14 @@ function buildOpenAiContext(state) {
     intervention: pickFields(state.intervention, ["label", "description"]),
     summary: state.summary,
     prediction: state.prediction,
+    imaging: {
+      count: state.imaging.count,
+      modelConfidence: state.imaging.modelConfidence,
+      latest: state.imaging.latest
+        ? pickFields(state.imaging.latest, ["modalityLabel", "regionLabel", "confidence", "finding", "modelImpact"])
+        : null,
+      coveredSystems: state.imaging.coveredSystems
+    },
     keySensors,
     activeAlerts,
     organFindings: state.lesions.map((lesion) => pickFields(lesion, ["id", "type", "label", "severity"])),
@@ -623,9 +731,18 @@ function extractResponseText(data) {
   return chunks.join("\n").trim();
 }
 
-async function readJsonBody(request) {
+async function readJsonBody(request, maxBytes = 1024 * 1024) {
   const chunks = [];
-  for await (const chunk of request) chunks.push(chunk);
+  let total = 0;
+  for await (const chunk of request) {
+    total += chunk.length;
+    if (total > maxBytes) {
+      const error = new Error("Payload too large");
+      error.statusCode = 413;
+      throw error;
+    }
+    chunks.push(chunk);
+  }
   if (!chunks.length) return {};
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
 }
@@ -703,6 +820,20 @@ const server = createServer(async (request, response) => {
       sendJson(response, 200, buildTwinState());
       return;
     }
+    if (request.method === "POST" && url.pathname === "/api/imaging/upload") {
+      const body = await readJsonBody(request, 8 * 1024 * 1024);
+      if (!imagingModalities[body.modality]) {
+        sendJson(response, 400, { error: "Unknown imaging modality", modalities: Object.keys(imagingModalities) });
+        return;
+      }
+      if (!imagingRegions[body.region]) {
+        sendJson(response, 400, { error: "Unknown imaging region", regions: Object.keys(imagingRegions) });
+        return;
+      }
+      registerImagingStudy(body);
+      sendJson(response, 200, buildTwinState());
+      return;
+    }
     if (request.method === "POST" && url.pathname === "/api/ai/ask") {
       const body = await readJsonBody(request);
       const state = buildTwinState();
@@ -714,7 +845,7 @@ const server = createServer(async (request, response) => {
 
     await serveStatic(request, response);
   } catch (error) {
-    sendJson(response, 500, { error: "Server error", detail: error.message });
+    sendJson(response, error.statusCode || 500, { error: "Server error", detail: error.message });
   }
 });
 

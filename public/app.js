@@ -29,6 +29,13 @@ const dom = {
   aiSource: document.querySelector("#aiSource"),
   questionInput: document.querySelector("#questionInput"),
   askBtn: document.querySelector("#askBtn"),
+  imagingModality: document.querySelector("#imagingModality"),
+  imagingRegion: document.querySelector("#imagingRegion"),
+  imagingFile: document.querySelector("#imagingFile"),
+  uploadImagingBtn: document.querySelector("#uploadImagingBtn"),
+  imagingStatus: document.querySelector("#imagingStatus"),
+  imagingList: document.querySelector("#imagingList"),
+  imagingConfidence: document.querySelector("#imagingConfidence"),
   refreshBtn: document.querySelector("#refreshBtn"),
   resetCameraBtn: document.querySelector("#resetCameraBtn"),
   layerToggles: document.querySelectorAll("[data-layer-toggle]"),
@@ -273,7 +280,7 @@ if (renderer) requestAnimationFrame(animate);
 
 async function loadAnatomyManifest() {
   try {
-    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-20", { cache: "no-store" });
+    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-21", { cache: "no-store" });
     if (!response.ok) throw new Error(`Manifest HTTP ${response.status}`);
     const manifest = await response.json();
     if (manifest.bodyShell) bodyShellAsset = normalizeBodyShell(manifest.bodyShell);
@@ -1523,6 +1530,7 @@ function renderTwin(state) {
   }
   renderSensors(state.sensors);
   renderInterventions(state.interventions);
+  renderImaging(state.imaging);
   renderPredictions(state.prediction);
   renderEvents(state.events);
   refreshIcons();
@@ -1647,6 +1655,7 @@ function iconForIntervention(id) {
 
 function renderPredictions(prediction) {
   const rows = [
+    ["دقة النموذج", `${prediction.modelConfidence || 72}%`, "مدعومة بالمؤشرات وصور الأشعة"],
     ["خطر السكري", `${Math.round(prediction.diabetesProbability * 100)}%`, "نموذج أيضي تعليمي"],
     ["خطر الضغط", `${Math.round(prediction.hypertensionProbability * 100)}%`, "اعتمادًا على الضغط وتيبس الأوعية"],
     ["خطر الجلطات", `${Math.round(prediction.clotProbability * 100)}%`, "قابلية التخثر وD-dimer"],
@@ -1663,6 +1672,30 @@ function renderPredictions(prediction) {
   `
     )
     .join("");
+}
+
+function renderImaging(imaging = {}) {
+  if (!dom.imagingList || !dom.imagingConfidence || !dom.imagingStatus) return;
+  const confidence = imaging.modelConfidence || 72;
+  dom.imagingConfidence.textContent = `دقة ${confidence}%`;
+  dom.imagingStatus.textContent = imaging.note || "لم يتم رفع صور أشعة بعد";
+  const studies = imaging.studies || [];
+  dom.imagingList.innerHTML = studies.length
+    ? studies
+        .map(
+          (study) => `
+    <article class="imaging-item">
+      <span class="imaging-modality">${escapeHtml(study.modalityLabel)}</span>
+      <span class="item-main">
+        <strong>${escapeHtml(study.regionLabel)} · ${escapeHtml(study.fileName)}</strong>
+        <small>${escapeHtml(study.finding)}</small>
+      </span>
+      <span class="sensor-value">${study.confidence}%</span>
+    </article>
+  `
+        )
+        .join("")
+    : `<article class="imaging-empty">CT · MRI · X-Ray · Ultrasound</article>`;
 }
 
 function renderEvents(events) {
@@ -1712,6 +1745,11 @@ function wireEvents() {
   dom.refreshBtn.addEventListener("click", handleRefreshClick);
   dom.resetCameraBtn.addEventListener("click", toggleSceneFullscreen);
   dom.askBtn.addEventListener("click", () => askAi());
+  dom.uploadImagingBtn?.addEventListener("click", handleImagingUpload);
+  dom.imagingFile?.addEventListener("change", () => {
+    const file = dom.imagingFile.files?.[0];
+    if (file && dom.imagingStatus) dom.imagingStatus.textContent = `${file.name} · ${formatBytes(file.size)}`;
+  });
   dom.layerToggles.forEach((input) => {
     input.addEventListener("change", () => {
       layerState[input.dataset.layerToggle] = input.checked;
@@ -1820,6 +1858,60 @@ async function handleRefreshClick() {
       dom.refreshBtn.classList.remove("is-busy");
     }, 240);
   }
+}
+
+async function handleImagingUpload() {
+  const file = dom.imagingFile?.files?.[0];
+  if (!file) {
+    if (dom.imagingStatus) dom.imagingStatus.textContent = "اختر صورة أشعة أولاً";
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    dom.imagingStatus.textContent = "حجم الصورة أكبر من 5MB";
+    return;
+  }
+
+  dom.uploadImagingBtn.disabled = true;
+  dom.imagingStatus.textContent = "جاري رفع صورة الأشعة...";
+  try {
+    const imageData = file.type.startsWith("image/") ? await readFileAsDataUrl(file) : null;
+    const response = await fetch("/api/imaging/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        modality: dom.imagingModality.value,
+        region: dom.imagingRegion.value,
+        fileName: file.name,
+        fileType: file.type || "application/octet-stream",
+        fileSize: file.size,
+        imageData
+      })
+    });
+    if (!response.ok) throw new Error("Upload failed");
+    twinState = await response.json();
+    renderTwin(twinState);
+    dom.imagingStatus.textContent = "تمت إضافة صورة الأشعة إلى التوأم الرقمي";
+    askAi("حلل حالة التوأم الرقمي بعد إضافة دليل تصوير الأشعة.");
+  } catch {
+    dom.imagingStatus.textContent = "تعذر رفع صورة الأشعة الآن";
+  } finally {
+    dom.uploadImagingBtn.disabled = false;
+  }
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function formatBytes(bytes = 0) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function resize() {

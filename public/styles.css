@@ -42,6 +42,8 @@ body {
 }
 
 button,
+input,
+select,
 textarea {
   font: inherit;
 }
@@ -915,6 +917,7 @@ body[data-scenario="heart_failure"] .fallback-heart {
 
 .sensor-list,
 .intervention-list,
+.imaging-list,
 .prediction-list,
 .event-list,
 .evidence-list {
@@ -924,6 +927,8 @@ body[data-scenario="heart_failure"] .fallback-heart {
 
 .sensor-item,
 .intervention-btn,
+.imaging-item,
+.imaging-empty,
 .prediction-item,
 .event-item,
 .evidence-item {
@@ -1012,6 +1017,106 @@ body[data-scenario="heart_failure"] .fallback-heart {
   border-color: transparent;
   background: var(--red);
   color: #fff8f6;
+}
+
+.imaging-box {
+  border-top: 3px solid var(--blue);
+}
+
+.imaging-upload-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.field-label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+select,
+.file-picker span {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #12141a;
+  color: var(--text);
+}
+
+select {
+  padding: 0 10px;
+}
+
+select:focus,
+.file-picker:focus-within span {
+  outline: 2px solid rgba(72, 199, 216, 0.34);
+  border-color: rgba(72, 199, 216, 0.65);
+}
+
+.file-picker {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.file-picker input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.file-picker span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  overflow: hidden;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.imaging-status {
+  margin-top: 9px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.imaging-list {
+  margin-top: 9px;
+}
+
+.imaging-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 9px;
+}
+
+.imaging-modality {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(106, 167, 255, 0.16);
+  color: #cfe0ff;
+  font-size: 12px;
+  font-weight: 900;
+  direction: ltr;
+}
+
+.imaging-empty {
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
 }
 
 .ai-box {
