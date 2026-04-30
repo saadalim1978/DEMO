@@ -132,8 +132,8 @@ let bodyShellAsset = {
   file: "VH_M_Skin.glb",
   label: "NIH 3D Skin, Male",
   source: "NIH 3D",
-  fit: [1.7, 5.1, 0.85],
-  position: [0, 0.18, 0],
+  fit: [2.55, 5.28, 1.25],
+  position: [0, 0.16, 0.03],
   rotation: [0, 0, 0]
 };
 
@@ -272,7 +272,7 @@ if (renderer) requestAnimationFrame(animate);
 
 async function loadAnatomyManifest() {
   try {
-    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-15", { cache: "no-store" });
+    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-16", { cache: "no-store" });
     if (!response.ok) throw new Error(`Manifest HTTP ${response.status}`);
     const manifest = await response.json();
     if (manifest.bodyShell) bodyShellAsset = normalizeBodyShell(manifest.bodyShell);
@@ -293,8 +293,8 @@ async function loadAnatomyManifest() {
 function normalizeBodyShell(asset) {
   return {
     ...asset,
-    fit: vectorOr(asset.fit, [1.7, 5.1, 0.85]),
-    position: vectorOr(asset.position, [0, 0.18, 0]),
+    fit: vectorOr(asset.fit, [2.55, 5.28, 1.25]),
+    position: vectorOr(asset.position, [0, 0.16, 0.03]),
     rotation: vectorOr(asset.rotation, [0, 0, 0])
   };
 }

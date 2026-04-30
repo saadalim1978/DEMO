@@ -1,7 +1,7 @@
 {
-  "version": "2026-05-01.anatomy-fix-1",
+  "version": "2026-05-01.skin-envelope-1",
   "_notes": [
-    "Coordinates calibrated for body shell with fit [1.7, 5.1, 0.85] (height ~5.1 units).",
+    "Coordinates calibrated for body shell with fit [2.55, 5.28, 1.25] so the skin envelope contains the organs and vessels.",
     "Convention: +X = viewer's right (= patient's left), Y = up, +Z = anterior (front).",
     "Heart is left of midline -> patient's left -> +X in this convention.",
     "Liver is right upper quadrant -> patient's right -> -X in this convention.",
@@ -11,8 +11,8 @@
     "file": "VH_M_Skin.glb",
     "label": "NIH 3D Skin, Male",
     "source": "NIH 3D",
-    "fit": [1.7, 5.1, 0.85],
-    "position": [0, 0.18, 0],
+    "fit": [2.55, 5.28, 1.25],
+    "position": [0, 0.16, 0.03],
     "rotation": [0, 0, 0]
   },
   "layers": [
