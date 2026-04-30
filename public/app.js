@@ -273,7 +273,7 @@ if (renderer) requestAnimationFrame(animate);
 
 async function loadAnatomyManifest() {
   try {
-    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-19", { cache: "no-store" });
+    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-20", { cache: "no-store" });
     if (!response.ok) throw new Error(`Manifest HTTP ${response.status}`);
     const manifest = await response.json();
     if (manifest.bodyShell) bodyShellAsset = normalizeBodyShell(manifest.bodyShell);
@@ -419,8 +419,8 @@ function addBodyTwinModel() {
         [-0.1, -0.4, 0.07],
         [-0.27, -0.82, 0.08],
         [-0.35, -1.38, 0.09],
-        [-0.36, -2.08, 0.12],
-        [-0.34, -2.23, 0.16]
+        [-0.43, -2.08, 0.12],
+        [-0.46, -2.24, 0.2]
       ],
       0.04,
       vesselRed,
@@ -431,8 +431,8 @@ function addBodyTwinModel() {
         [0.02, -0.36, 0.05],
         [0.27, -0.82, 0.08],
         [0.35, -1.38, 0.09],
-        [0.36, -2.08, 0.12],
-        [0.34, -2.23, 0.16]
+        [0.43, -2.08, 0.12],
+        [0.46, -2.24, 0.2]
       ],
       0.036,
       vesselRed,
@@ -445,8 +445,8 @@ function addBodyTwinModel() {
         [-0.08, -0.48, 0.06],
         [-0.26, -1.1, 0.08],
         [-0.38, -1.78, 0.11],
-        [-0.32, -2.12, 0.15],
-        [-0.29, -2.23, 0.17]
+        [-0.41, -2.12, 0.16],
+        [-0.35, -2.27, 0.21]
       ],
       0.035,
       vesselBlue,
@@ -458,8 +458,8 @@ function addBodyTwinModel() {
         [0.16, 0.42, 0.05],
         [0.26, -0.78, 0.07],
         [0.38, -1.5, 0.1],
-        [0.32, -2.12, 0.15],
-        [0.29, -2.23, 0.17]
+        [0.41, -2.12, 0.16],
+        [0.35, -2.27, 0.21]
       ],
       0.032,
       vesselBlue,
@@ -1076,25 +1076,25 @@ function createVascularAndNerveNetwork() {
       name: "leg-artery-guide-left",
       mat: artery,
       radius: 0.006,
-      points: [[-0.1, -0.48, 0.07], [-0.24, -0.92, 0.08], [-0.34, -1.45, 0.1], [-0.36, -2.08, 0.13], [-0.34, -2.23, 0.16]]
+      points: [[-0.1, -0.48, 0.07], [-0.24, -0.92, 0.08], [-0.34, -1.45, 0.1], [-0.43, -2.08, 0.13], [-0.48, -2.24, 0.2]]
     },
     {
       name: "leg-artery-guide-right",
       mat: artery,
       radius: 0.006,
-      points: [[0.1, -0.48, 0.07], [0.24, -0.92, 0.08], [0.34, -1.45, 0.1], [0.36, -2.08, 0.13], [0.34, -2.23, 0.16]]
+      points: [[0.1, -0.48, 0.07], [0.24, -0.92, 0.08], [0.34, -1.45, 0.1], [0.43, -2.08, 0.13], [0.48, -2.24, 0.2]]
     },
     {
       name: "leg-vein-guide-left",
       mat: vein,
       radius: 0.0055,
-      points: [[-0.04, -0.42, 0.13], [-0.18, -0.98, 0.14], [-0.29, -1.56, 0.16], [-0.31, -2.1, 0.16], [-0.28, -2.24, 0.17]]
+      points: [[-0.04, -0.42, 0.13], [-0.18, -0.98, 0.14], [-0.29, -1.56, 0.16], [-0.39, -2.1, 0.17], [-0.33, -2.28, 0.21]]
     },
     {
       name: "leg-vein-guide-right",
       mat: vein,
       radius: 0.0055,
-      points: [[0.04, -0.42, 0.13], [0.18, -0.98, 0.14], [0.29, -1.56, 0.16], [0.31, -2.1, 0.16], [0.28, -2.24, 0.17]]
+      points: [[0.04, -0.42, 0.13], [0.18, -0.98, 0.14], [0.29, -1.56, 0.16], [0.39, -2.1, 0.17], [0.33, -2.28, 0.21]]
     }
   ].forEach((path) => createTube(path.points, path.radius, path.mat, path.name));
 
@@ -1118,13 +1118,13 @@ function createHandVessels(side, artery, vein) {
 }
 
 function createFootVessels(side, artery, vein) {
-  const arteryArch = [side * 0.34, -2.22, 0.16];
-  const veinArch = [side * 0.28, -2.23, 0.17];
+  const arteryArch = [side * 0.48, -2.24, 0.2];
+  const veinArch = [side * 0.33, -2.28, 0.21];
   for (let i = 0; i < 5; i += 1) {
-    const toeX = side * (0.24 + i * 0.04);
-    const toeY = -2.29 + (i - 2) * 0.006;
-    createTube([arteryArch, [toeX, toeY, 0.16]], 0.004, artery, `foot-artery-${side}-${i}`);
-    createTube([veinArch, [toeX, toeY + 0.01, 0.18]], 0.0032, vein, `foot-vein-${side}-${i}`);
+    const toeX = side * (0.32 + i * 0.05);
+    const toeY = -2.3 + (i - 2) * 0.004;
+    createTube([arteryArch, [toeX, toeY, 0.2]], 0.004, artery, `foot-artery-${side}-${i}`);
+    createTube([veinArch, [toeX, toeY + 0.01, 0.22]], 0.0032, vein, `foot-vein-${side}-${i}`);
   }
 }
 
