@@ -342,8 +342,12 @@ function buildTwinState() {
       ldl: byId.ldl.value,
       clotRisk: byId.clotRisk.value,
       dDimer: byId.dDimer.value,
+      legFlow: byId.legFlow.value,
       neuroPerfusion: byId.neuroPerfusion.value,
       egfr: byId.egfr.value,
+      vascularStiffness: byId.vascularStiffness.value,
+      insulinResistance: byId.insulinResistance.value,
+      painScore: byId.painScore.value,
       modelConfidence: imaging.modelConfidence,
       openAlerts: openAlerts.length
     },
@@ -668,8 +672,156 @@ function withCarePathwayIfRequested(analysis, question, state) {
   };
 }
 
+function isClinicalDecisionQuestion(question = "") {
+  return /تشخيص|شخص|الإجراء|اجراء|علاج|علاجي|تصرف|توقع|جرعة|جرعات|وصفة|دواء|diagnosis|diagnose|treatment|dose|prescription|procedure|management/i.test(question);
+}
+
+function buildClinicalResearchOutput(focus, state) {
+  const imagingLine = state.imaging?.latest
+    ? ` ويرتبط ذلك بآخر دليل تصوير ${state.imaging.latest.modalityLabel} لمنطقة ${state.imaging.latest.regionLabel}.`
+    : "";
+
+  if (focus === "clot") {
+    return {
+      answer:
+        `الانطباع البحثي: النمط الحالي يتوافق مع اشتباه مرتفع بجلطة وريدية عميقة في الساق مع احتمال خطورة رئوية إذا وُجد ضيق نفس أو ألم صدر؛ السبب أن D-dimer = ${state.summary.dDimer} ng/mL، وقابلية التخثر ${state.summary.clotRisk}%، وتدفق الساق ${state.summary.legFlow}%.${imagingLine} الإجراء السريري المتوقع: فرز عاجل، فحص الساق والأكسجة، دوبلر أوردة للساق، وإذا ظهرت أعراض صدرية أو نقص أكسجة يتم تقييم الانصمام الرئوي بالتصوير المناسب. إذا تأكدت الجلطة فخيارات الطبيب غالبًا تدور حول مضادات التخثر، والمراقبة، وفي الحالات الشديدة القسطرة أو إذابة الخثرة.`,
+      actions: [
+        "تصنيف الحالة كاشتباه مرتفع يحتاج تقييمًا عاجلًا.",
+        "طلب Doppler venous ultrasound للساق مع CBC وPT/INR وaPTT ووظائف كلى حسب بروتوكول المنشأة.",
+        "عند ضيق نفس أو ألم صدر أو انخفاض أكسجين: تقييم انصمام رئوي بتصوير CT pulmonary angiography أو بديله المناسب.",
+        "إذا تأكدت الجلطة: مناقشة مضاد تخثر تحت إشراف الطبيب، والحالات الشديدة تقيّم للقسطرة أو إذابة الخثرة."
+      ],
+      evidence: [
+        `D-dimer: ${state.summary.dDimer} ng/mL`,
+        `قابلية التخثر: ${state.summary.clotRisk}%`,
+        `تدفق الساق: ${state.summary.legFlow}%`,
+        `الأكسجين: ${state.summary.oxygen}%`
+      ]
+    };
+  }
+
+  if (focus === "stroke") {
+    return {
+      answer:
+        `الانطباع البحثي: النمط الحالي يتوافق مع اشتباه وعائي عصبي مرتفع إذا صاحبه ضعف مفاجئ أو اضطراب كلام أو تشوش رؤية؛ تروية الدماغ ${state.summary.neuroPerfusion}% مع قابلية تخثر ${state.summary.clotRisk}% وضغط ${state.summary.bloodPressure}.${imagingLine} الإجراء السريري المتوقع: تفعيل مسار السكتة، تحديد وقت بداية الأعراض، CT أو MRI للدماغ، فحوص سكر وضغط وتخثر، ثم يقرر الفريق الطبي أهلية إذابة الخثرة أو القسطرة حسب الزمن والصورة والموانع.`,
+      actions: [
+        "تفعيل مسار السكتة عند أي عرض عصبي مفاجئ.",
+        "تحديد وقت بداية الأعراض وطلب CT/MRI للدماغ.",
+        "مراجعة السكر والضغط والتخثر قبل أي تدخل.",
+        "مناقشة إذابة الخثرة أو القسطرة فقط بعد تأكيد الصورة ومعايير الأهلية."
+      ],
+      evidence: [
+        `تروية الدماغ: ${state.summary.neuroPerfusion}%`,
+        `ضغط الدم: ${state.summary.bloodPressure} mmHg`,
+        `قابلية التخثر: ${state.summary.clotRisk}%`
+      ]
+    };
+  }
+
+  if (focus === "pressure") {
+    return {
+      answer:
+        `الانطباع البحثي: المؤشرات تتوافق مع ضغط شرياني مرتفع يحتاج تصنيف شدة حسب القراءة والأعراض؛ القراءة الحالية ${state.summary.bloodPressure} مع نبض ${state.summary.heartRate} bpm ومؤشر تصلب وعائي ${state.summary.vascularStiffness}%.${imagingLine} الإجراء السريري المتوقع: إعادة القياس بطريقة صحيحة، البحث عن أعراض إنذار مثل ألم صدر أو ضيق نفس أو أعراض عصبية، طلب ECG ووظائف كلى وأملاح، ثم اختيار خطة خفض ضغط ومتابعة حسب تقييم الطبيب.`,
+      actions: [
+        "إعادة قياس الضغط بعد راحة وبكفة مناسبة.",
+        "فرز عاجل عند ألم صدر أو ضيق نفس أو أعراض عصبية.",
+        "طلب ECG ووظائف كلى وأملاح وبروتين بول حسب الحالة.",
+        "مناقشة فئات أدوية الضغط وتعديلات نمط الحياة تحت إشراف الطبيب."
+      ],
+      evidence: [
+        `ضغط الدم: ${state.summary.bloodPressure} mmHg`,
+        `النبض: ${state.summary.heartRate} bpm`,
+        `تصلب الأوعية: ${state.summary.vascularStiffness}%`
+      ]
+    };
+  }
+
+  if (focus === "diabetes") {
+    return {
+      answer:
+        `الانطباع البحثي: المؤشرات تتوافق مع اضطراب أيضي/سكري محتمل يحتاج تأكيد مخبري؛ سكر الدم ${state.summary.glucose} mg/dL، HbA1c ${state.summary.hba1c}%، ومقاومة الإنسولين ${state.summary.insulinResistance}%.${imagingLine} الإجراء السريري المتوقع: تأكيد القراءة، مراجعة أعراض التجفاف أو القيء أو الخمول، فحص كيتونات عند الارتفاع الشديد، ثم يناقش الطبيب خطة غذائية ودوائية أو إنسولين حسب التحاليل ووظائف الكلى.`,
+      actions: [
+        "تأكيد قراءة السكر وربطها بزمن الأكل والأعراض.",
+        "فحص كيتونات عند الارتفاع الشديد أو وجود قيء/خمول.",
+        "طلب HbA1c ووظائف كلى ودهون حسب المسار.",
+        "مناقشة فئات علاج السكر أو الإنسولين تحت إشراف الطبيب."
+      ],
+      evidence: [
+        `سكر الدم: ${state.summary.glucose} mg/dL`,
+        `HbA1c: ${state.summary.hba1c}%`,
+        `مقاومة الإنسولين: ${state.summary.insulinResistance}%`
+      ]
+    };
+  }
+
+  return {
+    answer:
+      `الانطباع البحثي: التوأم الرقمي يعرض حالة ${state.scenario.label} مع مؤشر صحة ${state.summary.health}% ومخاطر ${state.summary.risk}%.${imagingLine} الإجراء السريري المتوقع: تحديد العرض الرئيسي، مطابقة المؤشرات مع الفحص السريري، مراجعة التصوير والتحاليل، ثم اختيار التدخل بواسطة الطبيب حسب البروتوكول.`,
+    actions: [
+      "تحديد العرض الرئيسي ووقت بدايته.",
+      "ربط المؤشرات الحيوية بنتائج الأشعة والتحاليل.",
+      "تصنيف الخطورة ثم اختيار مسار الطوارئ أو العيادة."
+    ],
+    evidence: [
+      `مؤشر المخاطر: ${state.summary.risk}%`,
+      `موثوقية النموذج: ${state.summary.modelConfidence}%`
+    ]
+  };
+}
+
+function withClinicalResearchIfRequested(analysis, question, state) {
+  if (!isClinicalDecisionQuestion(question)) return analysis;
+  const focus = inferFocus(question);
+  const careFocus = focus === "general" ? inferFocusFromState(state) : focus;
+  const clinical = buildClinicalResearchOutput(careFocus, state);
+  const clinicalSeverity = severityForClinicalFocus(careFocus, state);
+  if (!analysis) {
+    return {
+      source: "local-ai",
+      answer: clinical.answer,
+      confidence: state.summary.risk >= 70 ? 0.86 : 0.78,
+      severity: clinicalSeverity,
+      actions: clinical.actions,
+      evidence: clinical.evidence
+    };
+  }
+
+  const answer = analysis.answer || "";
+  const needsTightening =
+    answer.length > 900 ||
+    /لا يبدأ|لا أستطيع|لا يمكنني|بدون طبيب|ليست قراءة تشخيصية|لا يحدد علاجًا شخصيًا|لم أجد صورة|تعليمي/i.test(answer);
+
+  if (!needsTightening) {
+    return {
+      ...analysis,
+      actions: uniqueStrings([...(analysis.actions || []), ...clinical.actions]).slice(0, 5),
+      evidence: uniqueStrings([...(analysis.evidence || []), ...clinical.evidence]).slice(0, 6)
+    };
+  }
+
+  return {
+    ...analysis,
+    answer: clinical.answer,
+    confidence: Math.max(Number(analysis.confidence || 0), state.summary.risk >= 70 ? 0.84 : 0.76),
+    severity: clinicalSeverity,
+    actions: uniqueStrings([...clinical.actions, ...(analysis.actions || [])]).slice(0, 5),
+    evidence: uniqueStrings([...clinical.evidence, ...(analysis.evidence || [])]).slice(0, 6)
+  };
+}
+
+function severityForClinicalFocus(focus, state) {
+  const systolic = Number(String(state.summary.bloodPressure || "0").split("/")[0]);
+  if (focus === "clot" && (state.summary.clotRisk >= 70 || state.summary.dDimer >= 800 || state.summary.oxygen < 94)) return "critical";
+  if (focus === "stroke" && (state.summary.neuroPerfusion <= 85 || systolic >= 180)) return "critical";
+  if (focus === "pressure" && (systolic >= 180 || state.summary.vascularStiffness >= 70)) return "critical";
+  if (focus === "diabetes" && (state.summary.glucose >= 250 || state.summary.hba1c >= 9)) return "critical";
+  if (state.summary.risk >= 70) return "critical";
+  if (state.summary.risk >= 40 || focus !== "general") return "watch";
+  return "stable";
+}
+
 function isImagingInterpretationQuestion(question = "") {
-  return /صورة|اشعة|أشعة|xray|x-ray|ct|mri|ultrasound|سونار|تصوير|صدر|فسر|شخص|تشخيص|توقع/i.test(question);
+  return /صورة|اشعة|أشعة|تصوير|سونار|radiology|x[-\s]?ray|\bct\b|\bmri\b|\bultrasound\b/i.test(question);
 }
 
 function buildImagingInterpretationFallback(state) {
@@ -765,7 +917,7 @@ async function openAiBodyAnalyst(question, state) {
           {
             role: "system",
             content:
-              "You are an Arabic human-body digital twin clinical decision-support analyst. Analyze the simulated sensor values, organs, scenario, intervention, trend, risk predictions, imaging metadata, and any attached medical image. Do not provide a diagnosis, prescription, medication dose, or personalized treatment plan. When an image is attached, give a clear preliminary radiology-style visual impression, visible findings, important negatives if visible, confidence, limitations, and what a radiologist/clinician should confirm. Do not claim certainty from a screenshot or low-quality image. If the user asks about العلاج, الإجراء العلاجي, treatment, procedure, or management, answer with a practical care pathway: urgent red flags, likely clinical assessments, imaging/labs a clinician may request, and possible clinician-supervised options. Never tell the user to start/stop a medicine. If values look urgent, clearly advise seeking emergency or real medical care. Return valid JSON only with keys: answer, severity, confidence, actions, evidence. The answer key is required and must contain a complete Arabic paragraph. severity must be stable, watch, or critical. confidence must be a number from 0 to 1. Keep answer and lists in Arabic."
+              "You are an Arabic clinical research decision-support analyst for a simulated human-body digital twin. Give direct, structured, clinician-like research output: working impression/suspected condition, confidence, rationale, next clinical action, confirmatory tests, and clinician-supervised treatment categories. Do not over-apologize and do not repeat safety disclaimers. Do not provide medication doses, prescriptions, or instructions to start/stop a medicine. When an image is attached, give a preliminary radiology-style visual impression, visible findings, important negatives if visible, confidence, limitations, and what a radiologist/clinician should confirm. If the user asks about العلاج, الإجراء العلاجي, treatment, procedure, or management, answer with a practical care pathway and likely options a clinician may consider, without doses. If values look urgent, state the escalation clearly. Return valid JSON only with keys: answer, severity, confidence, actions, evidence. The answer key is required and must contain a complete Arabic paragraph. severity must be stable, watch, or critical. confidence must be a number from 0 to 1. Keep answer and lists in Arabic."
           },
           { role: "user", content: buildOpenAiUserContent(question, state) }
         ]
@@ -791,7 +943,7 @@ function buildOpenAiUserContent(question, state) {
         question,
         state: buildOpenAiContext(state),
         instruction:
-          "إذا كانت صورة أشعة مرفقة، اقرأها بصريًا وقدّم انطباعًا أوليًا واضحًا: الموجودات المرئية، ما لا يظهر بوضوح، درجة الثقة، وما يحتاج تأكيدًا من أخصائي الأشعة. لا تعط جرعات أو وصفات."
+          "قدّم مخرجًا بحثيًا منظمًا يشبه دعم القرار السريري: الانطباع الأولي، درجة الاشتباه، المبررات من المؤشرات والصورة، الإجراء السريري المتوقع، والفحوص المؤكدة. إذا كانت صورة أشعة مرفقة، اقرأها بصريًا وقدّم انطباعًا أوليًا واضحًا. لا تعط جرعات أو وصفات دوائية."
       })
     }
   ];
@@ -1045,7 +1197,9 @@ const server = createServer(async (request, response) => {
       const state = buildTwinState();
       const question = String(body.question || "حلل حالة التوأم الرقمي للجسم الآن.");
       const aiAnswer = await openAiBodyAnalyst(question, state);
-      const enhancedAnswer = withImagingInterpretationIfRequested(withCarePathwayIfRequested(aiAnswer, question, state), question, state);
+      const careAnswer = withCarePathwayIfRequested(aiAnswer, question, state);
+      const imagingAnswer = withImagingInterpretationIfRequested(careAnswer, question, state);
+      const enhancedAnswer = withClinicalResearchIfRequested(imagingAnswer, question, state);
       sendJson(response, 200, enhancedAnswer || localBodyAnalyst(question, state));
       return;
     }
