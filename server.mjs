@@ -408,6 +408,7 @@ function registerImagingStudy(upload = {}) {
     qualityScore,
     confidence,
     affectedSystems: region.systems,
+    imageData: normalizeInlineImage(upload.imageData, upload.fileType),
     finding: buildImagingFinding(modality, region, qualityScore),
     modelImpact: `رفع موثوقية التوأم الرقمي عبر إضافة دليل تصوير ${modality.label} لمنطقة ${region.label}.`,
     createdAt: new Date().toISOString()
@@ -416,22 +417,33 @@ function registerImagingStudy(upload = {}) {
   return study;
 }
 
+function normalizeInlineImage(imageData, fileType = "") {
+  if (typeof imageData !== "string") return null;
+  const match = imageData.match(/^data:(image\/(?:png|jpe?g|webp));base64,/i);
+  if (!match) return null;
+  const declaredType = String(fileType || "").toLowerCase();
+  if (declaredType.startsWith("image/") && !/^image\/(?:png|jpe?g|webp)$/i.test(declaredType)) return null;
+  if (imageData.length > 7_500_000) return null;
+  return imageData;
+}
+
 function buildImagingSummary() {
-  const studies = imagingStudies.slice(0, 6);
-  const qualityAverage = studies.length
-    ? Math.round(studies.reduce((sum, study) => sum + study.qualityScore, 0) / studies.length)
+  const rawStudies = imagingStudies.slice(0, 6);
+  const studies = rawStudies.map(({ imageData, ...study }) => study);
+  const qualityAverage = rawStudies.length
+    ? Math.round(rawStudies.reduce((sum, study) => sum + study.qualityScore, 0) / rawStudies.length)
     : 0;
-  const modelConfidence = studies.length ? clamp(72 + studies.length * 4 + Math.round(qualityAverage * 0.14), 72, 96) : 72;
-  const coveredSystems = [...new Set(studies.flatMap((study) => study.affectedSystems))];
+  const modelConfidence = rawStudies.length ? clamp(72 + rawStudies.length * 4 + Math.round(qualityAverage * 0.14), 72, 96) : 72;
+  const coveredSystems = [...new Set(rawStudies.flatMap((study) => study.affectedSystems))];
   return {
     acceptedModalities: Object.values(imagingModalities).map((item) => item.label),
     studies,
     latest: studies[0] || null,
-    count: studies.length,
+    count: rawStudies.length,
     qualityAverage,
     modelConfidence,
     coveredSystems,
-    note: studies.length
+    note: rawStudies.length
       ? "تمت إضافة صور الأشعة كدليل مساعد لتحسين موثوقية التوأم الرقمي، وليست قراءة تشخيصية."
       : "لم تتم إضافة صور أشعة بعد. رفع صور CT أو MRI أو X-Ray أو Ultrasound يزيد موثوقية النموذج."
   };
@@ -656,6 +668,54 @@ function withCarePathwayIfRequested(analysis, question, state) {
   };
 }
 
+function isImagingInterpretationQuestion(question = "") {
+  return /صورة|اشعة|أشعة|xray|x-ray|ct|mri|ultrasound|سونار|تصوير|صدر|فسر|شخص|تشخيص|توقع/i.test(question);
+}
+
+function buildImagingInterpretationFallback(state) {
+  const latest = state.imaging?.latest;
+  if (!latest) {
+    return {
+      answer: "لم أجد صورة أشعة مرفوعة داخل التوأم الرقمي. ارفع صورة CT أو MRI أو X-Ray أو Ultrasound ثم أعد السؤال.",
+      actions: ["رفع صورة واضحة مع تحديد نوع الأشعة والمنطقة.", "إضافة الأعراض الحالية ومدة بدايتها.", "مقارنة الانطباع مع تقرير أخصائي الأشعة."],
+      evidence: ["لا توجد صورة مرفوعة في الحالة الحالية."]
+    };
+  }
+
+  return {
+    answer:
+      `تم ربط صورة ${latest.modalityLabel} لمنطقة ${latest.regionLabel} بالتوأم الرقمي. إذا لم تظهر قراءة بصرية واضحة من OpenAI، فهذا يعني أن الصورة لم تكن بصيغة مدعومة أو أن التحليل البصري لم يكتمل. الانطباع الأولي الممكن يجب أن يصف ما يظهر في الصورة فقط مثل وجود عتامة، ارتشاح، تضخم، كسر، نزف، انسداد، أو علامة التهاب حسب نوع الصورة، ثم يقارنه بالمؤشرات الحيوية ولا يحوله إلى تشخيص نهائي بدون تقرير أخصائي.`,
+    actions: [
+      "استخدم PNG أو JPG أو WEBP واضحة حتى تُرسل الصورة فعليًا إلى OpenAI Vision.",
+      "اطلب من المساعد: اكتب انطباعًا تصويريًا أوليًا واذكر الموجودات المرئية والثقة والقيود.",
+      "قارن النتيجة مع تقرير أخصائي الأشعة قبل اعتماد أي نتيجة بحثية."
+    ],
+    evidence: [`آخر صورة: ${latest.modalityLabel} - ${latest.regionLabel}`, `موثوقية النموذج: ${state.imaging.modelConfidence}%`, latest.finding]
+  };
+}
+
+function withImagingInterpretationIfRequested(analysis, question, state) {
+  if (!isImagingInterpretationQuestion(question)) return analysis;
+  const fallback = buildImagingInterpretationFallback(state);
+  if (!analysis) {
+    return {
+      source: "local-ai",
+      answer: fallback.answer,
+      confidence: 0.68,
+      severity: state.summary.risk >= 70 ? "critical" : state.summary.risk >= 40 ? "watch" : "stable",
+      actions: fallback.actions,
+      evidence: fallback.evidence
+    };
+  }
+  const vague = !analysis.answer || /لا أستطيع|قد تكون|صورة الأشعة إلى حالة طبية|غير واضح|لم تتضمن/i.test(analysis.answer);
+  return {
+    ...analysis,
+    answer: vague ? `${analysis.answer || ""} ${fallback.answer}`.trim() : analysis.answer,
+    actions: uniqueStrings([...(analysis.actions || []), ...fallback.actions]).slice(0, 5),
+    evidence: uniqueStrings([...(analysis.evidence || []), ...fallback.evidence]).slice(0, 6)
+  };
+}
+
 function uniqueStrings(items) {
   const seen = new Set();
   return items.filter((item) => {
@@ -705,9 +765,9 @@ async function openAiBodyAnalyst(question, state) {
           {
             role: "system",
             content:
-              "You are an Arabic human-body digital twin clinical decision-support analyst. Analyze the simulated sensor values, organs, scenario, intervention, trend, risk predictions, and imaging evidence. Do not provide a diagnosis, prescription, medication dose, or personalized treatment plan. If the user asks about العلاج, الإجراء العلاجي, treatment, procedure, or management, answer with a practical care pathway: urgent red flags, likely clinical assessments, imaging/labs a clinician may request, and possible clinician-supervised options. Never tell the user to start/stop a medicine. If values look urgent, clearly advise seeking emergency or real medical care. Return valid JSON only with keys: answer, severity, confidence, actions, evidence. The answer key is required and must contain a complete Arabic paragraph. severity must be stable, watch, or critical. confidence must be a number from 0 to 1. Keep answer and lists in Arabic."
+              "You are an Arabic human-body digital twin clinical decision-support analyst. Analyze the simulated sensor values, organs, scenario, intervention, trend, risk predictions, imaging metadata, and any attached medical image. Do not provide a diagnosis, prescription, medication dose, or personalized treatment plan. When an image is attached, give a clear preliminary radiology-style visual impression, visible findings, important negatives if visible, confidence, limitations, and what a radiologist/clinician should confirm. Do not claim certainty from a screenshot or low-quality image. If the user asks about العلاج, الإجراء العلاجي, treatment, procedure, or management, answer with a practical care pathway: urgent red flags, likely clinical assessments, imaging/labs a clinician may request, and possible clinician-supervised options. Never tell the user to start/stop a medicine. If values look urgent, clearly advise seeking emergency or real medical care. Return valid JSON only with keys: answer, severity, confidence, actions, evidence. The answer key is required and must contain a complete Arabic paragraph. severity must be stable, watch, or critical. confidence must be a number from 0 to 1. Keep answer and lists in Arabic."
           },
-          { role: "user", content: JSON.stringify({ question, state: buildOpenAiContext(state) }) }
+          { role: "user", content: buildOpenAiUserContent(question, state) }
         ]
       })
     });
@@ -721,6 +781,32 @@ async function openAiBodyAnalyst(question, state) {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function buildOpenAiUserContent(question, state) {
+  const content = [
+    {
+      type: "input_text",
+      text: JSON.stringify({
+        question,
+        state: buildOpenAiContext(state),
+        instruction:
+          "إذا كانت صورة أشعة مرفقة، اقرأها بصريًا وقدّم انطباعًا أوليًا واضحًا: الموجودات المرئية، ما لا يظهر بوضوح، درجة الثقة، وما يحتاج تأكيدًا من أخصائي الأشعة. لا تعط جرعات أو وصفات."
+      })
+    }
+  ];
+  const imageInput = latestVisionImageInput(state);
+  if (imageInput) content.push(imageInput);
+  return content;
+}
+
+function latestVisionImageInput(state) {
+  const latest = imagingStudies[0];
+  if (!latest?.imageData || !state.imaging?.latest) return null;
+  return {
+    type: "input_image",
+    image_url: latest.imageData
+  };
 }
 
 function buildOpenAiContext(state) {
@@ -761,7 +847,7 @@ function buildOpenAiContext(state) {
       count: state.imaging.count,
       modelConfidence: state.imaging.modelConfidence,
       latest: state.imaging.latest
-        ? pickFields(state.imaging.latest, ["modalityLabel", "regionLabel", "confidence", "finding", "modelImpact"])
+        ? pickFields(state.imaging.latest, ["modalityLabel", "regionLabel", "confidence", "finding", "modelImpact", "fileName", "fileType"])
         : null,
       coveredSystems: state.imaging.coveredSystems
     },
@@ -959,7 +1045,8 @@ const server = createServer(async (request, response) => {
       const state = buildTwinState();
       const question = String(body.question || "حلل حالة التوأم الرقمي للجسم الآن.");
       const aiAnswer = await openAiBodyAnalyst(question, state);
-      sendJson(response, 200, withCarePathwayIfRequested(aiAnswer, question, state) || localBodyAnalyst(question, state));
+      const enhancedAnswer = withImagingInterpretationIfRequested(withCarePathwayIfRequested(aiAnswer, question, state), question, state);
+      sendJson(response, 200, enhancedAnswer || localBodyAnalyst(question, state));
       return;
     }
 

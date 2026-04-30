@@ -1874,7 +1874,8 @@ async function handleImagingUpload() {
   dom.uploadImagingBtn.disabled = true;
   dom.imagingStatus.textContent = "جاري رفع صورة الأشعة...";
   try {
-    const imageData = file.type.startsWith("image/") ? await readFileAsDataUrl(file) : null;
+    const imageData = isVisionImageFile(file) ? await readFileAsDataUrl(file) : null;
+    const fileType = file.type || inferImageMimeFromName(file.name) || "application/octet-stream";
     const response = await fetch("/api/imaging/upload", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1882,7 +1883,7 @@ async function handleImagingUpload() {
         modality: dom.imagingModality.value,
         region: dom.imagingRegion.value,
         fileName: file.name,
-        fileType: file.type || "application/octet-stream",
+        fileType,
         fileSize: file.size,
         imageData
       })
@@ -1891,7 +1892,9 @@ async function handleImagingUpload() {
     twinState = await response.json();
     renderTwin(twinState);
     dom.imagingStatus.textContent = "تمت إضافة صورة الأشعة إلى التوأم الرقمي";
-    askAi("حلل حالة التوأم الرقمي بعد إضافة دليل تصوير الأشعة.");
+    const modalityLabel = dom.imagingModality.selectedOptions?.[0]?.textContent?.trim() || "الأشعة";
+    const regionLabel = dom.imagingRegion.selectedOptions?.[0]?.textContent?.trim() || "المنطقة المحددة";
+    askAi(`اكتب انطباعًا تصويريًا أوليًا لصورة ${modalityLabel} لمنطقة ${regionLabel}. اذكر الموجودات المرئية، درجة الثقة، القيود، وما يحتاج تأكيدًا من أخصائي الأشعة.`);
   } catch {
     dom.imagingStatus.textContent = "تعذر رفع صورة الأشعة الآن";
   } finally {
@@ -1899,10 +1902,29 @@ async function handleImagingUpload() {
   }
 }
 
+function isVisionImageFile(file) {
+  return file.type.startsWith("image/") || Boolean(inferImageMimeFromName(file.name));
+}
+
+function inferImageMimeFromName(name = "") {
+  if (/\.png$/i.test(name)) return "image/png";
+  if (/\.jpe?g$/i.test(name)) return "image/jpeg";
+  if (/\.webp$/i.test(name)) return "image/webp";
+  return "";
+}
+
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
+    reader.onload = () => {
+      const inferredMime = inferImageMimeFromName(file.name);
+      const result = String(reader.result || "");
+      if (inferredMime && /^data:[^;]*;base64,/i.test(result)) {
+        resolve(result.replace(/^data:[^;]*;base64,/i, `data:${inferredMime};base64,`));
+        return;
+      }
+      resolve(result);
+    };
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
