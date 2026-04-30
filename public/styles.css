@@ -77,19 +77,20 @@ button {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: 240px;
+  min-width: 420px;
 }
 
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 50px;
-  height: 50px;
-  flex: 0 0 50px;
+.brand-logo {
+  display: block;
+  width: 220px;
+  height: 56px;
+  flex: 0 0 220px;
   border-radius: 8px;
-  background: linear-gradient(135deg, var(--red), var(--cyan));
-  color: #111216;
-  font-weight: 900;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #050505;
+  object-fit: contain;
+  padding: 4px 8px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
 }
 
 .eyebrow {
@@ -1120,6 +1121,13 @@ textarea:focus {
 
   .brand {
     width: 100%;
+    min-width: 0;
+  }
+
+  .brand-logo {
+    width: 168px;
+    height: 46px;
+    flex-basis: 168px;
   }
 
   .scenario-switcher {

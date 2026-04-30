@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 112" role="img" aria-labelledby="title desc">
+  <title id="title">وزارة الصحة - Ministry of Health</title>
+  <desc id="desc">شعار وزارة الصحة بخلفية سوداء ونص أبيض.</desc>
+  <rect width="460" height="112" rx="6" fill="#050505"/>
+  <g fill="#fff" font-family="Tahoma, Arial, sans-serif" text-anchor="end">
+    <text x="210" y="47" font-size="34" font-weight="500">وزارة الصحة</text>
+    <text x="210" y="78" font-size="22" font-weight="700">Ministry of Health</text>
+  </g>
+  <g transform="translate(262 18)" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round">
+    <g fill="#fff" stroke="none">
+      <path d="M46 30 C42 16 44 6 52 0 C57 11 55 21 46 30Z"/>
+      <path d="M56 31 C58 16 64 8 76 5 C74 18 68 26 56 31Z"/>
+      <path d="M37 31 C30 18 21 12 8 11 C16 23 26 30 37 31Z"/>
+      <path d="M46 33 C36 21 27 16 15 18 C24 28 35 34 46 33Z"/>
+      <path d="M53 33 C63 21 74 17 88 19 C79 29 67 35 53 33Z"/>
+      <path d="M49 29 L58 68 L40 68Z"/>
+    </g>
+    <path d="M26 75 C49 49 76 49 102 75 C77 100 49 101 26 75Z" stroke-width="10"/>
+    <path d="M102 75 C125 49 152 49 178 75 C153 100 125 101 102 75Z" stroke-width="10"/>
+    <path d="M28 95 C68 72 101 61 165 43" stroke-width="6"/>
+    <path d="M168 95 C128 72 95 61 31 43" stroke-width="6"/>
+    <g fill="#fff" stroke="none" transform="translate(10 45)">
+      <rect x="0" y="0" width="13" height="13" rx="1" transform="rotate(45 6.5 6.5)"/>
+      <rect x="18" y="10" width="11" height="11" rx="1" transform="rotate(45 23.5 15.5)"/>
+    </g>
+  </g>
+</svg>
