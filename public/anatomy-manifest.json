@@ -1,5 +1,5 @@
 {
-  "version": "2026-05-01.separate-anatomy-parts-1",
+  "version": "2026-05-01.model-v2-anatomy-parts-1",
   "_notes": [
     "Organ and vessel coordinates are unchanged; only the skin envelope uses stretch fitting for visualization containment.",
     "Body shell calibrated with fit [3.08, 5.28, 1.38] so hands, feet, vessels, brain, and organs sit inside the external skin.",
@@ -13,156 +13,466 @@
     "mode": "separate-parts",
     "partsPath": "/models/anatomy-parts",
     "parts": [
-      { "key": "skin", "file": "skin.glb" },
-      { "key": "brain", "file": "brain.glb" },
-      { "key": "lungs", "file": "lungs.glb" },
-      { "key": "heart", "file": "heart.glb" },
-      { "key": "liver", "file": "liver.glb" },
-      { "key": "spleen", "file": "spleen.glb" },
-      { "key": "pancreas", "file": "pancreas.glb" },
-      { "key": "small_intestine", "file": "small_intestine.glb" },
-      { "key": "large_intestine", "file": "large_intestine.glb" },
-      { "key": "kidney_left", "file": "kidney_left.glb" },
-      { "key": "kidney_right", "file": "kidney_right.glb" },
-      { "key": "bladder", "file": "bladder.glb" },
-      { "key": "trunk_arteries", "file": "trunk_arteries.glb" },
-      { "key": "trunk_veins", "file": "trunk_veins.glb" },
-      { "key": "arm_arteries", "file": "arm_arteries.glb" },
-      { "key": "arm_veins", "file": "arm_veins.glb" },
-      { "key": "leg_arteries", "file": "leg_arteries.glb" },
-      { "key": "leg_veins", "file": "leg_veins.glb" }
+      {
+        "key": "skin",
+        "file": "skin.glb"
+      },
+      {
+        "key": "brain",
+        "file": "brain.glb"
+      },
+      {
+        "key": "lungs",
+        "file": "lungs.glb"
+      },
+      {
+        "key": "heart",
+        "file": "heart.glb"
+      },
+      {
+        "key": "liver",
+        "file": "liver.glb"
+      },
+      {
+        "key": "spleen",
+        "file": "spleen.glb"
+      },
+      {
+        "key": "pancreas",
+        "file": "pancreas.glb"
+      },
+      {
+        "key": "small_intestine",
+        "file": "small_intestine.glb"
+      },
+      {
+        "key": "large_intestine",
+        "file": "large_intestine.glb"
+      },
+      {
+        "key": "kidney_left",
+        "file": "kidney_left.glb"
+      },
+      {
+        "key": "kidney_right",
+        "file": "kidney_right.glb"
+      },
+      {
+        "key": "bladder",
+        "file": "bladder.glb"
+      },
+      {
+        "key": "trunk_arteries",
+        "file": "trunk_arteries.glb"
+      },
+      {
+        "key": "trunk_veins",
+        "file": "trunk_veins.glb"
+      },
+      {
+        "key": "arm_arteries",
+        "file": "arm_arteries.glb"
+      },
+      {
+        "key": "arm_veins",
+        "file": "arm_veins.glb"
+      },
+      {
+        "key": "leg_arteries",
+        "file": "leg_arteries.glb"
+      },
+      {
+        "key": "leg_veins",
+        "file": "leg_veins.glb"
+      }
     ],
     "label": "Professional Human Anatomy Parts",
     "source": "User supplied GLB",
-    "fit": [3.08, 5.28, 1.38],
+    "fit": [
+      3.08,
+      5.28,
+      1.38
+    ],
     "fitMode": "stretch",
-    "position": [0, 0.16, 0.03],
-    "rotation": [0, 0, 0]
+    "position": [
+      0,
+      0.16,
+      0.03
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ]
   },
   "bodyShell": {
     "file": "VH_M_united_skin.glb",
     "label": "Unified NIH Skin Shell, Male",
     "source": "NIH 3D extracted shell",
-    "fit": [3.08, 5.28, 1.38],
+    "fit": [
+      3.08,
+      5.28,
+      1.38
+    ],
     "fitMode": "stretch",
-    "position": [0, 0.16, 0.03],
-    "rotation": [0, 0, 0]
+    "position": [
+      0,
+      0.16,
+      0.03
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ]
   },
   "layers": [
-    { "key": "skin", "label": "الجلد", "defaultVisible": true },
-    { "key": "organs", "label": "الأعضاء", "defaultVisible": true },
-    { "key": "vessels", "label": "الأوعية", "defaultVisible": true },
-    { "key": "sensors", "label": "المستشعرات", "defaultVisible": true },
-    { "key": "labels", "label": "التسميات", "defaultVisible": true },
-    { "key": "effects", "label": "المؤثرات", "defaultVisible": true }
+    {
+      "key": "skin",
+      "label": "الجلد",
+      "defaultVisible": true
+    },
+    {
+      "key": "organs",
+      "label": "الأعضاء",
+      "defaultVisible": true
+    },
+    {
+      "key": "vessels",
+      "label": "الأوعية",
+      "defaultVisible": true
+    },
+    {
+      "key": "sensors",
+      "label": "المستشعرات",
+      "defaultVisible": false
+    },
+    {
+      "key": "labels",
+      "label": "التسميات",
+      "defaultVisible": false
+    },
+    {
+      "key": "effects",
+      "label": "المؤثرات",
+      "defaultVisible": false
+    }
   ],
   "organs": [
     {
       "key": "lungs",
       "file": "3d-vh-f-lung.glb",
       "label": "Lungs",
-      "position": [0, 1.32, 0.02],
-      "fit": [0.78, 0.82, 0.32],
-      "rotation": [0, 3.141592653589793, 0],
-      "labelOffset": [0.55, 0.05, 0.16],
-      "material": { "color": "#48c7d8", "emissive": "#07334a", "opacity": 0.62 }
+      "position": [
+        0,
+        1.32,
+        0.02
+      ],
+      "fit": [
+        0.78,
+        0.82,
+        0.32
+      ],
+      "rotation": [
+        0,
+        3.141592653589793,
+        0
+      ],
+      "labelOffset": [
+        0.55,
+        0.05,
+        0.16
+      ],
+      "material": {
+        "color": "#48c7d8",
+        "emissive": "#07334a",
+        "opacity": 0.62
+      }
     },
     {
       "key": "heart",
       "file": "VH_M_Heart.glb",
       "label": "Heart",
-      "position": [0.06, 1.18, 0.06],
-      "fit": [0.22, 0.26, 0.18],
-      "rotation": [0, -0.25, -0.18],
-      "labelOffset": [-0.5, 0.0, 0.16],
-      "material": { "color": "#ef4b5f", "emissive": "#4c0712", "opacity": 0.96 }
+      "position": [
+        0.06,
+        1.18,
+        0.06
+      ],
+      "fit": [
+        0.22,
+        0.26,
+        0.18
+      ],
+      "rotation": [
+        0,
+        -0.25,
+        -0.18
+      ],
+      "labelOffset": [
+        -0.5,
+        0,
+        0.16
+      ],
+      "material": {
+        "color": "#ef4b5f",
+        "emissive": "#4c0712",
+        "opacity": 0.96
+      }
     },
     {
       "key": "liver",
       "file": "VH_M_Liver.glb",
       "label": "Liver",
-      "position": [-0.12, 0.92, 0.05],
-      "fit": [0.5, 0.26, 0.22],
-      "rotation": [0, 3.141592653589793, 0],
-      "labelOffset": [-0.5, 0.0, 0.16],
-      "material": { "color": "#9a4d2f", "emissive": "#341006", "opacity": 0.85 }
+      "position": [
+        -0.12,
+        0.92,
+        0.05
+      ],
+      "fit": [
+        0.5,
+        0.26,
+        0.22
+      ],
+      "rotation": [
+        0,
+        3.141592653589793,
+        0
+      ],
+      "labelOffset": [
+        -0.5,
+        0,
+        0.16
+      ],
+      "material": {
+        "color": "#9a4d2f",
+        "emissive": "#341006",
+        "opacity": 0.85
+      }
     },
     {
       "key": "stomach",
       "file": "realistic_stomach.glb",
       "label": "Stomach",
-      "position": [0.1, 0.78, 0.06],
-      "fit": [0.26, 0.28, 0.18],
-      "rotation": [0, -0.35, 0],
-      "labelOffset": [0.5, 0.0, 0.16],
-      "material": { "color": "#ff9f80", "emissive": "#44140c", "opacity": 0.88 }
+      "position": [
+        0.1,
+        0.78,
+        0.06
+      ],
+      "fit": [
+        0.26,
+        0.28,
+        0.18
+      ],
+      "rotation": [
+        0,
+        -0.35,
+        0
+      ],
+      "labelOffset": [
+        0.5,
+        0,
+        0.16
+      ],
+      "material": {
+        "color": "#ff9f80",
+        "emissive": "#44140c",
+        "opacity": 0.88
+      }
     },
     {
       "key": "pancreas",
       "file": "3d-vh-m-pancreas.glb",
       "label": "Pancreas",
-      "position": [0.0, 0.7, -0.04],
-      "fit": [0.45, 0.12, 0.12],
-      "rotation": [0, 3.141592653589793, 0.05],
-      "labelOffset": [-0.5, 0.0, 0.16],
-      "material": { "color": "#f4b740", "emissive": "#5a3600", "opacity": 0.95 }
+      "position": [
+        0,
+        0.7,
+        -0.04
+      ],
+      "fit": [
+        0.45,
+        0.12,
+        0.12
+      ],
+      "rotation": [
+        0,
+        3.141592653589793,
+        0.05
+      ],
+      "labelOffset": [
+        -0.5,
+        0,
+        0.16
+      ],
+      "material": {
+        "color": "#f4b740",
+        "emissive": "#5a3600",
+        "opacity": 0.95
+      }
     },
     {
       "key": "leftKidney",
       "file": "VH_M_Kidney_L.glb",
       "label": "Left Kidney",
-      "position": [0.18, 0.64, -0.14],
-      "fit": [0.12, 0.22, 0.1],
-      "rotation": [0, 0, 0.28],
-      "labelOffset": [0.5, 0.0, 0.16],
-      "material": { "color": "#c084fc", "emissive": "#28113c", "opacity": 0.9 }
+      "position": [
+        0.18,
+        0.64,
+        -0.14
+      ],
+      "fit": [
+        0.12,
+        0.22,
+        0.1
+      ],
+      "rotation": [
+        0,
+        0,
+        0.28
+      ],
+      "labelOffset": [
+        0.5,
+        0,
+        0.16
+      ],
+      "material": {
+        "color": "#c084fc",
+        "emissive": "#28113c",
+        "opacity": 0.9
+      }
     },
     {
       "key": "rightKidney",
       "file": "VH_M_Kidney_L.glb",
       "label": "Right Kidney",
-      "position": [-0.18, 0.64, -0.14],
-      "fit": [0.12, 0.22, 0.1],
-      "rotation": [0, 0, -0.28],
+      "position": [
+        -0.18,
+        0.64,
+        -0.14
+      ],
+      "fit": [
+        0.12,
+        0.22,
+        0.1
+      ],
+      "rotation": [
+        0,
+        0,
+        -0.28
+      ],
       "mirrorX": true,
-      "material": { "color": "#c084fc", "emissive": "#28113c", "opacity": 0.9 }
+      "material": {
+        "color": "#c084fc",
+        "emissive": "#28113c",
+        "opacity": 0.9
+      }
     },
     {
       "key": "smallIntestine",
       "file": "VH_F_Small_Intestine.glb",
       "label": "Small Intestine",
-      "position": [0, 0.32, 0.05],
-      "fit": [0.42, 0.36, 0.18],
-      "rotation": [0, 3.141592653589793, 0],
-      "labelOffset": [0.5, 0.0, 0.16],
-      "material": { "color": "#ffb3a7", "emissive": "#4e1b16", "opacity": 0.78 }
+      "position": [
+        0,
+        0.32,
+        0.05
+      ],
+      "fit": [
+        0.42,
+        0.36,
+        0.18
+      ],
+      "rotation": [
+        0,
+        3.141592653589793,
+        0
+      ],
+      "labelOffset": [
+        0.5,
+        0,
+        0.16
+      ],
+      "material": {
+        "color": "#ffb3a7",
+        "emissive": "#4e1b16",
+        "opacity": 0.78
+      }
     },
     {
       "key": "largeIntestine",
       "file": "SBU_F_Intestine_Large.glb",
       "label": "Large Intestine",
-      "position": [0, 0.36, 0.04],
-      "fit": [0.5, 0.44, 0.2],
-      "rotation": [0, 3.141592653589793, 0],
-      "material": { "color": "#d68a7c", "emissive": "#4e1b16", "opacity": 0.7 }
+      "position": [
+        0,
+        0.36,
+        0.04
+      ],
+      "fit": [
+        0.5,
+        0.44,
+        0.2
+      ],
+      "rotation": [
+        0,
+        3.141592653589793,
+        0
+      ],
+      "material": {
+        "color": "#d68a7c",
+        "emissive": "#4e1b16",
+        "opacity": 0.7
+      }
     },
     {
       "key": "bladder",
       "file": "VH_F_Urinary_Bladder.glb",
       "label": "Bladder",
-      "position": [0, 0.02, 0.05],
-      "fit": [0.14, 0.14, 0.12],
-      "rotation": [0, 3.141592653589793, 0],
-      "labelOffset": [0.5, 0.0, 0.16],
-      "material": { "color": "#ff77aa", "emissive": "#4c0b24", "opacity": 0.86 }
+      "position": [
+        0,
+        0.02,
+        0.05
+      ],
+      "fit": [
+        0.14,
+        0.14,
+        0.12
+      ],
+      "rotation": [
+        0,
+        3.141592653589793,
+        0
+      ],
+      "labelOffset": [
+        0.5,
+        0,
+        0.16
+      ],
+      "material": {
+        "color": "#ff77aa",
+        "emissive": "#4c0b24",
+        "opacity": 0.86
+      }
     }
   ],
   "brain": {
     "key": "brain",
     "label": "Brain",
-    "position": [0, 2.62, 0.02],
-    "size": [0.16, 0.13, 0.18],
-    "labelOffset": [0.45, 0.02, 0.16],
-    "material": { "color": "#a78bfa", "emissive": "#221146", "opacity": 0.78 }
+    "position": [
+      0,
+      2.62,
+      0.02
+    ],
+    "size": [
+      0.16,
+      0.13,
+      0.18
+    ],
+    "labelOffset": [
+      0.45,
+      0.02,
+      0.16
+    ],
+    "material": {
+      "color": "#a78bfa",
+      "emissive": "#221146",
+      "opacity": 0.78
+    }
   }
 }

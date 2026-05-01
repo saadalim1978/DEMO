@@ -185,7 +185,7 @@ const layerState = {
   effects: true
 };
 let cutawayEnabled = false;
-let teachingModeEnabled = true;
+let teachingModeEnabled = false;
 
 let bodyShellAsset = {
   file: "VH_M_Skin.glb",
@@ -305,12 +305,12 @@ let organAssets = [
 ];
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0c0d10);
-scene.fog = new THREE.Fog(0x0c0d10, 10, 24);
+scene.background = new THREE.Color(0x171a20);
+scene.fog = new THREE.Fog(0x171a20, 10, 24);
 
-const DEFAULT_CAMERA_POSITION = new THREE.Vector3(0, 0.72, 7.85);
-const DEFAULT_CAMERA_TARGET = new THREE.Vector3(0, 0.45, 0.14);
-const MOBILE_CAMERA_POSITION = new THREE.Vector3(0, 0.68, 8.1);
+const DEFAULT_CAMERA_POSITION = new THREE.Vector3(0, 0.64, 8.55);
+const DEFAULT_CAMERA_TARGET = new THREE.Vector3(0, 0.34, 0.1);
+const MOBILE_CAMERA_POSITION = new THREE.Vector3(0, 0.62, 8.85);
 const BODY_FRONT_ROTATION = new THREE.Euler(0.01, 0, 0);
 
 const camera = new THREE.PerspectiveCamera(44, 1, 0.1, 100);
@@ -512,6 +512,8 @@ function initScene() {
     new THREE.PlaneGeometry(8.8, 8.8),
     new THREE.MeshStandardMaterial({
       color: 0x14171d,
+      transparent: true,
+      opacity: 0.18,
       roughness: 0.82,
       metalness: 0.08
     })
@@ -523,6 +525,10 @@ function initScene() {
 
   const grid = new THREE.GridHelper(8.8, 24, 0x33434c, 0x20262d);
   grid.position.y = -2.405;
+  (Array.isArray(grid.material) ? grid.material : [grid.material]).forEach((material) => {
+    material.transparent = true;
+    material.opacity = 0.14;
+  });
   scene.add(grid);
 
   addBodyTwinModel();
@@ -541,9 +547,10 @@ function addBodyTwinModel() {
   usingIntegratedAnatomy = integratedAnatomyAsset.enabled !== false;
   if (usingIntegratedAnatomy) {
     loadIntegratedAnatomyModel().catch((error) => {
-      console.warn("Integrated anatomy failed to load, falling back to separate anatomy assets", error);
+      console.error("Integrated anatomy V2 failed to load", error);
       usingIntegratedAnatomy = false;
-      loadLegacyAnatomyModel(vesselRed, vesselBlue);
+      document.body.dataset.bodyShell = "integrated-anatomy-load-error";
+      if (dom.assetName) dom.assetName.textContent = "تعذر تحميل Model V2";
     });
   } else {
     loadLegacyAnatomyModel(vesselRed, vesselBlue);
@@ -561,8 +568,8 @@ function addBodyTwinModel() {
     }
   });
   if (usingIntegratedAnatomy) {
-    withLayer("vessels", createBloodParticles);
     withLayer("effects", () => {
+      createBloodParticles();
       createDiseaseLayers();
       createGlucoseParticles();
     });
@@ -761,6 +768,7 @@ function syncSkinCutawayUniforms(material) {
 }
 
 function skinShellOpacity() {
+  if (usingIntegratedAnatomy) return cutawayEnabled ? 0.34 : 0.54;
   if (teachingModeEnabled) return cutawayEnabled ? 0.18 : 0.32;
   return cutawayEnabled ? 0.28 : 0.46;
 }
@@ -951,27 +959,37 @@ function prepareIntegratedPart(object, config) {
 
 function integratedPartMaterial(config) {
   if (config.type === "skin") {
-    const material = skinShellMaterial();
-    material.color.set(0xffd2c4);
-    material.emissive.set(0x6b332d);
-    material.emissiveIntensity = 0.16;
-    return material;
+    return integratedSkinMaterial();
   }
   if (config.type === "artery") {
-    const material = vesselMaterial(0xff5d73, 0x5a0610, 0.34);
-    material.side = THREE.DoubleSide;
-    material.vertexColors = true;
-    return material;
+    return integratedVertexColorMaterial(false);
   }
   if (config.type === "vein") {
-    const material = vesselMaterial(0x4cc9f0, 0x052d4a, 0.24);
-    material.side = THREE.DoubleSide;
-    material.vertexColors = true;
-    return material;
+    return integratedVertexColorMaterial(false);
   }
-  const material = organAssetMaterial({ ...config, vertexColors: true });
-  material.side = THREE.DoubleSide;
+  return integratedVertexColorMaterial(true);
+}
+
+function integratedSkinMaterial() {
+  const material = new THREE.MeshBasicMaterial({
+    color: 0xd8b48f,
+    transparent: true,
+    opacity: skinShellOpacity(),
+    depthWrite: false,
+    side: THREE.DoubleSide
+  });
+  installSkinCutawayShader(material);
   return material;
+}
+
+function integratedVertexColorMaterial(transparent) {
+  return new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    vertexColors: true,
+    transparent,
+    opacity: 1,
+    side: THREE.DoubleSide
+  });
 }
 
 function prepareBodyShell(sceneModel) {
