@@ -96,7 +96,7 @@ const disease = {};
 const bodyParts = {};
 const layerGroups = {};
 const gltfLoader = new GLTFLoader();
-const cutawayPlane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0.08);
+const cutawayPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -0.02);
 const organHighlights = new Map();
 const organMetricLinks = {
   brain: { label: "الدماغ", color: "#a78bfa", sensors: ["neuroPerfusion"] },
@@ -631,8 +631,12 @@ function applyLayerVisibility() {
 function applyCutawayMode() {
   if (renderer) renderer.localClippingEnabled = true;
   bodyParts.skin?.traverse((child) => {
-    if (child.name === "body-inspection-window") {
+    if (child.userData?.cutawayHelper) {
       child.visible = cutawayEnabled;
+      if (child.material) {
+        child.material.clippingPlanes = [];
+        child.material.needsUpdate = true;
+      }
       return;
     }
     if (!child.isMesh || !child.material) return;
@@ -753,6 +757,7 @@ function skinShellMaterial() {
 function createBodyInspectionWindow() {
   const group = new THREE.Group();
   group.name = "body-inspection-window";
+  group.userData.cutawayHelper = true;
   group.visible = cutawayEnabled;
   const lineMaterial = new THREE.LineBasicMaterial({
     color: 0xffe2d6,
@@ -762,13 +767,14 @@ function createBodyInspectionWindow() {
   const points = [];
   for (let i = 0; i <= 72; i += 1) {
     const t = (i / 72) * Math.PI * 2;
-    points.push(new THREE.Vector3(-0.42, 0.58 + Math.sin(t) * 0.93, 0.06 + Math.cos(t) * 0.31));
+    points.push(new THREE.Vector3(Math.cos(t) * 0.62, 0.58 + Math.sin(t) * 1.08, 0.1));
   }
   const outline = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), lineMaterial);
+  outline.userData.cutawayHelper = true;
   group.add(outline);
 
   const panel = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.56, 1.72),
+    new THREE.PlaneGeometry(1.24, 2.12),
     new THREE.MeshBasicMaterial({
       color: 0x101419,
       transparent: true,
@@ -777,8 +783,8 @@ function createBodyInspectionWindow() {
       side: THREE.DoubleSide
     })
   );
-  panel.position.set(-0.42, 0.58, 0.06);
-  panel.rotation.y = Math.PI / 2;
+  panel.position.set(0, 0.58, 0.1);
+  panel.userData.cutawayHelper = true;
   panel.renderOrder = 0;
   group.add(panel);
   return group;
