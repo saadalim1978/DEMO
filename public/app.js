@@ -245,8 +245,13 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0c0d10);
 scene.fog = new THREE.Fog(0x0c0d10, 10, 24);
 
+const DEFAULT_CAMERA_POSITION = new THREE.Vector3(0, 0.72, 7.85);
+const DEFAULT_CAMERA_TARGET = new THREE.Vector3(0, 0.45, 0.14);
+const MOBILE_CAMERA_POSITION = new THREE.Vector3(0, 0.68, 8.1);
+const BODY_FRONT_ROTATION = new THREE.Euler(0.01, 0, 0);
+
 const camera = new THREE.PerspectiveCamera(44, 1, 0.1, 100);
-camera.position.set(0.18, 0.72, 7.85);
+camera.position.copy(DEFAULT_CAMERA_POSITION);
 
 try {
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
@@ -260,7 +265,7 @@ try {
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.06;
-  controls.target.set(0, 0.45, 0.14);
+  controls.target.copy(DEFAULT_CAMERA_TARGET);
   controls.maxPolarAngle = Math.PI * 0.64;
   controls.minDistance = 4.3;
   controls.maxDistance = 11.5;
@@ -377,7 +382,7 @@ function initScene() {
 
 function addBodyTwinModel() {
   humanGroup = new THREE.Group();
-  humanGroup.rotation.set(0.01, -Math.PI / 2, 0);
+  humanGroup.rotation.copy(BODY_FRONT_ROTATION);
   humanGroup.scale.setScalar(0.98);
   scene.add(humanGroup);
   createLayerGroups();
@@ -1823,8 +1828,8 @@ function focusSensor(sensorId) {
 }
 
 function resetCamera() {
-  camera.position.set(0.18, 0.72, 7.85);
-  controls?.target.set(0, 0.45, 0.14);
+  camera.position.copy(DEFAULT_CAMERA_POSITION);
+  controls?.target.copy(DEFAULT_CAMERA_TARGET);
   controls?.update();
 }
 
@@ -1970,8 +1975,8 @@ function resize() {
 
   const mobileLayout = width < 520;
   if (mobileLayout && !camera.userData.mobileLayout) {
-    camera.position.set(0.24, 0.68, 8.1);
-    controls?.target.set(0, 0.45, 0.14);
+    camera.position.copy(MOBILE_CAMERA_POSITION);
+    controls?.target.copy(DEFAULT_CAMERA_TARGET);
     camera.userData.mobileLayout = true;
   } else if (!mobileLayout && camera.userData.mobileLayout) {
     resetCamera();
