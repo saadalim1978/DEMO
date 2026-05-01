@@ -225,6 +225,21 @@ const imagingRegions = {
   wholeBody: { id: "wholeBody", label: "كامل الجسم", systems: ["brain", "heart", "lungs", "kidneys", "vessels"], risk: "global" }
 };
 
+const imagingOrgans = {
+  brain: { id: "brain", label: "الدماغ", region: "brain" },
+  lungs: { id: "lungs", label: "الرئتان", region: "chest" },
+  heart: { id: "heart", label: "القلب", region: "chest" },
+  liver: { id: "liver", label: "الكبد", region: "abdomen" },
+  stomach: { id: "stomach", label: "المعدة", region: "abdomen" },
+  pancreas: { id: "pancreas", label: "البنكرياس", region: "abdomen" },
+  kidneys: { id: "kidneys", label: "الكلى", region: "pelvis" },
+  bladder: { id: "bladder", label: "المثانة", region: "pelvis" },
+  intestines: { id: "intestines", label: "الأمعاء", region: "abdomen" },
+  vessels: { id: "vessels", label: "الأوعية", region: "vascular" },
+  bones: { id: "bones", label: "العظام", region: "wholeBody" },
+  unknown: { id: "unknown", label: "غير محدد", region: "wholeBody" }
+};
+
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -390,30 +405,168 @@ function buildInterventionOptions() {
   }));
 }
 
-function registerImagingStudy(upload = {}) {
-  const modality = imagingModalities[upload.modality] || imagingModalities.ct;
-  const region = imagingRegions[upload.region] || imagingRegions.wholeBody;
+async function registerImagingStudy(upload = {}) {
+  const analysis = await analyzeImagingUpload(upload);
+  const modality = imagingModalities[analysis.modality] || imagingModalities.xray;
+  const region = imagingRegions[analysis.region] || imagingRegions.wholeBody;
+  const organ = imagingOrgans[analysis.organ] || imagingOrgans.unknown;
   const fileSize = clamp(Number(upload.fileSize || 0), 0, 12 * 1024 * 1024);
-  const qualityScore = estimateImagingQuality(upload, fileSize);
-  const confidence = clamp(Math.round(58 + modality.weight * 1.8 + qualityScore * 0.24), 55, 96);
+  const qualityScore = clamp(Math.round(Number(analysis.qualityScore || estimateImagingQuality(upload, fileSize))), 35, 95);
+  const confidence = clamp(Math.round(Number(analysis.confidence || 58 + modality.weight * 1.8 + qualityScore * 0.24)), 45, 96);
+  const affectedSystems = [...new Set([organ.id, ...region.systems].filter((item) => item && item !== "unknown"))];
   const study = {
     id: `IMG-${Date.now().toString(36).toUpperCase()}`,
     modality: modality.id,
     modalityLabel: modality.label,
     region: region.id,
     regionLabel: region.label,
+    detectedOrgan: organ.id,
+    detectedOrganLabel: organ.label,
     fileName: sanitizeFileName(upload.fileName || `${modality.label}-image`),
     fileType: String(upload.fileType || "image/medical"),
     fileSize,
     qualityScore,
     confidence,
-    affectedSystems: region.systems,
-    finding: buildImagingFinding(modality, region, qualityScore),
-    modelImpact: `رفع موثوقية التوأم الرقمي عبر إضافة دليل تصوير ${modality.label} لمنطقة ${region.label}.`,
+    analysisSource: analysis.source,
+    affectedSystems,
+    finding: analysis.finding || buildImagingFinding(modality, region, organ, qualityScore, analysis.source),
+    modelImpact: `رفع موثوقية التوأم الرقمي عبر تحليل ${modality.label} لمنطقة ${region.label} وربطها بعضو ${organ.label}.`,
+    aiReason: analysis.reason || "",
     createdAt: new Date().toISOString()
   };
   imagingStudies = [study, ...imagingStudies].slice(0, 6);
   return study;
+}
+
+async function analyzeImagingUpload(upload = {}) {
+  const openAiAnalysis = await classifyImagingWithOpenAi(upload);
+  if (openAiAnalysis) return openAiAnalysis;
+  return inferImagingLocally(upload);
+}
+
+async function classifyImagingWithOpenAi(upload = {}) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  const imageData = typeof upload.imageData === "string" ? upload.imageData : "";
+  if (!apiKey || !/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(imageData)) return null;
+
+  const model = (process.env.OPENAI_MODEL || defaultOpenAiModel).trim() || defaultOpenAiModel;
+  const timeoutMs = clamp(Number(process.env.OPENAI_TIMEOUT_MS || 15000), 3000, 30000);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model,
+        input: [
+          {
+            role: "system",
+            content:
+              "You classify medical imaging screenshots for a non-diagnostic digital-twin demo. Return valid JSON only. Do not diagnose disease. Choose modality from: ct, mri, xray, ultrasound. Choose region from: brain, chest, abdomen, pelvis, vascular, wholeBody. Choose organ from: brain, lungs, heart, liver, stomach, pancreas, kidneys, bladder, intestines, vessels, bones, unknown. Provide Arabic finding and reason. Keys: modality, region, organ, confidence, qualityScore, finding, reason."
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "input_text",
+                text: JSON.stringify({
+                  fileName: sanitizeFileName(upload.fileName || "medical-image"),
+                  fileType: upload.fileType || "image/medical",
+                  instruction: "حدد نوع الصورة والمنطقة والعضو المرتبط بها فقط، بدون تشخيص."
+                })
+              },
+              { type: "input_image", image_url: imageData }
+            ]
+          }
+        ]
+      })
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    const text = data.output_text || extractResponseText(data);
+    if (!text) return null;
+    return normalizeImagingAnalysis(parseAiJson(text), "openai", upload);
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function normalizeImagingAnalysis(parsed = {}, source, upload = {}) {
+  const inferred = inferImagingLocally(upload);
+  const modality = imagingModalities[parsed.modality] ? parsed.modality : inferred.modality;
+  const organ = imagingOrgans[parsed.organ] ? parsed.organ : inferred.organ;
+  const regionFromOrgan = imagingOrgans[organ]?.region;
+  const region = imagingRegions[parsed.region] ? parsed.region : regionFromOrgan || inferred.region;
+  const confidenceValue = Number(parsed.confidence);
+  const confidence = confidenceValue <= 1 ? confidenceValue * 100 : confidenceValue;
+  return {
+    source,
+    modality,
+    region,
+    organ,
+    confidence: clamp(Math.round(confidence || inferred.confidence), 45, 96),
+    qualityScore: clamp(Math.round(Number(parsed.qualityScore || inferred.qualityScore)), 35, 95),
+    finding:
+      typeof parsed.finding === "string" && parsed.finding.trim()
+        ? parsed.finding.trim().slice(0, 260)
+        : "",
+    reason:
+      typeof parsed.reason === "string" && parsed.reason.trim()
+        ? parsed.reason.trim().slice(0, 220)
+        : ""
+  };
+}
+
+function inferImagingLocally(upload = {}) {
+  const text = `${upload.fileName || ""} ${upload.fileType || ""}`.toLowerCase();
+  const modality = /mri|magnetic|رنين/.test(text)
+    ? "mri"
+    : /ct|computed|scan|مقط/.test(text)
+      ? "ct"
+      : /ultra|usg|sonar|سونار|موجات/.test(text)
+        ? "ultrasound"
+        : /xray|x-ray|ray|اشع|أشع/.test(text)
+          ? "xray"
+          : "xray";
+  const organ = /brain|head|دماغ|راس|رأس/.test(text)
+    ? "brain"
+    : /lung|chest|صدر|رئ/.test(text)
+      ? "lungs"
+      : /heart|cardio|قلب/.test(text)
+        ? "heart"
+        : /kidney|renal|كلى|كلية/.test(text)
+          ? "kidneys"
+          : /bladder|مثان/.test(text)
+            ? "bladder"
+            : /liver|كبد/.test(text)
+              ? "liver"
+              : /pancreas|بنكرياس/.test(text)
+                ? "pancreas"
+                : /abdomen|بطن|stomach|معدة/.test(text)
+                  ? "stomach"
+                  : /vessel|vascular|doppler|وع/.test(text)
+                    ? "vessels"
+                    : "unknown";
+  const region = imagingOrgans[organ]?.region || "wholeBody";
+  const fileSize = clamp(Number(upload.fileSize || 0), 0, 12 * 1024 * 1024);
+  return {
+    source: "local-fallback",
+    modality,
+    region,
+    organ,
+    confidence: organ === "unknown" ? 52 : 62,
+    qualityScore: estimateImagingQuality(upload, fileSize),
+    finding: "",
+    reason: "تم الاستدلال محليًا لأن تحليل OpenAI للصورة غير متاح."
+  };
 }
 
 function buildImagingSummary() {
@@ -432,8 +585,8 @@ function buildImagingSummary() {
     modelConfidence,
     coveredSystems,
     note: studies.length
-      ? "تمت إضافة صور الأشعة كدليل مساعد لتحسين موثوقية التوأم الرقمي، وليست قراءة تشخيصية."
-      : "لم تتم إضافة صور أشعة بعد. رفع صور CT أو MRI أو X-Ray أو Ultrasound يزيد موثوقية النموذج."
+      ? "تم تحليل صور الأشعة تلقائيًا وربطها بالنوع والمنطقة والعضو لتحسين موثوقية التوأم الرقمي، وليست قراءة تشخيصية."
+      : "لم تتم إضافة صور أشعة بعد. ارفع صورة CT أو MRI أو X-Ray أو Ultrasound وسيحدد الذكاء الاصطناعي النوع والمنطقة تلقائيًا."
   };
 }
 
@@ -445,9 +598,10 @@ function estimateImagingQuality(upload, fileSize) {
   return clamp(sizeScore + typeScore + payloadScore + 18, 35, 95);
 }
 
-function buildImagingFinding(modality, region, qualityScore) {
+function buildImagingFinding(modality, region, organ, qualityScore, source = "local-fallback") {
   const qualityLabel = qualityScore >= 78 ? "جودة عالية" : qualityScore >= 58 ? "جودة متوسطة" : "جودة محدودة";
-  return `${qualityLabel}: تم ربط ${modality.label} بمنطقة ${region.label} لتقوية مطابقة الأعضاء والمؤشرات داخل النموذج.`;
+  const sourceLabel = source === "openai" ? "OpenAI" : "تحليل محلي مبدئي";
+  return `${qualityLabel}: حدد ${sourceLabel} أن الصورة أقرب إلى ${modality.label} لمنطقة ${region.label} وعضو ${organ.label} لتقوية مطابقة الأعضاء والمؤشرات داخل النموذج.`;
 }
 
 function sanitizeFileName(name) {
@@ -471,7 +625,7 @@ function buildEvents(alerts, scenario, intervention, imaging) {
     ? {
         level: "watch",
         title: `دليل تصوير: ${imaging.latest.modalityLabel}`,
-        message: `${imaging.latest.regionLabel} · ثقة ${imaging.latest.confidence}% · ${imaging.latest.fileName}`,
+        message: `${imaging.latest.regionLabel} · ${imaging.latest.detectedOrganLabel || "عضو غير محدد"} · ثقة ${imaging.latest.confidence}% · ${imaging.latest.fileName}`,
         timestamp: imaging.latest.createdAt
       }
     : null;
@@ -761,7 +915,7 @@ function buildOpenAiContext(state) {
       count: state.imaging.count,
       modelConfidence: state.imaging.modelConfidence,
       latest: state.imaging.latest
-        ? pickFields(state.imaging.latest, ["modalityLabel", "regionLabel", "confidence", "finding", "modelImpact"])
+        ? pickFields(state.imaging.latest, ["modalityLabel", "regionLabel", "detectedOrganLabel", "confidence", "analysisSource", "finding", "modelImpact"])
         : null,
       coveredSystems: state.imaging.coveredSystems
     },
@@ -942,15 +1096,11 @@ const server = createServer(async (request, response) => {
     }
     if (request.method === "POST" && url.pathname === "/api/imaging/upload") {
       const body = await readJsonBody(request, 8 * 1024 * 1024);
-      if (!imagingModalities[body.modality]) {
-        sendJson(response, 400, { error: "Unknown imaging modality", modalities: Object.keys(imagingModalities) });
+      if (!body.fileName && !body.imageData) {
+        sendJson(response, 400, { error: "Missing imaging file" });
         return;
       }
-      if (!imagingRegions[body.region]) {
-        sendJson(response, 400, { error: "Unknown imaging region", regions: Object.keys(imagingRegions) });
-        return;
-      }
-      registerImagingStudy(body);
+      await registerImagingStudy(body);
       sendJson(response, 200, buildTwinState());
       return;
     }

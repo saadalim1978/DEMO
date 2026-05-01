@@ -1872,7 +1872,7 @@ function renderImaging(imaging = {}) {
     <article class="imaging-item">
       <span class="imaging-modality">${escapeHtml(study.modalityLabel)}</span>
       <span class="item-main">
-        <strong>${escapeHtml(study.regionLabel)} · ${escapeHtml(study.fileName)}</strong>
+        <strong>${escapeHtml(study.regionLabel)} · ${escapeHtml(study.detectedOrganLabel || "عضو غير محدد")} · ${escapeHtml(study.fileName)}</strong>
         <small>${escapeHtml(study.finding)}</small>
       </span>
       <span class="sensor-value">${study.confidence}%</span>
@@ -1880,7 +1880,7 @@ function renderImaging(imaging = {}) {
   `
         )
         .join("")
-    : `<article class="imaging-empty">CT · MRI · X-Ray · Ultrasound</article>`;
+    : `<article class="imaging-empty">ارفع صورة وسيحدد OpenAI: CT · MRI · X-Ray · Ultrasound</article>`;
 }
 
 function renderEvents(events) {
@@ -1937,7 +1937,7 @@ function wireEvents() {
   dom.imagingFile?.addEventListener("change", () => {
     const file = dom.imagingFile.files?.[0];
     if (!file) return;
-    setTemporaryImagingStatus(`تم اختيار ${file.name} · ${fileExtension(file.name)} · ${formatBytes(file.size)}`);
+    setTemporaryImagingStatus(`تم اختيار ${file.name} · جاري تحديد النوع والمنطقة بالذكاء الاصطناعي...`);
     handleImagingUpload();
   });
   dom.layerToggles.forEach((input) => {
@@ -2062,15 +2062,13 @@ async function handleImagingUpload() {
   }
 
   setImagingControlsBusy(true);
-  setTemporaryImagingStatus(`جاري رفع ${file.name} · ${fileExtension(file.name)}...`);
+  setTemporaryImagingStatus(`جاري تحليل ${file.name} بواسطة OpenAI لتحديد نوع الأشعة والعضو...`);
   try {
     const imageData = file.type.startsWith("image/") ? await readFileAsDataUrl(file) : null;
     const response = await fetch("/api/imaging/upload", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        modality: dom.imagingModality.value,
-        region: dom.imagingRegion.value,
         fileName: file.name,
         fileType: file.type || "application/octet-stream",
         fileSize: file.size,
@@ -2080,10 +2078,14 @@ async function handleImagingUpload() {
     if (!response.ok) throw new Error("Upload failed");
     twinState = await response.json();
     renderTwin(twinState);
-    setTemporaryImagingStatus(`تم رفع ${file.name} · ${fileExtension(file.name)} إلى التوأم الرقمي`);
+    const latest = twinState?.imaging?.latest;
+    const detected = latest
+      ? `${latest.modalityLabel} · ${latest.regionLabel} · ${latest.detectedOrganLabel || "عضو غير محدد"}`
+      : fileExtension(file.name);
+    setTemporaryImagingStatus(`تم تحليل ${file.name}: ${detected}`);
     askAi("حلل حالة التوأم الرقمي بعد إضافة دليل تصوير الأشعة.");
   } catch {
-    setTemporaryImagingStatus("تعذر رفع صورة الأشعة الآن");
+    setTemporaryImagingStatus("تعذر تحليل صورة الأشعة الآن");
   } finally {
     setImagingControlsBusy(false);
   }
@@ -2114,8 +2116,6 @@ function setTemporaryImagingStatus(message, duration = 6000) {
 
 function setImagingControlsBusy(busy) {
   if (dom.imagingFile) dom.imagingFile.disabled = busy;
-  if (dom.imagingModality) dom.imagingModality.disabled = busy;
-  if (dom.imagingRegion) dom.imagingRegion.disabled = busy;
   if (dom.clearImagingBtn) dom.clearImagingBtn.disabled = busy || !(twinState?.imaging?.studies || []).length;
 }
 

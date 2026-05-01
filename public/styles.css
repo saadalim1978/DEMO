@@ -1326,6 +1326,32 @@ body[data-scenario="heart_failure"] .fallback-heart {
   gap: 8px;
 }
 
+.imaging-ai-summary {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(72, 199, 216, 0.35);
+  border-radius: 8px;
+  background: rgba(72, 199, 216, 0.08);
+  color: var(--text);
+}
+
+.imaging-ai-summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.imaging-ai-summary small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .field-label {
   display: grid;
   gap: 5px;
