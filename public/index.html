@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>منصة التوأم الرقمي الصحي</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="/styles.css?v=body-anatomy-26" />
+    <link rel="stylesheet" href="/styles.css?v=body-anatomy-27" />
     <script type="importmap">
       {
         "imports": {
@@ -173,6 +173,21 @@
             <div id="organLinkMetrics" class="organ-metric-chips"></div>
           </div>
           <div class="scene-disclaimer" id="disclaimer">تم إنشاء التوأم الرقمي بواسطة المهندس سعد الشهري.</div>
+          <div class="appearance-controls" aria-label="ألوان وشفافية النموذج">
+            <div class="palette-swatches" aria-label="نمط الألوان">
+              <button class="palette-swatch is-active natural" type="button" data-anatomy-palette="natural" title="طبيعي" aria-label="طبيعي"></button>
+              <button class="palette-swatch research" type="button" data-anatomy-palette="research" title="بحثي شفاف" aria-label="بحثي شفاف"></button>
+              <button class="palette-swatch cool" type="button" data-anatomy-palette="cool" title="أزرق طبي" aria-label="أزرق طبي"></button>
+            </div>
+            <label class="appearance-slider">
+              <span>الجلد</span>
+              <input id="skinOpacityRange" type="range" min="18" max="72" value="54" />
+            </label>
+            <label class="appearance-slider">
+              <span>الأعضاء</span>
+              <input id="organOpacityRange" type="range" min="48" max="100" value="88" />
+            </label>
+          </div>
           <div class="layer-controls" aria-label="طبقات النموذج">
             <label class="layer-toggle">
               <input type="checkbox" data-layer-toggle="skin" checked />
@@ -305,6 +320,6 @@
       </main>
     </div>
 
-    <script type="module" src="/app.js?v=body-anatomy-26"></script>
+    <script type="module" src="/app.js?v=body-anatomy-27"></script>
   </body>
 </html>

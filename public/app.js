@@ -50,6 +50,9 @@ const dom = {
   refreshBtn: document.querySelector("#refreshBtn"),
   resetCameraBtn: document.querySelector("#resetCameraBtn"),
   layerToggles: document.querySelectorAll("[data-layer-toggle]"),
+  paletteButtons: document.querySelectorAll("[data-anatomy-palette]"),
+  skinOpacityRange: document.querySelector("#skinOpacityRange"),
+  organOpacityRange: document.querySelector("#organOpacityRange"),
   cutawayToggle: document.querySelector("#cutawayToggle"),
   teachingModeToggle: document.querySelector("#teachingModeToggle")
 };
@@ -187,6 +190,17 @@ const layerState = {
 };
 let cutawayEnabled = false;
 let teachingModeEnabled = false;
+
+const anatomyPalettes = {
+  natural: { skin: 0xd8b48f, organTint: 0xffffff, vesselTint: 0xffffff },
+  research: { skin: 0x7d7467, organTint: 0xffd6aa, vesselTint: 0xe8f4ff },
+  cool: { skin: 0x667077, organTint: 0xd8f2ff, vesselTint: 0xd6e5ff }
+};
+const anatomyAppearance = {
+  palette: "natural",
+  skinOpacity: 0.54,
+  organOpacity: 0.88
+};
 
 let bodyShellAsset = {
   file: "VH_M_Skin.glb",
@@ -769,7 +783,7 @@ function syncSkinCutawayUniforms(material) {
 }
 
 function skinShellOpacity() {
-  if (usingIntegratedAnatomy) return cutawayEnabled ? 0.34 : 0.54;
+  if (usingIntegratedAnatomy) return cutawayEnabled ? Math.min(0.72, anatomyAppearance.skinOpacity + 0.08) : anatomyAppearance.skinOpacity;
   if (teachingModeEnabled) return cutawayEnabled ? 0.18 : 0.32;
   return cutawayEnabled ? 0.28 : 0.46;
 }
@@ -782,6 +796,59 @@ function applyTeachingMode() {
   });
   applyCutawayMode();
   if (dom.teachingModeToggle) dom.teachingModeToggle.checked = teachingModeEnabled;
+}
+
+function setAnatomyPalette(palette) {
+  if (!anatomyPalettes[palette]) return;
+  anatomyAppearance.palette = palette;
+  applyAnatomyAppearance();
+}
+
+function setAppearanceOpacity(kind, value) {
+  const opacity = Math.max(0.18, Math.min(1, Number(value) / 100));
+  if (kind === "skin") anatomyAppearance.skinOpacity = opacity;
+  if (kind === "organs") anatomyAppearance.organOpacity = opacity;
+  applyAnatomyAppearance();
+}
+
+function syncAppearanceControls() {
+  dom.paletteButtons.forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.anatomyPalette === anatomyAppearance.palette);
+  });
+  if (dom.skinOpacityRange) dom.skinOpacityRange.value = Math.round(anatomyAppearance.skinOpacity * 100);
+  if (dom.organOpacityRange) dom.organOpacityRange.value = Math.round(anatomyAppearance.organOpacity * 100);
+}
+
+function applyAnatomyAppearance() {
+  const palette = anatomyPalettes[anatomyAppearance.palette] || anatomyPalettes.natural;
+  humanGroup?.traverse?.((child) => {
+    if (!child.isMesh || !child.material) return;
+    applyToMaterials(child.material, (material) => {
+      const role = material.userData?.appearanceRole;
+      if (!role) return;
+      delete material.userData.organBase;
+      if (role === "skin") {
+        material.color?.setHex?.(palette.skin);
+        material.transparent = true;
+        material.opacity = skinShellOpacity();
+        material.depthWrite = false;
+      } else if (role === "organ") {
+        material.color?.setHex?.(palette.organTint);
+        material.transparent = true;
+        material.opacity = anatomyAppearance.organOpacity;
+        material.depthWrite = false;
+      } else if (role === "vessel") {
+        material.color?.setHex?.(palette.vesselTint);
+        material.transparent = false;
+        material.opacity = 0.98;
+        material.depthWrite = true;
+      }
+      material.needsUpdate = true;
+    });
+  });
+  syncAppearanceControls();
+  applyCutawayMode();
+  if (twinState) updateOrganLinks(twinState);
 }
 
 function registerOrganDisplayObject(object, key) {
@@ -829,6 +896,7 @@ async function loadIntegratedAnatomyModel() {
     );
     prepareIntegratedAnatomyParts(loadedParts);
     document.body.dataset.bodyShell = "integrated-human-anatomy-parts";
+    applyAnatomyAppearance();
     applyLayerVisibility();
     applyCutawayMode();
     applyTeachingMode();
@@ -838,6 +906,7 @@ async function loadIntegratedAnatomyModel() {
   const gltf = await gltfLoader.loadAsync(`/models/body/${integratedAnatomyAsset.file}`);
   prepareIntegratedAnatomyModel(gltf.scene);
   document.body.dataset.bodyShell = "integrated-human-anatomy";
+  applyAnatomyAppearance();
   applyLayerVisibility();
   applyCutawayMode();
   applyTeachingMode();
@@ -963,34 +1032,40 @@ function integratedPartMaterial(config) {
     return integratedSkinMaterial();
   }
   if (config.type === "artery") {
-    return integratedVertexColorMaterial(false);
+    return integratedVertexColorMaterial("vessel");
   }
   if (config.type === "vein") {
-    return integratedVertexColorMaterial(false);
+    return integratedVertexColorMaterial("vessel");
   }
-  return integratedVertexColorMaterial(true);
+  return integratedVertexColorMaterial("organ");
 }
 
 function integratedSkinMaterial() {
+  const palette = anatomyPalettes[anatomyAppearance.palette] || anatomyPalettes.natural;
   const material = new THREE.MeshBasicMaterial({
-    color: 0xd8b48f,
+    color: palette.skin,
     transparent: true,
     opacity: skinShellOpacity(),
     depthWrite: false,
     side: THREE.DoubleSide
   });
+  material.userData.appearanceRole = "skin";
   installSkinCutawayShader(material);
   return material;
 }
 
-function integratedVertexColorMaterial(transparent) {
-  return new THREE.MeshBasicMaterial({
-    color: 0xffffff,
+function integratedVertexColorMaterial(role) {
+  const palette = anatomyPalettes[anatomyAppearance.palette] || anatomyPalettes.natural;
+  const material = new THREE.MeshBasicMaterial({
+    color: role === "vessel" ? palette.vesselTint : palette.organTint,
     vertexColors: true,
-    transparent,
-    opacity: 1,
+    transparent: role !== "vessel",
+    opacity: role === "organ" ? anatomyAppearance.organOpacity : 0.98,
+    depthWrite: role === "vessel",
     side: THREE.DoubleSide
   });
+  material.userData.appearanceRole = role;
+  return material;
 }
 
 function prepareBodyShell(sceneModel) {
@@ -2239,6 +2314,11 @@ function wireEvents() {
       applyLayerVisibility();
     });
   });
+  dom.paletteButtons.forEach((button) => {
+    button.addEventListener("click", () => setAnatomyPalette(button.dataset.anatomyPalette));
+  });
+  dom.skinOpacityRange?.addEventListener("input", () => setAppearanceOpacity("skin", dom.skinOpacityRange.value));
+  dom.organOpacityRange?.addEventListener("input", () => setAppearanceOpacity("organs", dom.organOpacityRange.value));
   dom.cutawayToggle?.addEventListener("change", () => {
     cutawayEnabled = dom.cutawayToggle.checked;
     applyCutawayMode();

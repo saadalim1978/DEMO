@@ -1055,6 +1055,72 @@ body[data-scenario="heart_failure"] .fallback-heart {
   width: min(380px, calc(100% - 28px));
 }
 
+.appearance-controls {
+  position: absolute;
+  z-index: 7;
+  left: 14px;
+  bottom: 116px;
+  display: grid;
+  grid-template-columns: auto minmax(112px, 1fr) minmax(112px, 1fr);
+  align-items: center;
+  gap: 8px;
+  width: min(480px, calc(100% - 28px));
+  padding: 8px;
+  border: 1px solid rgba(72, 199, 216, 0.28);
+  border-radius: 8px;
+  background: rgba(12, 13, 16, 0.62);
+  backdrop-filter: blur(14px);
+}
+
+.palette-swatches {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.palette-swatch {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #c49f79, #e7b36b 48%, #7bb9d8);
+  cursor: pointer;
+}
+
+.palette-swatch.research {
+  background: linear-gradient(135deg, #8b8072, #d77d48 48%, #4aa4d9);
+}
+
+.palette-swatch.cool {
+  background: linear-gradient(135deg, #697078, #9fd3ee 52%, #5c7cff);
+}
+
+.palette-swatch.is-active {
+  border-color: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 0 0 2px rgba(72, 199, 216, 0.3);
+}
+
+.appearance-slider {
+  display: grid;
+  grid-template-columns: auto minmax(68px, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(12, 13, 16, 0.56);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.appearance-slider input {
+  width: 100%;
+  accent-color: var(--cyan);
+}
+
 .layer-toggle {
   display: flex;
   align-items: center;
@@ -1649,8 +1715,15 @@ textarea:focus {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .organ-link-card {
+  .appearance-controls {
     top: 248px;
+    right: 14px;
+    bottom: auto;
+    width: auto;
+  }
+
+  .organ-link-card {
+    top: 318px;
     left: 14px;
     right: 14px;
     width: auto;
@@ -1692,8 +1765,16 @@ textarea:focus {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .organ-link-card {
+  .appearance-controls {
     top: 138px;
+    left: 14px;
+    right: 14px;
+    grid-template-columns: 1fr;
+    padding: 7px;
+  }
+
+  .organ-link-card {
+    top: 268px;
     right: 14px;
     left: 14px;
     padding: 8px;
