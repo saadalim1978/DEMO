@@ -101,6 +101,10 @@ const CUTAWAY_MIN_Y = -0.92;
 const CUTAWAY_MAX_Y = 2.72;
 const CUTAWAY_LOWER_HALF_WIDTH = 0.32;
 const CUTAWAY_UPPER_HALF_WIDTH = 0.66;
+const LUNG_BREATH_RATE = 1.28;
+const LUNG_EXPANSION_X = 0.085;
+const LUNG_EXPANSION_Y = 0.055;
+const LUNG_EXPANSION_Z = 0.1;
 const organHighlights = new Map();
 const organMetricLinks = {
   brain: { label: "الدماغ", color: "#a78bfa", sensors: ["neuroPerfusion"] },
@@ -692,6 +696,7 @@ function registerOrganDisplayObject(object, key) {
   object.userData.organKey = object.userData.organKey || organGroupKey(key);
   object.userData.displayKey = key;
   object.userData.baseScale = object.scale.clone();
+  object.userData.basePosition = object.position.clone();
   object.userData.teachingScale = teachingScaleFor(key);
   applyOrganDisplayScale(object);
   return object;
@@ -2161,10 +2166,7 @@ function animate() {
   controls?.update();
 
   if (humanGroup) {
-    const breathing = Math.sin(elapsed * 1.5) * 0.018;
-    if (bodyParts.lungs) {
-      applyOrganDisplayScale(bodyParts.lungs, [1 + breathing * 0.65, 1 + breathing * 1.05, 1 + breathing * 0.45]);
-    }
+    animateLungBreathing(elapsed);
     const bpm = Math.max(45, twinState?.summary?.heartRate || 72);
     const beat = Math.exp(-Math.pow(((elapsed % (60 / bpm)) / (60 / bpm) - 0.08) / 0.075, 2)) * 0.08;
     if (bodyParts.heart) applyOrganDisplayScale(bodyParts.heart, [1 + beat * 1.4, 1 + beat * 1.4, 1 + beat * 1.4]);
@@ -2176,6 +2178,21 @@ function animate() {
   renderer.render(scene, camera);
   markWebglReadyIfCanvasHasSignal();
   requestAnimationFrame(animate);
+}
+
+function animateLungBreathing(elapsed) {
+  const lungs = bodyParts.lungs;
+  if (!lungs) return;
+  const inhale = (Math.sin(elapsed * LUNG_BREATH_RATE - Math.PI / 2) + 1) * 0.5;
+  const softPulse = Math.sin(elapsed * LUNG_BREATH_RATE * 2) * 0.006;
+  const expansion = Math.max(0, inhale + softPulse);
+  applyOrganDisplayScale(lungs, [
+    1 + expansion * LUNG_EXPANSION_X,
+    1 + expansion * LUNG_EXPANSION_Y,
+    1 + expansion * LUNG_EXPANSION_Z
+  ]);
+  const base = lungs.userData.basePosition;
+  if (base) lungs.position.set(base.x, base.y + expansion * 0.018, base.z + expansion * 0.022);
 }
 
 function animateParticles(delta, elapsed) {
