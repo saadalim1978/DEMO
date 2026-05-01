@@ -73,9 +73,10 @@ const statusLabels = {
 
 const DEMO_AUTH = {
   storageKey: "dgaDemoAuthenticated",
-  username: "خالد علي العمر",
-  password: "123456",
-  aliases: ["خالد علي", "khalid ali", "khalid", "خالد"],
+  username: "salshehri58",
+  password: "102030",
+  aliases: [],
+  displayName: "سعد الشهري",
   patientName: "سالم عبدالله الشهري",
   patientRecord: "MRN-2026-1045"
 };
@@ -115,7 +116,7 @@ const organMetricLinks = {
   heart: { label: "القلب", color: "#ef4b5f", sensors: ["heartRate", "systolic", "diastolic"] },
   lungs: { label: "الرئتان", color: "#48c7d8", sensors: ["oxygen"] },
   liver: { label: "الكبد", color: "#9a4d2f", sensors: ["ldl", "triglycerides", "inflammation"] },
-  spleen: { label: "الطحال", color: "#6b1f2e", sensors: ["inflammation", "clotRisk"] },
+  spleen: { label: "الطحال", color: "#6b1f2e", sensors: ["splenicPerfusion", "spleenSize", "plateletCount", "inflammation"] },
   stomach: { label: "المعدة", color: "#ff9f80", sensors: ["bmi", "inflammation"] },
   pancreas: { label: "البنكرياس", color: "#f4b740", sensors: ["glucose", "hba1c", "insulinResistance"] },
   kidneys: { label: "الكلى", color: "#c084fc", sensors: ["egfr", "systolic", "diastolic"] },
@@ -136,6 +137,9 @@ const sensorOrganMap = {
   diastolic: "vessels",
   clotRisk: "vessels",
   dDimer: "vessels",
+  splenicPerfusion: "spleen",
+  spleenSize: "spleen",
+  plateletCount: "spleen",
   legFlow: "vessels",
   vascularStiffness: "vessels",
   bmi: "intestines",
@@ -445,14 +449,12 @@ function colorToHex(value, fallback) {
 
 function initializeAuth() {
   populateSessionContext();
-  if (dom.loginUser && !dom.loginUser.value) dom.loginUser.value = DEMO_AUTH.username;
-  if (dom.loginPassword && !dom.loginPassword.value) dom.loginPassword.value = DEMO_AUTH.password;
   const authenticated = window.sessionStorage.getItem(DEMO_AUTH.storageKey) === "1";
   setAuthenticated(authenticated);
 }
 
 function populateSessionContext() {
-  if (dom.currentUserName) dom.currentUserName.textContent = DEMO_AUTH.username;
+  if (dom.currentUserName) dom.currentUserName.textContent = DEMO_AUTH.displayName;
   if (dom.currentPatientName) dom.currentPatientName.textContent = DEMO_AUTH.patientName;
   if (dom.currentPatientRecord) dom.currentPatientRecord.textContent = DEMO_AUTH.patientRecord;
 }
@@ -493,7 +495,7 @@ function handleLoginSubmit(event) {
     setAuthenticated(true);
     return;
   }
-  if (dom.loginError) dom.loginError.textContent = "بيانات الدخول غير صحيحة. استخدم خالد علي العمر / 123456.";
+  if (dom.loginError) dom.loginError.textContent = "بيانات الدخول غير صحيحة.";
 }
 
 function togglePasswordVisibility() {

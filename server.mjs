@@ -75,6 +75,9 @@ const scenarios = {
       heartRate: 26,
       systolic: -4,
       neuroPerfusion: -4,
+      splenicPerfusion: -8,
+      spleenSize: 0.6,
+      plateletCount: 92,
       inflammation: 4.2,
       legFlow: -42,
       painScore: 5
@@ -94,6 +97,7 @@ const scenarios = {
       clotRisk: 36,
       dDimer: 420,
       heartRate: 18,
+      plateletCount: 54,
       vascularStiffness: 46,
       oxygen: -2,
       inflammation: 3.8
@@ -116,6 +120,8 @@ const scenarios = {
       bmi: 7.2,
       clotRisk: 28,
       vascularStiffness: 34,
+      spleenSize: 0.5,
+      plateletCount: 38,
       egfr: -9,
       inflammation: 3
     }
@@ -174,6 +180,8 @@ const interventions = {
       legFlow: 24,
       oxygen: 2,
       painScore: -2,
+      splenicPerfusion: 4,
+      plateletCount: -22,
       inflammation: -1.1
     }
   }
@@ -192,6 +200,9 @@ const sensorTemplates = [
   { id: "bmi", name: "مؤشر كتلة الجسم", metric: "bmi", unit: "BMI", base: 25, amplitude: 0.4, decimals: 1, phase: 3.6, zone: "الجسم", position: [0, 0.15, 0.08], warningHigh: 30, criticalHigh: 40 },
   { id: "clotRisk", name: "قابلية التخثر", metric: "clotRisk", unit: "%", base: 16, amplitude: 3, decimals: 0, phase: 2.1, zone: "الأوردة", position: [-0.18, -1, 0.02], warningHigh: 35, criticalHigh: 65 },
   { id: "dDimer", name: "D-dimer محاكى", metric: "dDimer", unit: "ng/mL", base: 260, amplitude: 42, decimals: 0, phase: 4.5, zone: "التخثر", position: [-0.2, -1.42, 0.02], warningHigh: 500, criticalHigh: 1000 },
+  { id: "splenicPerfusion", name: "تروية الطحال", metric: "splenicPerfusion", unit: "%", base: 97, amplitude: 2, decimals: 0, phase: 3.4, zone: "الطحال", position: [0.33, 0.8, 0.13], warningLow: 85, criticalLow: 70 },
+  { id: "spleenSize", name: "حجم الطحال", metric: "spleenSize", unit: "cm", base: 11.2, amplitude: 0.25, decimals: 1, phase: 1.1, zone: "الطحال", position: [0.39, 0.72, 0.13], warningHigh: 13, criticalHigh: 15 },
+  { id: "plateletCount", name: "الصفائح الدموية", metric: "plateletCount", unit: "K/uL", base: 245, amplitude: 14, decimals: 0, phase: 2.7, zone: "الطحال", position: [0.29, 0.64, 0.14], warningHigh: 450, criticalHigh: 650, warningLow: 150, criticalLow: 50 },
   { id: "legFlow", name: "تدفق أوردة الساق", metric: "legFlow", unit: "%", base: 96, amplitude: 3, decimals: 0, phase: 0.9, zone: "الساق", position: [-0.22, -1.78, 0.02], warningLow: 70, criticalLow: 45 },
   { id: "egfr", name: "وظائف الكلى eGFR", metric: "egfr", unit: "mL/min", base: 98, amplitude: 3, decimals: 0, phase: 2.6, zone: "الكلى", position: [-0.27, 0.56, -0.12], warningLow: 60, criticalLow: 30 },
   { id: "neuroPerfusion", name: "تروية الدماغ", metric: "neuroPerfusion", unit: "%", base: 98, amplitude: 2, decimals: 0, phase: 1.4, zone: "الدماغ", position: [0, 2.48, 0.06], warningLow: 85, criticalLow: 70 },
@@ -204,6 +215,7 @@ const anatomy = [
   { id: "brain", name: "الدماغ", color: "#a78bfa", region: "nervous" },
   { id: "heart", name: "القلب", color: "#ef4b5f", region: "cardio" },
   { id: "lungs", name: "الرئتان", color: "#48c7d8", region: "respiratory" },
+  { id: "spleen", name: "الطحال", color: "#9254de", region: "immune" },
   { id: "pancreas", name: "البنكرياس", color: "#f4b740", region: "metabolic" },
   { id: "kidneys", name: "الكلى", color: "#c084fc", region: "renal" },
   { id: "vessels", name: "الأوعية", color: "#ff5d73", region: "vascular" }
@@ -219,7 +231,7 @@ const imagingModalities = {
 const imagingRegions = {
   brain: { id: "brain", label: "الدماغ", systems: ["brain", "vessels"], risk: "stroke" },
   chest: { id: "chest", label: "الصدر", systems: ["lungs", "heart", "vessels"], risk: "cardio" },
-  abdomen: { id: "abdomen", label: "البطن", systems: ["liver", "stomach", "pancreas", "intestines"], risk: "metabolic" },
+  abdomen: { id: "abdomen", label: "البطن", systems: ["liver", "spleen", "stomach", "pancreas", "intestines"], risk: "metabolic" },
   pelvis: { id: "pelvis", label: "الحوض", systems: ["kidneys", "bladder", "vessels"], risk: "renal" },
   vascular: { id: "vascular", label: "الأوعية", systems: ["vessels", "heart"], risk: "vascular" },
   wholeBody: { id: "wholeBody", label: "كامل الجسم", systems: ["brain", "heart", "lungs", "kidneys", "vessels"], risk: "global" }
@@ -230,6 +242,7 @@ const imagingOrgans = {
   lungs: { id: "lungs", label: "الرئتان", region: "chest" },
   heart: { id: "heart", label: "القلب", region: "chest" },
   liver: { id: "liver", label: "الكبد", region: "abdomen" },
+  spleen: { id: "spleen", label: "الطحال", region: "abdomen" },
   stomach: { id: "stomach", label: "المعدة", region: "abdomen" },
   pancreas: { id: "pancreas", label: "البنكرياس", region: "abdomen" },
   kidneys: { id: "kidneys", label: "الكلى", region: "pelvis" },
@@ -272,7 +285,9 @@ function oscillate(template, t) {
   if (activeScenario === "diabetes_risk" && template.metric === "glucose") value += Math.max(0, Math.sin(t / 1600) * 18);
 
   if (["glucose", "ldl", "triglycerides", "dDimer"].includes(template.metric)) value = clamp(value, 0, 1500);
-  if (["oxygen", "clotRisk", "legFlow", "neuroPerfusion", "vascularStiffness", "insulinResistance"].includes(template.metric)) value = clamp(value, 0, 100);
+  if (["oxygen", "clotRisk", "legFlow", "neuroPerfusion", "vascularStiffness", "insulinResistance", "splenicPerfusion"].includes(template.metric)) value = clamp(value, 0, 100);
+  if (template.metric === "spleenSize") value = clamp(value, 7, 25);
+  if (template.metric === "plateletCount") value = clamp(value, 0, 1000);
   if (template.metric === "hba1c") value = clamp(value, 3.8, 15);
   if (template.metric === "bmi") value = clamp(value, 16, 55);
   if (template.metric === "egfr") value = clamp(value, 5, 130);
@@ -891,6 +906,9 @@ function buildOpenAiContext(state) {
     "bmi",
     "clotRisk",
     "dDimer",
+    "splenicPerfusion",
+    "spleenSize",
+    "plateletCount",
     "legFlow",
     "egfr",
     "neuroPerfusion",
