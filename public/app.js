@@ -11,6 +11,8 @@ const dom = {
   loginPassword: document.querySelector("#loginPassword"),
   loginError: document.querySelector("#loginError"),
   togglePasswordBtn: document.querySelector("#togglePasswordBtn"),
+  loginModelViewer: document.querySelector("#loginModelViewer"),
+  loginModelStatus: document.querySelector("#loginModelStatus"),
   logoutBtn: document.querySelector("#logoutBtn"),
   currentUserName: document.querySelector("#currentUserName"),
   currentPatientName: document.querySelector("#currentPatientName"),
@@ -77,10 +79,17 @@ const DEMO_AUTH = {
   patientRecord: "MRN-2026-1045"
 };
 
+const LOGIN_MODEL_URL = "/models/body/3d-vh-m-united-custom-login.glb";
+
 let twinState = null;
 let selectedSensorId = null;
 let renderer = null;
 let controls = null;
+let loginRenderer = null;
+let loginScene = null;
+let loginCamera = null;
+let loginModel = null;
+let loginModelLoading = false;
 let humanGroup;
 let sensorMeshes = new Map();
 let bloodParticles = [];
@@ -400,6 +409,7 @@ function setAuthenticated(authenticated) {
     }, 120);
   } else {
     window.sessionStorage.removeItem(DEMO_AUTH.storageKey);
+    initLoginModelViewer();
     setTimeout(() => dom.loginUser?.focus(), 80);
   }
 }
@@ -423,6 +433,82 @@ function togglePasswordVisibility() {
   dom.togglePasswordBtn.setAttribute("aria-label", showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور");
   dom.togglePasswordBtn.innerHTML = `<i data-lucide="${showPassword ? "eye-off" : "eye"}"></i>`;
   refreshIcons();
+}
+
+async function initLoginModelViewer() {
+  if (!dom.loginModelViewer || loginRenderer || loginModelLoading) return;
+  loginModelLoading = true;
+  try {
+    loginScene = new THREE.Scene();
+    loginScene.background = new THREE.Color(0x0d1012);
+    loginCamera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
+    loginCamera.position.set(0, 0.08, 4.55);
+
+    loginRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
+    loginRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    loginRenderer.outputColorSpace = THREE.SRGBColorSpace;
+    dom.loginModelViewer.appendChild(loginRenderer.domElement);
+
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x173b38, 2.2);
+    loginScene.add(hemi);
+
+    const gltf = await gltfLoader.loadAsync(LOGIN_MODEL_URL);
+    loginModel = prepareLoginModel(gltf.scene);
+    loginScene.add(loginModel);
+    dom.loginModelViewer.classList.add("is-loaded");
+    if (dom.loginModelStatus) dom.loginModelStatus.textContent = "تم تحميل المجسم";
+    resizeLoginModelViewer();
+  } catch (error) {
+    console.warn("Login 3D model failed to load", error);
+    if (dom.loginModelStatus) dom.loginModelStatus.textContent = "تعذر تحميل المجسم";
+  } finally {
+    loginModelLoading = false;
+  }
+}
+
+function prepareLoginModel(sceneModel) {
+  sceneModel.name = "login-united-body-model";
+  sceneModel.traverse((child) => {
+    if (!child.isMesh) return;
+    child.frustumCulled = false;
+    child.material = loginModelMaterial(child);
+  });
+  fitModelToBox(sceneModel, [1.4, 2.88, 0.72], "uniform");
+  sceneModel.rotation.set(0.01, 0, 0);
+  sceneModel.position.y -= 0.05;
+  return sceneModel;
+}
+
+function loginModelMaterial(mesh) {
+  const name = `${mesh.name || ""} ${mesh.material?.name || ""}`.toLowerCase();
+  const isSkin = name.includes("skin") || name.includes("integument");
+  const isBrain = name.includes("brain") || name.includes("cereb") || name.includes("hippocampus");
+  const isLung = name.includes("lung") || name.includes("bronch");
+  const isHeart = name.includes("heart") || name.includes("cardiac");
+  const isLiver = name.includes("liver");
+  const isKidney = name.includes("kidney") || name.includes("renal");
+  const isVessel = name.includes("arter") || name.includes("vein") || name.includes("vascular") || name.includes("aorta");
+  const color = isSkin
+    ? 0xd7a493
+    : isBrain
+      ? 0xa78bfa
+      : isLung
+        ? 0x48c7d8
+        : isHeart || isVessel
+          ? 0xef4b5f
+          : isLiver
+            ? 0x9a4d2f
+            : isKidney
+              ? 0xc084fc
+              : 0xf1b36d;
+  const opacity = isSkin ? 0.33 : 0.86;
+  return new THREE.MeshBasicMaterial({
+    color,
+    transparent: opacity < 1,
+    opacity,
+    depthWrite: !isSkin,
+    side: THREE.DoubleSide
+  });
 }
 
 function initScene() {
@@ -2068,6 +2154,7 @@ function resize() {
     resetCamera();
     camera.userData.mobileLayout = false;
   }
+  resizeLoginModelViewer();
 }
 
 function animate() {
@@ -2090,8 +2177,27 @@ function animate() {
   animateDiseaseLayers(elapsed);
   animateSensors(elapsed);
   renderer.render(scene, camera);
+  animateLoginModel(elapsed);
   markWebglReadyIfCanvasHasSignal();
   requestAnimationFrame(animate);
+}
+
+function resizeLoginModelViewer() {
+  if (!loginRenderer || !loginCamera || !dom.loginModelViewer) return;
+  const rect = dom.loginModelViewer.getBoundingClientRect();
+  const width = Math.max(220, Math.floor(rect.width));
+  const height = Math.max(220, Math.floor(rect.height));
+  loginRenderer.setSize(width, height, false);
+  loginCamera.aspect = width / height;
+  loginCamera.updateProjectionMatrix();
+}
+
+function animateLoginModel(elapsed) {
+  if (!loginRenderer || !loginScene || !loginCamera) return;
+  if (!document.body.classList.contains("login-active")) return;
+  resizeLoginModelViewer();
+  if (loginModel) loginModel.rotation.y = Math.sin(elapsed * 0.55) * 0.08;
+  loginRenderer.render(loginScene, loginCamera);
 }
 
 function animateParticles(delta, elapsed) {

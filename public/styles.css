@@ -300,6 +300,7 @@ body.login-active .app-shell {
 
 .login-preview-frame {
   align-self: end;
+  position: relative;
   display: grid;
   place-items: center;
   min-height: 260px;
@@ -309,6 +310,31 @@ body.login-active .app-shell {
   background:
     radial-gradient(circle at 50% 36%, rgba(72, 199, 216, 0.18), transparent 42%),
     rgba(8, 37, 34, 0.42);
+}
+
+.login-preview-frame canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.login-model-status {
+  position: absolute;
+  inset: auto 18px 18px;
+  z-index: 1;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.88);
+  background: rgba(6, 36, 33, 0.78);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+  pointer-events: none;
+}
+
+.login-model-viewer.is-loaded .login-model-status {
+  opacity: 0;
 }
 
 .login-preview-frame img {
