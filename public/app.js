@@ -96,7 +96,11 @@ const disease = {};
 const bodyParts = {};
 const layerGroups = {};
 const gltfLoader = new GLTFLoader();
-const cutawayPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), -0.02);
+const CUTAWAY_FRONT_Z = 0.02;
+const CUTAWAY_MIN_Y = -0.92;
+const CUTAWAY_MAX_Y = 2.72;
+const CUTAWAY_LOWER_HALF_WIDTH = 0.32;
+const CUTAWAY_UPPER_HALF_WIDTH = 0.66;
 const organHighlights = new Map();
 const organMetricLinks = {
   brain: { label: "الدماغ", color: "#a78bfa", sensors: ["neuroPerfusion"] },
@@ -629,23 +633,44 @@ function applyLayerVisibility() {
 }
 
 function applyCutawayMode() {
-  if (renderer) renderer.localClippingEnabled = true;
   bodyParts.skin?.traverse((child) => {
     if (child.userData?.cutawayHelper) {
       child.visible = cutawayEnabled;
-      if (child.material) {
-        child.material.clippingPlanes = [];
-        child.material.needsUpdate = true;
-      }
+      applyToMaterials(child.material, (material) => {
+        material.clippingPlanes = [];
+        material.needsUpdate = true;
+      });
       return;
     }
     if (!child.isMesh || !child.material) return;
-    child.material.clippingPlanes = cutawayEnabled ? [cutawayPlane] : [];
-    child.material.opacity = skinShellOpacity();
-    child.material.needsUpdate = true;
+    applyToMaterials(child.material, (material) => {
+      syncSkinCutawayUniforms(material);
+      material.clippingPlanes = [];
+      material.opacity = skinShellOpacity();
+      material.needsUpdate = true;
+    });
   });
   document.body.dataset.cutaway = cutawayEnabled ? "on" : "off";
   if (dom.cutawayToggle) dom.cutawayToggle.checked = cutawayEnabled;
+}
+
+function applyToMaterials(materialOrArray, callback) {
+  if (!materialOrArray) return;
+  const materials = Array.isArray(materialOrArray) ? materialOrArray : [materialOrArray];
+  materials.forEach((material) => {
+    if (material) callback(material);
+  });
+}
+
+function syncSkinCutawayUniforms(material) {
+  const uniforms = material.userData?.cutawayUniforms;
+  if (!uniforms) return;
+  uniforms.uCutawayEnabled.value = cutawayEnabled;
+  uniforms.uCutawayFrontZ.value = CUTAWAY_FRONT_Z;
+  uniforms.uCutawayMinY.value = CUTAWAY_MIN_Y;
+  uniforms.uCutawayMaxY.value = CUTAWAY_MAX_Y;
+  uniforms.uCutawayLowerHalfWidth.value = CUTAWAY_LOWER_HALF_WIDTH;
+  uniforms.uCutawayUpperHalfWidth.value = CUTAWAY_UPPER_HALF_WIDTH;
 }
 
 function skinShellOpacity() {
@@ -737,7 +762,7 @@ function fitModelToBox(sceneModel, fitBox, fitMode = "uniform") {
 }
 
 function skinShellMaterial() {
-  return new THREE.MeshPhysicalMaterial({
+  const material = new THREE.MeshPhysicalMaterial({
     color: 0xffc8b6,
     roughness: 0.62,
     metalness: 0.01,
@@ -749,9 +774,57 @@ function skinShellMaterial() {
     opacity: skinShellOpacity(),
     depthWrite: false,
     side: THREE.DoubleSide,
-    clippingPlanes: cutawayEnabled ? [cutawayPlane] : [],
     clipShadows: true
   });
+  installSkinCutawayShader(material);
+  return material;
+}
+
+function installSkinCutawayShader(material) {
+  material.userData.cutawayUniforms = {
+    uCutawayEnabled: { value: cutawayEnabled },
+    uCutawayFrontZ: { value: CUTAWAY_FRONT_Z },
+    uCutawayMinY: { value: CUTAWAY_MIN_Y },
+    uCutawayMaxY: { value: CUTAWAY_MAX_Y },
+    uCutawayLowerHalfWidth: { value: CUTAWAY_LOWER_HALF_WIDTH },
+    uCutawayUpperHalfWidth: { value: CUTAWAY_UPPER_HALF_WIDTH }
+  };
+  material.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, material.userData.cutawayUniforms);
+    shader.vertexShader = shader.vertexShader
+      .replace("void main() {", "varying vec3 vCutawayWorldPosition;\nvoid main() {")
+      .replace(
+        "#include <begin_vertex>",
+        "#include <begin_vertex>\n\tvCutawayWorldPosition = (modelMatrix * vec4(transformed, 1.0)).xyz;"
+      );
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        "void main() {",
+        [
+          "uniform bool uCutawayEnabled;",
+          "uniform float uCutawayFrontZ;",
+          "uniform float uCutawayMinY;",
+          "uniform float uCutawayMaxY;",
+          "uniform float uCutawayLowerHalfWidth;",
+          "uniform float uCutawayUpperHalfWidth;",
+          "varying vec3 vCutawayWorldPosition;",
+          "void main() {"
+        ].join("\n")
+      )
+      .replace(
+        "#include <clipping_planes_fragment>",
+        [
+          "#include <clipping_planes_fragment>",
+          "\tif (uCutawayEnabled) {",
+          "\t\tfloat y = vCutawayWorldPosition.y;",
+          "\t\tfloat halfWidth = mix(uCutawayLowerHalfWidth, uCutawayUpperHalfWidth, smoothstep(0.05, 1.65, y));",
+          "\t\tbool insideBodyWindow = y > uCutawayMinY && y < uCutawayMaxY && abs(vCutawayWorldPosition.x) < halfWidth;",
+          "\t\tif (insideBodyWindow && vCutawayWorldPosition.z < uCutawayFrontZ) discard;",
+          "\t}"
+        ].join("\n")
+      );
+  };
+  material.customProgramCacheKey = () => "skin-cutaway-window-v2";
 }
 
 function createBodyInspectionWindow() {
@@ -767,7 +840,7 @@ function createBodyInspectionWindow() {
   const points = [];
   for (let i = 0; i <= 72; i += 1) {
     const t = (i / 72) * Math.PI * 2;
-    points.push(new THREE.Vector3(Math.cos(t) * 0.62, 0.58 + Math.sin(t) * 1.08, 0.1));
+    points.push(new THREE.Vector3(Math.cos(t) * 0.62, 0.58 + Math.sin(t) * 1.08, -0.1));
   }
   const outline = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), lineMaterial);
   outline.userData.cutawayHelper = true;
@@ -783,7 +856,7 @@ function createBodyInspectionWindow() {
       side: THREE.DoubleSide
     })
   );
-  panel.position.set(0, 0.58, 0.1);
+  panel.position.set(0, 0.58, -0.1);
   panel.userData.cutawayHelper = true;
   panel.renderOrder = 0;
   group.add(panel);
