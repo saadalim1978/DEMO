@@ -1,5 +1,5 @@
 {
-  "version": "2026-05-01.integrated-human-anatomy-1",
+  "version": "2026-05-01.separate-anatomy-parts-1",
   "_notes": [
     "Organ and vessel coordinates are unchanged; only the skin envelope uses stretch fitting for visualization containment.",
     "Body shell calibrated with fit [3.08, 5.28, 1.38] so hands, feet, vessels, brain, and organs sit inside the external skin.",
@@ -10,8 +10,29 @@
   ],
   "integratedAnatomy": {
     "enabled": true,
-    "file": "human_anatomy.glb",
-    "label": "Professional Human Anatomy",
+    "mode": "separate-parts",
+    "partsPath": "/models/anatomy-parts",
+    "parts": [
+      { "key": "skin", "file": "skin.glb" },
+      { "key": "brain", "file": "brain.glb" },
+      { "key": "lungs", "file": "lungs.glb" },
+      { "key": "heart", "file": "heart.glb" },
+      { "key": "liver", "file": "liver.glb" },
+      { "key": "spleen", "file": "spleen.glb" },
+      { "key": "pancreas", "file": "pancreas.glb" },
+      { "key": "small_intestine", "file": "small_intestine.glb" },
+      { "key": "large_intestine", "file": "large_intestine.glb" },
+      { "key": "kidney_left", "file": "kidney_left.glb" },
+      { "key": "kidney_right", "file": "kidney_right.glb" },
+      { "key": "bladder", "file": "bladder.glb" },
+      { "key": "trunk_arteries", "file": "trunk_arteries.glb" },
+      { "key": "trunk_veins", "file": "trunk_veins.glb" },
+      { "key": "arm_arteries", "file": "arm_arteries.glb" },
+      { "key": "arm_veins", "file": "arm_veins.glb" },
+      { "key": "leg_arteries", "file": "leg_arteries.glb" },
+      { "key": "leg_veins", "file": "leg_veins.glb" }
+    ],
+    "label": "Professional Human Anatomy Parts",
     "source": "User supplied GLB",
     "fit": [3.08, 5.28, 1.38],
     "fitMode": "stretch",

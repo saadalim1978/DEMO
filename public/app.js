@@ -155,6 +155,27 @@ const teachingOrganScales = {
   bladder: 1.25
 };
 
+const defaultIntegratedAnatomyParts = [
+  { key: "skin", file: "skin.glb" },
+  { key: "brain", file: "brain.glb" },
+  { key: "lungs", file: "lungs.glb" },
+  { key: "heart", file: "heart.glb" },
+  { key: "liver", file: "liver.glb" },
+  { key: "spleen", file: "spleen.glb" },
+  { key: "pancreas", file: "pancreas.glb" },
+  { key: "small_intestine", file: "small_intestine.glb" },
+  { key: "large_intestine", file: "large_intestine.glb" },
+  { key: "kidney_left", file: "kidney_left.glb" },
+  { key: "kidney_right", file: "kidney_right.glb" },
+  { key: "bladder", file: "bladder.glb" },
+  { key: "trunk_arteries", file: "trunk_arteries.glb" },
+  { key: "trunk_veins", file: "trunk_veins.glb" },
+  { key: "arm_arteries", file: "arm_arteries.glb" },
+  { key: "arm_veins", file: "arm_veins.glb" },
+  { key: "leg_arteries", file: "leg_arteries.glb" },
+  { key: "leg_veins", file: "leg_veins.glb" }
+];
+
 const layerState = {
   skin: true,
   organs: true,
@@ -178,8 +199,10 @@ let bodyShellAsset = {
 
 let integratedAnatomyAsset = {
   enabled: true,
-  file: "human_anatomy.glb",
-  label: "Professional Human Anatomy",
+  mode: "separate-parts",
+  partsPath: "/models/anatomy-parts",
+  parts: defaultIntegratedAnatomyParts,
+  label: "Professional Human Anatomy Parts",
   source: "User supplied GLB",
   fit: [3.08, 5.28, 1.38],
   fitMode: "stretch",
@@ -352,11 +375,20 @@ function normalizeIntegratedAnatomy(asset) {
   return {
     ...asset,
     enabled: asset.enabled !== false,
+    mode: typeof asset.mode === "string" ? asset.mode : "separate-parts",
+    partsPath: typeof asset.partsPath === "string" ? asset.partsPath : "/models/anatomy-parts",
+    parts: Array.isArray(asset.parts) && asset.parts.length ? asset.parts.map(normalizeIntegratedPartAsset) : defaultIntegratedAnatomyParts.map(normalizeIntegratedPartAsset),
     fit: vectorOr(asset.fit, [3.08, 5.28, 1.38]),
     fitMode: typeof asset.fitMode === "string" ? asset.fitMode : "stretch",
     position: vectorOr(asset.position, [0, 0.16, 0.03]),
     rotation: vectorOr(asset.rotation, [0, 0, 0])
   };
+}
+
+function normalizeIntegratedPartAsset(part) {
+  const file = typeof part.file === "string" ? part.file : "";
+  const key = typeof part.key === "string" && part.key ? part.key : file.replace(/\.glb$/i, "");
+  return { ...part, key, file };
 }
 
 function normalizeBodyShell(asset) {
@@ -779,6 +811,21 @@ async function loadNihBodyShell() {
 }
 
 async function loadIntegratedAnatomyModel() {
+  if (Array.isArray(integratedAnatomyAsset.parts) && integratedAnatomyAsset.parts.length) {
+    const loadedParts = await Promise.all(
+      integratedAnatomyAsset.parts.map(async (part) => {
+        const gltf = await gltfLoader.loadAsync(integratedPartUrl(part.file));
+        return { asset: part, sceneModel: gltf.scene };
+      })
+    );
+    prepareIntegratedAnatomyParts(loadedParts);
+    document.body.dataset.bodyShell = "integrated-human-anatomy-parts";
+    applyLayerVisibility();
+    applyCutawayMode();
+    applyTeachingMode();
+    return;
+  }
+
   const gltf = await gltfLoader.loadAsync(`/models/body/${integratedAnatomyAsset.file}`);
   prepareIntegratedAnatomyModel(gltf.scene);
   document.body.dataset.bodyShell = "integrated-human-anatomy";
@@ -787,8 +834,26 @@ async function loadIntegratedAnatomyModel() {
   applyTeachingMode();
 }
 
+function integratedPartUrl(file) {
+  const base = integratedAnatomyAsset.partsPath || "/models/anatomy-parts";
+  return `${base.replace(/\/$/, "")}/${file}`;
+}
+
 function prepareIntegratedAnatomyModel(sceneModel) {
   const box = new THREE.Box3().setFromObject(sceneModel);
+  prepareIntegratedAnatomyEntries(collectIntegratedPartRoots(sceneModel), box);
+}
+
+function prepareIntegratedAnatomyParts(loadedParts) {
+  const box = new THREE.Box3();
+  const entries = loadedParts.map(({ asset, sceneModel }) => {
+    box.union(new THREE.Box3().setFromObject(sceneModel));
+    return { object: sceneModel, config: integratedPartConfig(asset.key || asset.file), asset };
+  });
+  prepareIntegratedAnatomyEntries(entries, box);
+}
+
+function prepareIntegratedAnatomyEntries(entries, box) {
   const size = box.getSize(new THREE.Vector3());
   const center = box.getCenter(new THREE.Vector3());
   const fit = new THREE.Vector3(...integratedAnatomyAsset.fit);
@@ -798,7 +863,6 @@ function prepareIntegratedAnatomyModel(sceneModel) {
   }
   const offset = new THREE.Vector3(-center.x * scale.x, -center.y * scale.y, -center.z * scale.z);
   const placement = new THREE.Vector3(...integratedAnatomyAsset.position);
-
   const integratedGroups = {
     skin: new THREE.Group(),
     organs: new THREE.Group(),
@@ -813,7 +877,7 @@ function prepareIntegratedAnatomyModel(sceneModel) {
   bodyParts.skin = integratedGroups.skin;
   bodyParts.vessels = integratedGroups.vessels;
 
-  collectIntegratedPartRoots(sceneModel).forEach(({ object: child, config }) => {
+  entries.forEach(({ object: child, config }) => {
     const wrapper = new THREE.Group();
     wrapper.name = `integrated-${config.key}`;
     wrapper.scale.copy(scale);
@@ -886,18 +950,26 @@ function prepareIntegratedPart(object, config) {
 }
 
 function integratedPartMaterial(config) {
-  if (config.type === "skin") return skinShellMaterial();
+  if (config.type === "skin") {
+    const material = skinShellMaterial();
+    material.color.set(0xffd2c4);
+    material.emissive.set(0x6b332d);
+    material.emissiveIntensity = 0.16;
+    return material;
+  }
   if (config.type === "artery") {
     const material = vesselMaterial(0xff5d73, 0x5a0610, 0.34);
     material.side = THREE.DoubleSide;
+    material.vertexColors = true;
     return material;
   }
   if (config.type === "vein") {
     const material = vesselMaterial(0x4cc9f0, 0x052d4a, 0.24);
     material.side = THREE.DoubleSide;
+    material.vertexColors = true;
     return material;
   }
-  const material = organAssetMaterial(config);
+  const material = organAssetMaterial({ ...config, vertexColors: true });
   material.side = THREE.DoubleSide;
   return material;
 }
@@ -1107,6 +1179,7 @@ function prepareOrganModel(sceneModel, asset) {
 function organAssetMaterial(config) {
   return new THREE.MeshPhysicalMaterial({
     color: config.color,
+    vertexColors: config.vertexColors === true,
     roughness: 0.5,
     metalness: 0.02,
     clearcoat: 0.28,
