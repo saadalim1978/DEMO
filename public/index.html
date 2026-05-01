@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>توأم رقمي للجسم | AI + API + 3D</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="/styles.css?v=body-anatomy-21" />
+    <link rel="stylesheet" href="/styles.css?v=body-anatomy-24" />
     <script type="importmap">
       {
         "imports": {
@@ -16,7 +16,62 @@
     </script>
     <script defer src="/vendor/lucide.min.js"></script>
   </head>
-  <body>
+  <body class="login-active">
+    <section id="loginScreen" class="login-screen" aria-label="تسجيل الدخول">
+      <div class="login-card">
+        <div class="login-form-panel">
+          <div class="login-form-inner">
+            <p class="login-kicker">منصة التوأم الرقمي الصحي</p>
+            <h2 class="login-title">تسجيل الدخول</h2>
+
+            <form id="loginForm" class="login-form" autocomplete="off">
+              <label class="login-field">
+                <span>اسم المستخدم</span>
+                <input id="loginUser" name="username" type="text" value="خالد علي" autocomplete="username" />
+              </label>
+              <label class="login-field">
+                <span>كلمة المرور</span>
+                <div class="password-control">
+                  <input id="loginPassword" name="password" type="password" value="123456" autocomplete="current-password" />
+                  <button id="togglePasswordBtn" type="button" aria-label="إظهار كلمة المرور">
+                    <i data-lucide="eye"></i>
+                  </button>
+                </div>
+              </label>
+
+              <div class="demo-credentials" aria-label="بيانات الدخول الافتراضية">
+                <span>المستخدم الافتراضي</span>
+                <strong>خالد علي</strong>
+                <span>كلمة المرور</span>
+                <strong>123456</strong>
+              </div>
+
+              <p id="loginError" class="login-error" role="alert" aria-live="polite"></p>
+              <button class="login-submit" type="submit">
+                <i data-lucide="log-in"></i>
+                <span>تسجيل الدخول</span>
+              </button>
+              <div class="login-links" aria-label="روابط حساب المستخدم">
+                <a href="#" aria-label="تسجيل مستخدم جديد">تسجيل مستخدم جديد</a>
+                <a href="#" aria-label="نسيت كلمة المرور">نسيت كلمة المرور؟</a>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <aside class="login-visual-panel">
+          <img class="login-moh-logo" src="/assets/moh-logo.png" alt="وزارة الصحة - Ministry of Health" />
+          <div class="login-brief">
+            <p class="login-kicker">AI + API + 3D</p>
+            <h3>التوأم الرقمي للجسم البشري</h3>
+          </div>
+          <div class="login-preview-frame" aria-label="صورة التوأم الرقمي">
+            <img src="/assets/login-digital-twin-reference.png" alt="مجسم التوأم الرقمي للجسم البشري" />
+          </div>
+        </aside>
+      </div>
+    </section>
+
     <div class="app-shell">
       <header class="topbar">
         <div class="brand">
@@ -54,6 +109,25 @@
           </button>
         </nav>
       </header>
+
+      <section class="patient-context-bar" aria-label="بيانات المستخدم والمريض">
+        <article>
+          <span>اسم المستخدم</span>
+          <strong id="currentUserName">خالد علي</strong>
+        </article>
+        <article>
+          <span>اسم المريض</span>
+          <strong id="currentPatientName">سالم عبدالله الشهري</strong>
+        </article>
+        <article>
+          <span>رقم سجل المريض</span>
+          <strong id="currentPatientRecord">MRN-2026-1045</strong>
+        </article>
+        <button id="logoutBtn" class="patient-logout" type="button">
+          <i data-lucide="log-out"></i>
+          <span>خروج</span>
+        </button>
+      </section>
 
       <main class="dashboard">
         <section class="scene-panel" aria-label="نموذج الجسم ثلاثي الأبعاد">
@@ -261,6 +335,6 @@
       </main>
     </div>
 
-    <script type="module" src="/app.js?v=body-anatomy-22"></script>
+    <script type="module" src="/app.js?v=body-anatomy-24"></script>
   </body>
 </html>

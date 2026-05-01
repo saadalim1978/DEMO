@@ -4,6 +4,17 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { initAnatomyDebug, updateDebugHelpers } from "/anatomy-debug.js";
 
 const dom = {
+  appShell: document.querySelector(".app-shell"),
+  loginScreen: document.querySelector("#loginScreen"),
+  loginForm: document.querySelector("#loginForm"),
+  loginUser: document.querySelector("#loginUser"),
+  loginPassword: document.querySelector("#loginPassword"),
+  loginError: document.querySelector("#loginError"),
+  togglePasswordBtn: document.querySelector("#togglePasswordBtn"),
+  logoutBtn: document.querySelector("#logoutBtn"),
+  currentUserName: document.querySelector("#currentUserName"),
+  currentPatientName: document.querySelector("#currentPatientName"),
+  currentPatientRecord: document.querySelector("#currentPatientRecord"),
   scene: document.querySelector("#scene"),
   scenePanel: document.querySelector(".scene-panel"),
   assetName: document.querySelector("#assetName"),
@@ -55,6 +66,15 @@ const statusLabels = {
   critical: "حرج",
   info: "معلومة",
   watch: "متابعة"
+};
+
+const DEMO_AUTH = {
+  storageKey: "dgaDemoAuthenticated",
+  username: "خالد علي",
+  password: "123456",
+  aliases: ["khalid ali", "khalid", "خالد"],
+  patientName: "سالم عبدالله الشهري",
+  patientRecord: "MRN-2026-1045"
 };
 
 let twinState = null;
@@ -279,6 +299,7 @@ const clock = new THREE.Clock();
 
 await loadAnatomyManifest();
 if (renderer) initScene();
+initializeAuth();
 wireEvents();
 resize();
 refreshTwin().then(() => askAi("حلل حالة الجسم الآن مع التركيز على السكري والضغط والجلطات."));
@@ -340,6 +361,68 @@ function colorToHex(value, fallback) {
   const clean = value.trim().replace(/^#/, "");
   const parsed = Number.parseInt(clean, 16);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function initializeAuth() {
+  populateSessionContext();
+  if (dom.loginUser && !dom.loginUser.value) dom.loginUser.value = DEMO_AUTH.username;
+  if (dom.loginPassword && !dom.loginPassword.value) dom.loginPassword.value = DEMO_AUTH.password;
+  const authenticated = window.sessionStorage.getItem(DEMO_AUTH.storageKey) === "1";
+  setAuthenticated(authenticated);
+}
+
+function populateSessionContext() {
+  if (dom.currentUserName) dom.currentUserName.textContent = DEMO_AUTH.username;
+  if (dom.currentPatientName) dom.currentPatientName.textContent = DEMO_AUTH.patientName;
+  if (dom.currentPatientRecord) dom.currentPatientRecord.textContent = DEMO_AUTH.patientRecord;
+}
+
+function normalizeLoginName(value = "") {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function isValidDemoLogin(username, password) {
+  const normalized = normalizeLoginName(username);
+  const validNames = [DEMO_AUTH.username, ...DEMO_AUTH.aliases].map(normalizeLoginName);
+  return validNames.includes(normalized) && password === DEMO_AUTH.password;
+}
+
+function setAuthenticated(authenticated) {
+  document.body.classList.toggle("login-active", !authenticated);
+  document.body.classList.toggle("is-authenticated", authenticated);
+  dom.loginScreen?.setAttribute("aria-hidden", String(authenticated));
+  if (authenticated) {
+    window.sessionStorage.setItem(DEMO_AUTH.storageKey, "1");
+    populateSessionContext();
+    setTimeout(() => {
+      resize();
+      resetCamera();
+    }, 120);
+  } else {
+    window.sessionStorage.removeItem(DEMO_AUTH.storageKey);
+    setTimeout(() => dom.loginUser?.focus(), 80);
+  }
+}
+
+function handleLoginSubmit(event) {
+  event.preventDefault();
+  const username = dom.loginUser?.value || "";
+  const password = dom.loginPassword?.value || "";
+  if (isValidDemoLogin(username, password)) {
+    if (dom.loginError) dom.loginError.textContent = "";
+    setAuthenticated(true);
+    return;
+  }
+  if (dom.loginError) dom.loginError.textContent = "بيانات الدخول غير صحيحة. استخدم خالد علي / 123456.";
+}
+
+function togglePasswordVisibility() {
+  if (!dom.loginPassword || !dom.togglePasswordBtn) return;
+  const showPassword = dom.loginPassword.type === "password";
+  dom.loginPassword.type = showPassword ? "text" : "password";
+  dom.togglePasswordBtn.setAttribute("aria-label", showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور");
+  dom.togglePasswordBtn.innerHTML = `<i data-lucide="${showPassword ? "eye-off" : "eye"}"></i>`;
+  refreshIcons();
 }
 
 function initScene() {
@@ -1755,6 +1838,9 @@ async function askAi(defaultQuestion) {
 function wireEvents() {
   window.addEventListener("resize", resize);
   document.addEventListener("fullscreenchange", updateSceneToolState);
+  dom.loginForm?.addEventListener("submit", handleLoginSubmit);
+  dom.togglePasswordBtn?.addEventListener("click", togglePasswordVisibility);
+  dom.logoutBtn?.addEventListener("click", () => setAuthenticated(false));
   dom.refreshBtn.addEventListener("click", handleRefreshClick);
   dom.resetCameraBtn.addEventListener("click", toggleSceneFullscreen);
   dom.askBtn.addEventListener("click", () => askAi());
