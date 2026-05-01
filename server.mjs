@@ -585,7 +585,7 @@ function buildImagingSummary() {
     modelConfidence,
     coveredSystems,
     note: studies.length
-      ? "تم تحليل صور الأشعة تلقائيًا وربطها بالنوع والمنطقة والعضو لتحسين موثوقية التوأم الرقمي، وليست قراءة تشخيصية."
+      ? ""
       : "لم تتم إضافة صور أشعة بعد. ارفع صورة CT أو MRI أو X-Ray أو Ultrasound وسيحدد الذكاء الاصطناعي النوع والمنطقة تلقائيًا."
   };
 }
