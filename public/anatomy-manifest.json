@@ -9,9 +9,9 @@
     "All organs are normalized: pivot centered, mirror handled, depth realistic."
   ],
   "bodyShell": {
-    "file": "VH_M_Skin.glb",
-    "label": "NIH 3D Skin, Male",
-    "source": "NIH 3D",
+    "file": "VH_M_united_skin.glb",
+    "label": "Unified NIH Skin Shell, Male",
+    "source": "NIH 3D extracted shell",
     "fit": [3.08, 5.28, 1.38],
     "fitMode": "stretch",
     "position": [0, 0.16, 0.03],
