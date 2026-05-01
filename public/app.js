@@ -154,7 +154,7 @@ const layerState = {
   labels: true,
   effects: true
 };
-let cutawayEnabled = true;
+let cutawayEnabled = false;
 let teachingModeEnabled = true;
 
 let bodyShellAsset = {
@@ -631,6 +631,10 @@ function applyLayerVisibility() {
 function applyCutawayMode() {
   if (renderer) renderer.localClippingEnabled = true;
   bodyParts.skin?.traverse((child) => {
+    if (child.name === "body-inspection-window") {
+      child.visible = cutawayEnabled;
+      return;
+    }
     if (!child.isMesh || !child.material) return;
     child.material.clippingPlanes = cutawayEnabled ? [cutawayPlane] : [];
     child.material.opacity = skinShellOpacity();
@@ -749,6 +753,7 @@ function skinShellMaterial() {
 function createBodyInspectionWindow() {
   const group = new THREE.Group();
   group.name = "body-inspection-window";
+  group.visible = cutawayEnabled;
   const lineMaterial = new THREE.LineBasicMaterial({
     color: 0xffe2d6,
     transparent: true,
