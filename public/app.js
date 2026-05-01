@@ -217,7 +217,7 @@ let organAssets = [
     file: "3d-vh-m-pancreas.glb",
     label: "Pancreas",
     position: [0.0, 0.7, -0.04],
-    fit: [0.34, 0.08, 0.08],
+    fit: [0.45, 0.12, 0.12],
     rotation: [0, Math.PI, 0.05],
     material: { color: 0xf4b740, emissive: 0x5a3600, opacity: 0.95 }
   },
@@ -1316,7 +1316,7 @@ function createFootVessels(side, artery, vein) {
 }
 
 function createDiseaseLayers() {
-  disease.pancreasGlow = addGlowSphere([-0.04, 0.66, 0.13], [0.38, 0.12, 0.08], 0xf4b740);
+  disease.pancreasGlow = addGlowSphere([-0.02, 0.68, 0.13], [0.5, 0.16, 0.12], 0xf4b740);
   disease.glucoseField = new THREE.Group();
   disease.pressure = new THREE.Group();
   disease.clot = createClotGroup([-0.18, -1.58, 0.02], 0.68);
