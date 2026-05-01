@@ -227,7 +227,7 @@ let organAssets = [
     label: "Left Kidney",
     position: [0.18, 0.64, -0.14],
     fit: [0.12, 0.22, 0.1],
-    rotation: [0, Math.PI, 0.28],
+    rotation: [0, 0, 0.28],
     material: { color: 0xc084fc, emissive: 0x28113c, opacity: 0.9 }
   },
   {
@@ -236,7 +236,7 @@ let organAssets = [
     label: "Right Kidney",
     position: [-0.18, 0.64, -0.14],
     fit: [0.12, 0.22, 0.1],
-    rotation: [0, Math.PI, -0.28],
+    rotation: [0, 0, -0.28],
     mirrorX: true,
     material: { color: 0xc084fc, emissive: 0x28113c, opacity: 0.9 }
   },
