@@ -233,7 +233,9 @@ body.login-active .app-shell {
   position: relative;
   display: grid;
   grid-template-rows: auto auto 1fr;
-  gap: 18px;
+  align-items: start;
+  justify-items: center;
+  gap: 14px;
   padding: 36px 28px 28px;
   color: #ffffff;
   background:
@@ -246,7 +248,7 @@ body.login-active .app-shell {
   display: block;
   width: min(280px, 100%);
   min-height: 80px;
-  justify-self: end;
+  justify-self: center;
   border-radius: 12px;
   background: #ffffff;
   object-fit: contain;
@@ -256,6 +258,9 @@ body.login-active .app-shell {
 
 .login-brief {
   align-self: start;
+  justify-self: center;
+  width: min(280px, 100%);
+  text-align: center;
 }
 
 .login-brief h3 {
@@ -272,50 +277,25 @@ body.login-active .app-shell {
 
 .login-preview-frame {
   align-self: end;
+  justify-self: center;
   position: relative;
   display: grid;
   place-items: center;
-  min-height: 260px;
+  min-height: 360px;
+  width: min(334px, 100%);
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 14px;
-  background:
-    radial-gradient(circle at 50% 36%, rgba(72, 199, 216, 0.18), transparent 42%),
-    rgba(8, 37, 34, 0.42);
-}
-
-.login-preview-frame canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.login-model-status {
-  position: absolute;
-  inset: auto 18px 18px;
-  z-index: 1;
-  padding: 8px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  color: rgba(255, 255, 255, 0.88);
-  background: rgba(6, 36, 33, 0.78);
-  font-size: 12px;
-  font-weight: 800;
-  text-align: center;
-  pointer-events: none;
-}
-
-.login-model-viewer.is-loaded .login-model-status {
-  opacity: 0;
+  background: #ffffff;
 }
 
 .login-preview-frame img {
   display: block;
   width: 100%;
   height: 100%;
-  max-height: 330px;
+  max-height: 390px;
   object-fit: contain;
-  object-position: center bottom;
+  object-position: center center;
 }
 
 .app-shell {
