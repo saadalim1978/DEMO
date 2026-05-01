@@ -225,18 +225,18 @@ let organAssets = [
     key: "leftKidney",
     file: "VH_M_Kidney_L.glb",
     label: "Left Kidney",
-    position: [0.13, 0.62, -0.14],
+    position: [0.18, 0.64, -0.14],
     fit: [0.12, 0.22, 0.1],
-    rotation: [0, Math.PI, -0.18],
+    rotation: [0, Math.PI, 0.28],
     material: { color: 0xc084fc, emissive: 0x28113c, opacity: 0.9 }
   },
   {
     key: "rightKidney",
     file: "VH_M_Kidney_L.glb",
     label: "Right Kidney",
-    position: [-0.13, 0.6, -0.14],
+    position: [-0.18, 0.64, -0.14],
     fit: [0.12, 0.22, 0.1],
-    rotation: [0, 0, 0.18],
+    rotation: [0, 0, -0.28],
     mirrorX: true,
     material: { color: 0xc084fc, emissive: 0x28113c, opacity: 0.9 }
   },
@@ -262,7 +262,7 @@ let organAssets = [
     key: "bladder",
     file: "VH_F_Urinary_Bladder.glb",
     label: "Bladder",
-    position: [0, -0.12, 0.05],
+    position: [0, 0.02, 0.05],
     fit: [0.14, 0.14, 0.12],
     rotation: [0, Math.PI, 0],
     material: { color: 0xff77aa, emissive: 0x4c0b24, opacity: 0.86 }
