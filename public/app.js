@@ -96,7 +96,7 @@ const disease = {};
 const bodyParts = {};
 const layerGroups = {};
 const gltfLoader = new GLTFLoader();
-const cutawayPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -0.02);
+const cutawayPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), -0.02);
 const organHighlights = new Map();
 const organMetricLinks = {
   brain: { label: "الدماغ", color: "#a78bfa", sensors: ["neuroPerfusion"] },
