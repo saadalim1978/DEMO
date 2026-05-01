@@ -352,7 +352,7 @@ if (renderer) requestAnimationFrame(animate);
 
 async function loadAnatomyManifest() {
   try {
-    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-23", { cache: "no-store" });
+    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-26", { cache: "no-store" });
     if (!response.ok) throw new Error(`Manifest HTTP ${response.status}`);
     const manifest = await response.json();
     if (manifest.integratedAnatomy) integratedAnatomyAsset = normalizeIntegratedAnatomy(manifest.integratedAnatomy);
