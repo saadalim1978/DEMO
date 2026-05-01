@@ -112,6 +112,7 @@ const organMetricLinks = {
   heart: { label: "القلب", color: "#ef4b5f", sensors: ["heartRate", "systolic", "diastolic"] },
   lungs: { label: "الرئتان", color: "#48c7d8", sensors: ["oxygen"] },
   liver: { label: "الكبد", color: "#9a4d2f", sensors: ["ldl", "triglycerides", "inflammation"] },
+  spleen: { label: "الطحال", color: "#6b1f2e", sensors: ["inflammation", "clotRisk"] },
   stomach: { label: "المعدة", color: "#ff9f80", sensors: ["bmi", "inflammation"] },
   pancreas: { label: "البنكرياس", color: "#f4b740", sensors: ["glucose", "hba1c", "insulinResistance"] },
   kidneys: { label: "الكلى", color: "#c084fc", sensors: ["egfr", "systolic", "diastolic"] },
@@ -929,7 +930,7 @@ function integratedPartConfig(name = "") {
     lungs: { recognized: true, layer: "organs", key: "lungs", bodyPartKey: "lungs", organKey: "lungs", color: 0x48c7d8, emissive: 0x07334a, opacity: 0.58 },
     heart: { recognized: true, layer: "organs", key: "heart", bodyPartKey: "heart", organKey: "heart", color: 0xef4b5f, emissive: 0x4c0712, opacity: 0.96 },
     liver: { recognized: true, layer: "organs", key: "liver", bodyPartKey: "liver", organKey: "liver", color: 0x9a4d2f, emissive: 0x341006, opacity: 0.86 },
-    spleen: { recognized: true, layer: "organs", key: "spleen", bodyPartKey: "spleen", organKey: "intestines", color: 0x9254de, emissive: 0x261039, opacity: 0.82 },
+    spleen: { recognized: true, layer: "organs", key: "spleen", bodyPartKey: "spleen", organKey: "spleen", color: 0x9254de, emissive: 0x261039, opacity: 0.82 },
     pancreas: { recognized: true, layer: "organs", key: "pancreas", bodyPartKey: "pancreas", organKey: "pancreas", color: 0xf4b740, emissive: 0x5a3600, opacity: 0.95 },
     small_intestine: { recognized: true, layer: "organs", key: "small-intestine", bodyPartKey: "smallIntestine", organKey: "intestines", color: 0xffb3a7, emissive: 0x4e1b16, opacity: 0.82 },
     large_intestine: { recognized: true, layer: "organs", key: "large-intestine", bodyPartKey: "largeIntestine", organKey: "intestines", color: 0xd68a7c, emissive: 0x4e1b16, opacity: 0.78 },
@@ -1234,15 +1235,32 @@ function organMeshes() {
   const meshes = [];
   Object.values(bodyParts).forEach((object) => {
     object?.traverse?.((child) => {
-      if (child.isMesh && child.userData.organKey) meshes.push(child);
+      const organKey = selectableOrganKey(child.userData?.organKey);
+      if (child.isMesh && organKey && isObjectVisibleInScene(child)) meshes.push(child);
     });
   });
   return meshes;
 }
 
+function selectableOrganKey(organKey) {
+  if (!organKey || organKey === "skin") return "";
+  const normalized = organMetricLinks[organKey] ? organKey : organGroupKey(organKey);
+  return organMetricLinks[normalized] ? normalized : "";
+}
+
+function isObjectVisibleInScene(object) {
+  let current = object;
+  while (current) {
+    if (current.visible === false) return false;
+    current = current.parent;
+  }
+  return true;
+}
+
 function rememberMaterialBase(material) {
   if (!material || material.userData.organBase) return;
   material.userData.organBase = {
+    color: material.color?.getHex?.() || 0xffffff,
     emissive: material.emissive?.getHex?.() || 0x000000,
     emissiveIntensity: material.emissiveIntensity || 0,
     opacity: material.opacity ?? 1
@@ -1257,12 +1275,19 @@ function setOrganMaterialHighlight(object, active, color = 0xffffff) {
       rememberMaterialBase(material);
       const base = material.userData.organBase;
       if (active) {
-        material.emissive?.setHex?.(color);
-        material.emissiveIntensity = Math.max(base.emissiveIntensity + 0.45, 0.58);
+        if (material.emissive) {
+          material.emissive.setHex(color);
+          material.emissiveIntensity = Math.max(base.emissiveIntensity + 0.45, 0.58);
+        } else {
+          material.color?.setHex?.(color);
+        }
         if (material.transparent) material.opacity = Math.min(1, base.opacity + 0.14);
       } else {
-        material.emissive?.setHex?.(base.emissive);
-        material.emissiveIntensity = base.emissiveIntensity;
+        material.color?.setHex?.(base.color);
+        if (material.emissive) {
+          material.emissive.setHex(base.emissive);
+          material.emissiveIntensity = base.emissiveIntensity;
+        }
         if (material.transparent) material.opacity = base.opacity;
       }
       material.needsUpdate = true;
@@ -1293,10 +1318,11 @@ function updateOrganLinks(state = twinState) {
 }
 
 function selectOrgan(organKey) {
-  selectedOrganKey = organMetricLinks[organKey] ? organKey : organGroupKey(organKey);
+  const selectableKey = selectableOrganKey(organKey);
+  if (!selectableKey) return;
+  selectedOrganKey = selectableKey;
   const sensors = sensorsForOrgan(selectedOrganKey);
   if (sensors[0]) selectedSensorId = sensors[0].id;
-  focusOrgan(selectedOrganKey);
   renderTwin(twinState);
 }
 
@@ -2244,7 +2270,9 @@ function wireEvents() {
     pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(pointer, camera);
-    const meshes = [...sensorMeshes.values()].flatMap((group) => group.children);
+    const meshes = [...sensorMeshes.values()]
+      .filter((group) => isObjectVisibleInScene(group))
+      .flatMap((group) => group.children.filter(isObjectVisibleInScene));
     const hit = raycaster.intersectObjects(meshes, false)[0];
     const sensorId = hit?.object?.userData?.sensorId;
     if (sensorId) {
@@ -2254,7 +2282,7 @@ function wireEvents() {
       return;
     }
     const organHit = raycaster.intersectObjects(organMeshes(), true)[0];
-    const organKey = organHit?.object?.userData?.organKey;
+    const organKey = selectableOrganKey(organHit?.object?.userData?.organKey);
     if (organKey) {
       selectOrgan(organKey);
     }
