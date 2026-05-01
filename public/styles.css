@@ -108,13 +108,6 @@ body.login-active .app-shell {
   width: min(480px, 100%);
 }
 
-.login-kicker {
-  margin: 0 0 8px;
-  color: #008a7a;
-  font-size: 13px;
-  font-weight: 900;
-}
-
 .login-title {
   margin: 0;
   color: #071c19;
@@ -194,23 +187,6 @@ body.login-active .app-shell {
   height: 18px;
 }
 
-.demo-credentials {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 12px;
-  padding: 12px;
-  border: 1px dashed rgba(0, 138, 122, 0.42);
-  border-radius: 8px;
-  background: rgba(0, 138, 122, 0.06);
-  color: #49635f;
-  font-size: 12px;
-}
-
-.demo-credentials strong {
-  color: #00796f;
-  font-size: 13px;
-}
-
 .login-error {
   min-height: 20px;
   color: #c53030;
@@ -280,10 +256,6 @@ body.login-active .app-shell {
 
 .login-brief {
   align-self: start;
-}
-
-.login-brief .login-kicker {
-  color: rgba(255, 255, 255, 0.84);
 }
 
 .login-brief h3 {
