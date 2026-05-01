@@ -1092,7 +1092,7 @@ body[data-scenario="heart_failure"] .fallback-heart {
 }
 
 .cutaway-toggle,
-.education-toggle {
+.research-toggle {
   grid-column: auto;
 }
 
@@ -1657,7 +1657,7 @@ textarea:focus {
   }
 
   .cutaway-toggle,
-  .education-toggle {
+  .research-toggle {
     grid-column: auto;
   }
 
