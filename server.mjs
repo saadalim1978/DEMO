@@ -954,6 +954,11 @@ const server = createServer(async (request, response) => {
       sendJson(response, 200, buildTwinState());
       return;
     }
+    if (request.method === "POST" && url.pathname === "/api/imaging/clear") {
+      imagingStudies = [];
+      sendJson(response, 200, buildTwinState());
+      return;
+    }
     if (request.method === "POST" && url.pathname === "/api/ai/ask") {
       const body = await readJsonBody(request);
       const state = buildTwinState();

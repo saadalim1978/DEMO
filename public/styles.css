@@ -1082,6 +1082,17 @@ select:focus,
   white-space: nowrap;
 }
 
+.imaging-clear-button {
+  min-height: 38px;
+  border-color: rgba(239, 75, 95, 0.48);
+  color: #ffd6dd;
+}
+
+.imaging-clear-button:not(:disabled):hover {
+  border-color: rgba(239, 75, 95, 0.8);
+  background: rgba(239, 75, 95, 0.12);
+}
+
 .imaging-status {
   margin-top: 9px;
   color: var(--muted);
