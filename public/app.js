@@ -91,6 +91,7 @@ let imagingStatusOverride = "";
 let imagingStatusOverrideUntil = 0;
 let activeLayerGroup = null;
 let selectedOrganKey = "pancreas";
+let usingIntegratedAnatomy = false;
 
 const disease = {};
 const bodyParts = {};
@@ -169,6 +170,17 @@ let bodyShellAsset = {
   file: "VH_M_Skin.glb",
   label: "NIH 3D Skin, Male",
   source: "NIH 3D",
+  fit: [3.08, 5.28, 1.38],
+  fitMode: "stretch",
+  position: [0, 0.16, 0.03],
+  rotation: [0, 0, 0]
+};
+
+let integratedAnatomyAsset = {
+  enabled: true,
+  file: "human_anatomy.glb",
+  label: "Professional Human Anatomy",
+  source: "User supplied GLB",
   fit: [3.08, 5.28, 1.38],
   fitMode: "stretch",
   position: [0, 0.16, 0.03],
@@ -316,9 +328,10 @@ if (renderer) requestAnimationFrame(animate);
 
 async function loadAnatomyManifest() {
   try {
-    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-22", { cache: "no-store" });
+    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-23", { cache: "no-store" });
     if (!response.ok) throw new Error(`Manifest HTTP ${response.status}`);
     const manifest = await response.json();
+    if (manifest.integratedAnatomy) integratedAnatomyAsset = normalizeIntegratedAnatomy(manifest.integratedAnatomy);
     if (manifest.bodyShell) bodyShellAsset = normalizeBodyShell(manifest.bodyShell);
     if (Array.isArray(manifest.organs)) organAssets = manifest.organs.map(normalizeOrganAsset);
     if (Array.isArray(manifest.layers)) {
@@ -329,9 +342,21 @@ async function loadAnatomyManifest() {
     document.body.dataset.anatomyManifest = manifest.version || "loaded";
   } catch (error) {
     console.warn("Using bundled anatomy configuration", error);
+    integratedAnatomyAsset = normalizeIntegratedAnatomy(integratedAnatomyAsset);
     bodyShellAsset = normalizeBodyShell(bodyShellAsset);
     organAssets = organAssets.map(normalizeOrganAsset);
   }
+}
+
+function normalizeIntegratedAnatomy(asset) {
+  return {
+    ...asset,
+    enabled: asset.enabled !== false,
+    fit: vectorOr(asset.fit, [3.08, 5.28, 1.38]),
+    fitMode: typeof asset.fitMode === "string" ? asset.fitMode : "stretch",
+    position: vectorOr(asset.position, [0, 0.16, 0.03]),
+    rotation: vectorOr(asset.rotation, [0, 0, 0])
+  };
 }
 
 function normalizeBodyShell(asset) {
@@ -481,22 +506,48 @@ function addBodyTwinModel() {
   const vesselRed = vesselMaterial(0xff5d73, 0x5a0610, 0.35);
   const vesselBlue = vesselMaterial(0x4cc9f0, 0x052d4a, 0.24);
 
-  loadNihBodyShell().catch((error) => {
-    console.warn("NIH body shell failed to load, using canvas silhouette fallback", error);
-    addHumanSilhouette();
-  });
-  loadReadyMadeOrgans();
+  usingIntegratedAnatomy = integratedAnatomyAsset.enabled !== false;
+  if (usingIntegratedAnatomy) {
+    loadIntegratedAnatomyModel().catch((error) => {
+      console.warn("Integrated anatomy failed to load, falling back to separate anatomy assets", error);
+      usingIntegratedAnatomy = false;
+      loadLegacyAnatomyModel(vesselRed, vesselBlue);
+    });
+  } else {
+    loadLegacyAnatomyModel(vesselRed, vesselBlue);
+  }
   initAnatomyDebug({
     scene,
     bodyParts,
     manifestRef: {
       value: {
+        integratedAnatomy: integratedAnatomyAsset,
         bodyShell: bodyShellAsset,
         organs: organAssets,
         brain: { key: "brain", label: "Brain", position: [0, 2.62, 0.02], size: [0.16, 0.13, 0.18] }
       }
     }
   });
+  if (usingIntegratedAnatomy) {
+    withLayer("vessels", createBloodParticles);
+    withLayer("effects", () => {
+      createDiseaseLayers();
+      createGlucoseParticles();
+    });
+    withLayer("labels", createAnatomyLabels);
+    applyLayerVisibility();
+    applyCutawayMode();
+    applyTeachingMode();
+    return;
+  }
+}
+
+function loadLegacyAnatomyModel(vesselRed, vesselBlue) {
+  loadNihBodyShell().catch((error) => {
+    console.warn("NIH body shell failed to load, using canvas silhouette fallback", error);
+    addHumanSilhouette();
+  });
+  loadReadyMadeOrgans();
   withLayer("organs", () => {
     bodyParts.brain = addEllipsoid("brain", [0, 2.62, 0.02], [0.16, 0.13, 0.18], organMaterial(0xa78bfa, 0x221146, 0.78));
     bodyParts.brain.userData.organKey = "brain";
@@ -703,6 +754,7 @@ function registerOrganDisplayObject(object, key) {
 }
 
 function teachingScaleFor(key) {
+  if (usingIntegratedAnatomy) return 1;
   return teachingOrganScales[key] || teachingOrganScales[organGroupKey(key)] || 1.18;
 }
 
@@ -724,6 +776,130 @@ async function loadNihBodyShell() {
   document.body.dataset.bodyShell = "nih-3d-skin-male";
   applyLayerVisibility();
   applyCutawayMode();
+}
+
+async function loadIntegratedAnatomyModel() {
+  const gltf = await gltfLoader.loadAsync(`/models/body/${integratedAnatomyAsset.file}`);
+  prepareIntegratedAnatomyModel(gltf.scene);
+  document.body.dataset.bodyShell = "integrated-human-anatomy";
+  applyLayerVisibility();
+  applyCutawayMode();
+  applyTeachingMode();
+}
+
+function prepareIntegratedAnatomyModel(sceneModel) {
+  const box = new THREE.Box3().setFromObject(sceneModel);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  const fit = new THREE.Vector3(...integratedAnatomyAsset.fit);
+  const scale = new THREE.Vector3(fit.x / size.x, fit.y / size.y, fit.z / size.z);
+  if (integratedAnatomyAsset.fitMode !== "stretch") {
+    scale.setScalar(Math.min(scale.x, scale.y, scale.z));
+  }
+  const offset = new THREE.Vector3(-center.x * scale.x, -center.y * scale.y, -center.z * scale.z);
+  const placement = new THREE.Vector3(...integratedAnatomyAsset.position);
+
+  const integratedGroups = {
+    skin: new THREE.Group(),
+    organs: new THREE.Group(),
+    vessels: new THREE.Group()
+  };
+  integratedGroups.skin.name = "integrated-anatomy-skin";
+  integratedGroups.organs.name = "integrated-anatomy-organs";
+  integratedGroups.vessels.name = "integrated-anatomy-vessels";
+  layerGroups.skin?.add(integratedGroups.skin);
+  layerGroups.organs?.add(integratedGroups.organs);
+  layerGroups.vessels?.add(integratedGroups.vessels);
+  bodyParts.skin = integratedGroups.skin;
+  bodyParts.vessels = integratedGroups.vessels;
+
+  collectIntegratedPartRoots(sceneModel).forEach(({ object: child, config }) => {
+    const wrapper = new THREE.Group();
+    wrapper.name = `integrated-${config.key}`;
+    wrapper.scale.copy(scale);
+    wrapper.position.copy(offset).add(placement);
+    wrapper.rotation.set(...integratedAnatomyAsset.rotation);
+    child.parent?.remove(child);
+    wrapper.add(child);
+    prepareIntegratedPart(child, config);
+    integratedGroups[config.layer]?.add(wrapper);
+
+    if (config.layer === "organs" && config.bodyPartKey) {
+      wrapper.userData.organKey = config.organKey;
+      bodyParts[config.bodyPartKey] = wrapper;
+      registerOrganDisplayObject(wrapper, config.bodyPartKey);
+    }
+  });
+
+  const edge = createBodyInspectionWindow();
+  integratedGroups.skin.add(edge);
+}
+
+function collectIntegratedPartRoots(sceneModel) {
+  const roots = [];
+  const visit = (object, insideRecognizedPart = false) => {
+    const config = integratedPartConfig(object.name);
+    if (config.recognized && !insideRecognizedPart) {
+      roots.push({ object, config });
+      return;
+    }
+    object.children.forEach((child) => visit(child, insideRecognizedPart || config.recognized));
+  };
+  sceneModel.children.forEach((child) => visit(child));
+  if (roots.length) return roots;
+  return sceneModel.children.map((object) => ({ object, config: integratedPartConfig(object.name) }));
+}
+
+function integratedPartConfig(name = "") {
+  const key = name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  const organConfigs = {
+    brain: { recognized: true, layer: "organs", key: "brain", bodyPartKey: "brain", organKey: "brain", color: 0xa78bfa, emissive: 0x221146, opacity: 0.82 },
+    lungs: { recognized: true, layer: "organs", key: "lungs", bodyPartKey: "lungs", organKey: "lungs", color: 0x48c7d8, emissive: 0x07334a, opacity: 0.58 },
+    heart: { recognized: true, layer: "organs", key: "heart", bodyPartKey: "heart", organKey: "heart", color: 0xef4b5f, emissive: 0x4c0712, opacity: 0.96 },
+    liver: { recognized: true, layer: "organs", key: "liver", bodyPartKey: "liver", organKey: "liver", color: 0x9a4d2f, emissive: 0x341006, opacity: 0.86 },
+    spleen: { recognized: true, layer: "organs", key: "spleen", bodyPartKey: "spleen", organKey: "intestines", color: 0x9254de, emissive: 0x261039, opacity: 0.82 },
+    pancreas: { recognized: true, layer: "organs", key: "pancreas", bodyPartKey: "pancreas", organKey: "pancreas", color: 0xf4b740, emissive: 0x5a3600, opacity: 0.95 },
+    small_intestine: { recognized: true, layer: "organs", key: "small-intestine", bodyPartKey: "smallIntestine", organKey: "intestines", color: 0xffb3a7, emissive: 0x4e1b16, opacity: 0.82 },
+    large_intestine: { recognized: true, layer: "organs", key: "large-intestine", bodyPartKey: "largeIntestine", organKey: "intestines", color: 0xd68a7c, emissive: 0x4e1b16, opacity: 0.78 },
+    kidney_left: { recognized: true, layer: "organs", key: "left-kidney", bodyPartKey: "leftKidney", organKey: "kidneys", color: 0xc084fc, emissive: 0x28113c, opacity: 0.9 },
+    kidney_right: { recognized: true, layer: "organs", key: "right-kidney", bodyPartKey: "rightKidney", organKey: "kidneys", color: 0xc084fc, emissive: 0x28113c, opacity: 0.9 },
+    bladder: { recognized: true, layer: "organs", key: "bladder", bodyPartKey: "bladder", organKey: "bladder", color: 0xff77aa, emissive: 0x4c0b24, opacity: 0.86 }
+  };
+  if (key === "skin") return { recognized: true, layer: "skin", key: "skin", organKey: "skin", type: "skin" };
+  if (key.includes("arter")) return { recognized: true, layer: "vessels", key, organKey: "vessels", type: "artery" };
+  if (key.includes("vein")) return { recognized: true, layer: "vessels", key, organKey: "vessels", type: "vein" };
+  return organConfigs[key] || { layer: "organs", key: key || "anatomy-part", bodyPartKey: key, organKey: key, color: 0xffffff, emissive: 0x111111, opacity: 0.82 };
+}
+
+function prepareIntegratedPart(object, config) {
+  const material = integratedPartMaterial(config);
+  object.traverse((child) => {
+    if (!child.isMesh) return;
+    child.castShadow = true;
+    child.receiveShadow = true;
+    child.frustumCulled = false;
+    child.renderOrder = config.layer === "skin" ? 1 : 4;
+    child.material = material.clone();
+    child.userData.organKey = config.organKey;
+    child.userData.organPartKey = config.bodyPartKey || config.key;
+  });
+}
+
+function integratedPartMaterial(config) {
+  if (config.type === "skin") return skinShellMaterial();
+  if (config.type === "artery") {
+    const material = vesselMaterial(0xff5d73, 0x5a0610, 0.34);
+    material.side = THREE.DoubleSide;
+    return material;
+  }
+  if (config.type === "vein") {
+    const material = vesselMaterial(0x4cc9f0, 0x052d4a, 0.24);
+    material.side = THREE.DoubleSide;
+    return material;
+  }
+  const material = organAssetMaterial(config);
+  material.side = THREE.DoubleSide;
+  return material;
 }
 
 function prepareBodyShell(sceneModel) {
@@ -958,7 +1134,7 @@ function organObjects(organKey) {
   const keys = {
     kidneys: ["leftKidney", "rightKidney"],
     intestines: ["smallIntestine", "largeIntestine"],
-    vessels: []
+    vessels: ["vessels"]
   }[organKey] || [organKey];
   return keys.map((key) => bodyParts[key]).filter(Boolean);
 }
