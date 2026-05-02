@@ -155,6 +155,52 @@ const sensorOrganMap = {
   painScore: "vessels"
 };
 
+const sensorAnchorOffsets = {
+  glucose: [0.02, 0.02, 0.12],
+  hba1c: [0.13, 0.04, 0.12],
+  insulinResistance: [-0.12, 0.04, 0.12],
+  heartRate: [-0.03, 0.02, 0.12],
+  oxygen: [0.22, 0.04, 0.14],
+  ldl: [-0.16, 0.0, 0.14],
+  triglycerides: [-0.08, -0.08, 0.15],
+  egfr: [-0.18, 0.02, 0.1],
+  splenicPerfusion: [0.06, 0.04, 0.12],
+  spleenSize: [0.12, -0.02, 0.12],
+  plateletCount: [0, -0.08, 0.12],
+  smallIntestineMotility: [-0.12, 0.04, 0.14],
+  nutrientAbsorption: [0.12, 0.02, 0.14],
+  smallIntestineInflammation: [0, 0.12, 0.14],
+  largeIntestineMotility: [-0.18, 0.04, 0.14],
+  fluidAbsorption: [0.18, 0.04, 0.14],
+  colonInflammation: [0, 0.14, 0.14],
+  systolic: [-0.08, 0.34, 0.12],
+  diastolic: [0.1, 0.18, 0.12],
+  vascularStiffness: [0.16, 0.0, 0.12],
+  clotRisk: [-0.12, -0.86, 0.12],
+  dDimer: [0.12, -1.12, 0.12],
+  legFlow: [-0.22, -1.42, 0.12],
+  painScore: [-0.34, -1.02, 0.12],
+  inflammation: [0.14, 0.02, 0.14],
+  bmi: [0, -0.18, 0.14],
+  neuroPerfusion: [0, 0.02, 0.14]
+};
+
+const sensorFallbackPositions = {
+  brain: [0, 2.48, 0.12],
+  heart: [-0.04, 1.2, 0.16],
+  lungs: [0.22, 1.42, 0.14],
+  liver: [-0.18, 0.86, 0.14],
+  spleen: [0.24, 0.74, 0.14],
+  stomach: [0.18, 0.72, 0.14],
+  pancreas: [0.02, 0.64, 0.16],
+  kidneys: [0, 0.58, 0.08],
+  bladder: [0, -0.06, 0.12],
+  smallIntestine: [0, 0.34, 0.16],
+  largeIntestine: [0, 0.48, 0.16],
+  intestines: [0, 0.38, 0.16],
+  vessels: [0, 0.58, 0.12]
+};
+
 const teachingOrganScales = {
   brain: 1.24,
   lungs: 1.16,
@@ -620,6 +666,7 @@ function addBodyTwinModel() {
     applyLayerVisibility();
     applyCutawayMode();
     applyTeachingMode();
+    if (twinState) renderTwin(twinState);
     return;
   }
 }
@@ -938,6 +985,7 @@ async function loadIntegratedAnatomyModel() {
   applyLayerVisibility();
   applyCutawayMode();
   applyTeachingMode();
+  if (twinState) renderTwin(twinState);
 }
 
 function integratedPartUrl(file) {
@@ -2181,6 +2229,25 @@ function createAnatomyLabel(text, color, position) {
   addToActiveLayer(sprite);
 }
 
+function sensorDisplayPosition(sensor) {
+  const organKey = sensorOrganMap[sensor.id] || "vessels";
+  const base = organCenter(organKey) || new THREE.Vector3(...(sensorFallbackPositions[organKey] || sensor.position || [0, 0.4, 0.12]));
+  const offset = new THREE.Vector3(...(sensorAnchorOffsets[sensor.id] || [0, 0, 0.12]));
+  return base.add(offset);
+}
+
+function organCenter(organKey) {
+  const objects = organObjects(organKey);
+  if (!objects.length) return null;
+  humanGroup?.updateMatrixWorld(true);
+  const box = new THREE.Box3();
+  objects.forEach((object) => {
+    box.expandByObject(object);
+  });
+  if (box.isEmpty()) return null;
+  return box.getCenter(new THREE.Vector3());
+}
+
 function roundRect(ctx, x, y, width, height, radius) {
   ctx.beginPath();
   ctx.moveTo(x + radius, y);
@@ -2234,7 +2301,7 @@ function buildSensors(sensors) {
       layerGroups.sensors?.add(group);
     }
 
-    group.position.set(...sensor.position);
+    group.position.copy(sensorDisplayPosition(sensor));
     group.userData.sensor = sensor;
     const shell = group.getObjectByName("sensor-shell");
     const ring = group.getObjectByName("sensor-ring");
