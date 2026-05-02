@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>منصة التوأم الرقمي الصحي</title>
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="/styles.css?v=body-anatomy-29" />
+    <link rel="stylesheet" href="/styles.css?v=body-anatomy-30" />
     <script type="importmap">
       {
         "imports": {
@@ -26,12 +26,12 @@
             <form id="loginForm" class="login-form" autocomplete="off">
               <label class="login-field">
                 <span>اسم المستخدم</span>
-                <input id="loginUser" name="username" type="text" autocomplete="username" />
+                <input id="loginUser" name="demo-user" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" data-lpignore="true" />
               </label>
               <label class="login-field">
                 <span>كلمة المرور</span>
                 <div class="password-control">
-                  <input id="loginPassword" name="password" type="password" autocomplete="current-password" />
+                  <input id="loginPassword" name="demo-password" type="password" autocomplete="new-password" data-lpignore="true" />
                   <button id="togglePasswordBtn" type="button" aria-label="إظهار كلمة المرور">
                     <i data-lucide="eye"></i>
                   </button>
@@ -102,12 +102,12 @@
 
       <section class="patient-context-bar" aria-label="بيانات المستخدم والمريض">
         <article>
-          <span>اسم المستخدم</span>
-          <strong id="currentUserName">خالد علي العمر</strong>
+          <span>اسم الدكتور</span>
+          <strong id="currentUserName">سعد محمد الشهري</strong>
         </article>
         <article>
           <span>اسم المريض</span>
-          <strong id="currentPatientName">سالم عبدالله الشهري</strong>
+          <strong id="currentPatientName">خالد علي العمر</strong>
         </article>
         <article>
           <span>رقم سجل المريض</span>
@@ -310,6 +310,6 @@
       </main>
     </div>
 
-    <script type="module" src="/app.js?v=body-anatomy-29"></script>
+    <script type="module" src="/app.js?v=body-anatomy-30"></script>
   </body>
 </html>

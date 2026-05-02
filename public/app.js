@@ -76,8 +76,8 @@ const DEMO_AUTH = {
   username: "salshehri58",
   password: "102030",
   aliases: [],
-  displayName: "سعد الشهري",
-  patientName: "سالم عبدالله الشهري",
+  displayName: "سعد محمد الشهري",
+  patientName: "خالد علي العمر",
   patientRecord: "MRN-2026-1045"
 };
 
@@ -450,13 +450,30 @@ function colorToHex(value, fallback) {
 function initializeAuth() {
   populateSessionContext();
   const authenticated = window.sessionStorage.getItem(DEMO_AUTH.storageKey) === "1";
+  if (!authenticated) clearLoginFields();
   setAuthenticated(authenticated);
+  [120, 480, 1100].forEach((delay) => {
+    setTimeout(() => {
+      if (!document.body.classList.contains("is-authenticated")) clearLoginFields();
+    }, delay);
+  });
 }
 
 function populateSessionContext() {
   if (dom.currentUserName) dom.currentUserName.textContent = DEMO_AUTH.displayName;
   if (dom.currentPatientName) dom.currentPatientName.textContent = DEMO_AUTH.patientName;
   if (dom.currentPatientRecord) dom.currentPatientRecord.textContent = DEMO_AUTH.patientRecord;
+}
+
+function clearLoginFields() {
+  if (dom.loginUser) {
+    dom.loginUser.value = "";
+    dom.loginUser.defaultValue = "";
+  }
+  if (dom.loginPassword) {
+    dom.loginPassword.value = "";
+    dom.loginPassword.defaultValue = "";
+  }
 }
 
 function normalizeLoginName(value = "") {
@@ -482,6 +499,7 @@ function setAuthenticated(authenticated) {
     }, 120);
   } else {
     window.sessionStorage.removeItem(DEMO_AUTH.storageKey);
+    clearLoginFields();
     setTimeout(() => dom.loginUser?.focus(), 80);
   }
 }

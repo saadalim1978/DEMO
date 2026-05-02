@@ -141,13 +141,21 @@ body.login-active .app-shell {
   min-height: 48px;
   border: 1px solid #cbd8d6;
   border-radius: 8px;
-  background: #fbfefd;
+  background: #ffffff;
 }
 
 .login-field input {
   padding: 0 14px;
   color: #082522;
   outline: none;
+}
+
+.login-field input:-webkit-autofill,
+.login-field input:-webkit-autofill:hover,
+.login-field input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #082522;
+  box-shadow: 0 0 0 1000px #ffffff inset;
+  transition: background-color 9999s ease-in-out 0s;
 }
 
 .login-field input:focus,
@@ -176,8 +184,12 @@ body.login-active .app-shell {
   margin-inline-start: 4px;
   border: 0;
   border-radius: 8px;
-  color: #008a7a;
-  background: transparent;
+  color: #ffffff;
+  background: #008a7a;
+}
+
+.password-control button svg {
+  stroke: #ffffff;
 }
 
 .password-control svg,
