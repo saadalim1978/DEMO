@@ -170,6 +170,7 @@ const defaultIntegratedAnatomyParts = [
   { key: "heart", file: "heart.glb" },
   { key: "liver", file: "liver.glb" },
   { key: "spleen", file: "spleen.glb" },
+  { key: "stomach", file: "stomach.glb" },
   { key: "pancreas", file: "pancreas.glb" },
   { key: "small_intestine", file: "small_intestine.glb" },
   { key: "large_intestine", file: "large_intestine.glb" },
@@ -259,7 +260,7 @@ let organAssets = [
   },
   {
     key: "stomach",
-    file: "realistic_stomach.glb",
+    file: "stomach.glb",
     label: "Stomach",
     position: [0.23, 0.92, 0.18],
     fit: [0.36, 0.42, 0.26],
@@ -370,7 +371,7 @@ if (renderer) requestAnimationFrame(animate);
 
 async function loadAnatomyManifest() {
   try {
-    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-31", { cache: "no-store" });
+    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-32", { cache: "no-store" });
     if (!response.ok) throw new Error(`Manifest HTTP ${response.status}`);
     const manifest = await response.json();
     if (manifest.integratedAnatomy) integratedAnatomyAsset = normalizeIntegratedAnatomy(manifest.integratedAnatomy);
@@ -915,7 +916,6 @@ async function loadIntegratedAnatomyModel() {
       })
     );
     prepareIntegratedAnatomyParts(loadedParts);
-    await loadSupplementalIntegratedOrgans();
     document.body.dataset.bodyShell = "integrated-human-anatomy-parts";
     applyAnatomyAppearance();
     applyLayerVisibility();
@@ -931,29 +931,6 @@ async function loadIntegratedAnatomyModel() {
   applyLayerVisibility();
   applyCutawayMode();
   applyTeachingMode();
-}
-
-async function loadSupplementalIntegratedOrgans() {
-  const supplementalAssets = organAssets.filter((asset) => asset.key === "stomach" && !bodyParts[asset.key]);
-  if (!supplementalAssets.length) return;
-
-  const organLayer = new THREE.Group();
-  organLayer.name = "supplemental-integrated-organs";
-  layerGroups.organs?.add(organLayer);
-
-  const results = await Promise.allSettled(
-    supplementalAssets.map(async (asset) => {
-      const gltf = await gltfLoader.loadAsync(`/models/organs/${asset.file}`);
-      const model = prepareOrganModel(gltf.scene, asset);
-      organLayer.add(model);
-      bodyParts[asset.key] = model;
-      return model;
-    })
-  );
-
-  if (results.some((result) => result.status === "rejected")) {
-    console.warn("Some supplemental integrated organs failed to load", results);
-  }
 }
 
 function integratedPartUrl(file) {
