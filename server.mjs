@@ -9,6 +9,7 @@ const publicDir = path.join(__dirname, "public");
 const port = Number(process.env.PORT || 4321);
 const host = process.env.HOST || (process.env.RENDER ? "0.0.0.0" : "127.0.0.1");
 const defaultOpenAiModel = "gpt-5.5";
+const defaultOpenAiTimeoutMs = 45000;
 
 let activeScenario = "baseline";
 let activeIntervention = "observe";
@@ -480,7 +481,7 @@ async function classifyImagingWithOpenAi(upload = {}) {
   if (!apiKey || !/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(imageData)) return null;
 
   const model = (process.env.OPENAI_MODEL || defaultOpenAiModel).trim() || defaultOpenAiModel;
-  const timeoutMs = clamp(Number(process.env.OPENAI_TIMEOUT_MS || 15000), 3000, 30000);
+  const timeoutMs = openAiTimeoutMs();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -517,12 +518,16 @@ async function classifyImagingWithOpenAi(upload = {}) {
         ]
       })
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      await logOpenAiFailure("imaging", model, response);
+      return null;
+    }
     const data = await response.json();
     const text = data.output_text || extractResponseText(data);
     if (!text) return null;
     return normalizeImagingAnalysis(parseAiJson(text), "llm", upload);
-  } catch {
+  } catch (error) {
+    logOpenAiError("imaging", model, error);
     return null;
   } finally {
     clearTimeout(timeout);
@@ -894,6 +899,29 @@ function uniqueStrings(items) {
   });
 }
 
+function openAiTimeoutMs() {
+  const configured = Number(process.env.OPENAI_TIMEOUT_MS || defaultOpenAiTimeoutMs);
+  if (!Number.isFinite(configured) || configured <= 0) return defaultOpenAiTimeoutMs;
+  return clamp(Math.max(configured, defaultOpenAiTimeoutMs), 5000, 60000);
+}
+
+async function logOpenAiFailure(scope, model, response) {
+  let detail = "";
+  try {
+    detail = await response.text();
+  } catch {
+    detail = "";
+  }
+  const compactDetail = detail ? ` ${detail.slice(0, 500).replace(/\s+/g, " ")}` : "";
+  console.warn(`[LLM] ${scope} failed for ${model}: HTTP ${response.status}.${compactDetail}`);
+}
+
+function logOpenAiError(scope, model, error) {
+  const name = error?.name || "Error";
+  const message = error?.message ? ` ${error.message}` : "";
+  console.warn(`[LLM] ${scope} failed for ${model}: ${name}.${message}`);
+}
+
 function buildFocusLine(focus, state, strongest) {
   if (focus === "diabetes") return `خطر السكري المحاكى ${Math.round(state.prediction.diabetesProbability * 100)}%، مع سكر دم ${state.summary.glucose} mg/dL وسكر تراكمي ${state.summary.hba1c}%.`;
   if (focus === "pressure") return `خطر الضغط المحاكى ${Math.round(state.prediction.hypertensionProbability * 100)}%، والضغط الحالي ${state.summary.bloodPressure} mmHg.`;
@@ -914,7 +942,7 @@ async function openAiBodyAnalyst(question, state) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
   const model = (process.env.OPENAI_MODEL || defaultOpenAiModel).trim() || defaultOpenAiModel;
-  const timeoutMs = clamp(Number(process.env.OPENAI_TIMEOUT_MS || 15000), 3000, 30000);
+  const timeoutMs = openAiTimeoutMs();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -938,12 +966,16 @@ async function openAiBodyAnalyst(question, state) {
         ]
       })
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      await logOpenAiFailure("assistant", model, response);
+      return null;
+    }
     const data = await response.json();
     const text = data.output_text || extractResponseText(data);
     if (!text) return null;
     return normalizeOpenAiAnalysis(parseAiJson(text), model);
-  } catch {
+  } catch (error) {
+    logOpenAiError("assistant", model, error);
     return null;
   } finally {
     clearTimeout(timeout);

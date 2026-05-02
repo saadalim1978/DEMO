@@ -96,7 +96,7 @@ $env:OPENAI_MODEL="gpt-5.5"
 
 - `OPENAI_API_KEY`: مفتاح OpenAI الحقيقي. لا تضعه داخل GitHub.
 - `OPENAI_MODEL`: اختياري، الافتراضي `gpt-5.5`.
-- `OPENAI_TIMEOUT_MS`: اختياري، الافتراضي `15000`.
+- `OPENAI_TIMEOUT_MS`: اختياري، الافتراضي `45000`.
 
 ملف `render.yaml` يعرّف `OPENAI_API_KEY` بـ `sync: false` حتى يطلب Render القيمة كسرّ ولا يرفعها إلى المستودع. إذا كانت الخدمة منشأة مسبقًا، أضف المفتاح يدويًا من Render Dashboard ثم اعمل Manual Deploy أو Sync للـ Blueprint.
 

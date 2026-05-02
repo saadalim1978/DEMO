@@ -16,4 +16,4 @@ services:
       - key: OPENAI_MODEL
         value: gpt-5.5
       - key: OPENAI_TIMEOUT_MS
-        value: 15000
+        value: 45000
