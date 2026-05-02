@@ -1745,22 +1745,55 @@ function createDiseaseLayers() {
 }
 
 function createBloodParticles() {
-  const material = new THREE.MeshBasicMaterial({ color: 0xffd4d4, transparent: true, opacity: 0.82 });
-  const path = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(-0.06, 1.12, 0.1),
-    new THREE.Vector3(0, 1.66, 0.07),
-    new THREE.Vector3(0, 2.32, 0.03),
-    new THREE.Vector3(-0.02, 0.42, 0.06),
-    new THREE.Vector3(-0.2, -1.9, 0.02),
-    new THREE.Vector3(0.2, -1.8, 0.02),
-    new THREE.Vector3(0.1, 1.0, 0.05)
-  ]);
+  const arteryPaths = [
+    { name: "default-artery-head", radius: 0.016, points: [[-0.06, 1.12, 0.11], [0, 1.62, 0.08], [0, 2.14, 0.04], [0, 2.48, 0.03]] },
+    { name: "default-artery-left-arm", radius: 0.013, points: [[-0.06, 1.12, 0.11], [-0.42, 1.55, 0.12], [-0.76, 1.25, 0.13], [-1.02, 0.82, 0.14], [-1.28, 0.38, 0.14]] },
+    { name: "default-artery-right-arm", radius: 0.013, points: [[-0.04, 1.12, 0.11], [0.42, 1.55, 0.12], [0.76, 1.25, 0.13], [1.02, 0.82, 0.14], [1.28, 0.38, 0.14]] },
+    { name: "default-artery-left-leg", radius: 0.016, points: [[-0.06, 1.1, 0.1], [-0.02, 0.54, 0.08], [-0.1, -0.38, 0.08], [-0.25, -0.92, 0.08], [-0.36, -1.56, 0.08], [-0.43, -2.24, 0.08]] },
+    { name: "default-artery-right-leg", radius: 0.016, points: [[-0.03, 1.1, 0.1], [0.02, 0.54, 0.08], [0.1, -0.38, 0.08], [0.25, -0.92, 0.08], [0.36, -1.56, 0.08], [0.43, -2.24, 0.08]] },
+    { name: "default-artery-abdomen", radius: 0.012, points: [[-0.06, 1.08, 0.1], [-0.05, 0.82, 0.12], [-0.18, 0.62, 0.15], [-0.26, 0.42, 0.15], [-0.18, 0.2, 0.13]] }
+  ];
+  const veinPaths = [
+    { name: "default-vein-head", radius: 0.014, points: [[0.03, 2.48, 0.03], [0.05, 2.12, 0.04], [0.09, 1.62, 0.08], [0.08, 1.12, 0.09]] },
+    { name: "default-vein-left-arm", radius: 0.012, points: [[-1.24, 0.34, 0.17], [-1.04, 0.78, 0.17], [-0.82, 1.2, 0.16], [-0.4, 1.48, 0.12], [0.08, 1.12, 0.09]] },
+    { name: "default-vein-right-arm", radius: 0.012, points: [[1.24, 0.34, 0.17], [1.04, 0.78, 0.17], [0.82, 1.2, 0.16], [0.4, 1.48, 0.12], [0.08, 1.12, 0.09]] },
+    { name: "default-vein-left-leg", radius: 0.015, points: [[-0.33, -2.25, 0.09], [-0.39, -1.76, 0.1], [-0.28, -1.08, 0.1], [-0.1, -0.42, 0.08], [0.04, 0.46, 0.07], [0.09, 1.1, 0.08]] },
+    { name: "default-vein-right-leg", radius: 0.015, points: [[0.33, -2.25, 0.09], [0.39, -1.76, 0.1], [0.28, -1.08, 0.1], [0.1, -0.42, 0.08], [0.08, 0.46, 0.07], [0.09, 1.1, 0.08]] },
+    { name: "default-vein-abdomen", radius: 0.012, points: [[0.18, 0.2, 0.13], [0.22, 0.44, 0.14], [0.14, 0.7, 0.12], [0.08, 1.1, 0.08]] }
+  ];
 
-  for (let i = 0; i < 46; i += 1) {
-    const particle = new THREE.Mesh(new THREE.SphereGeometry(0.016, 10, 10), material.clone());
-    const t = i / 46;
-    particle.position.copy(path.getPointAt(t));
-    particle.userData = { t, path, speed: 0.45 + (i % 5) * 0.045, flow: true, baseScale: 1, pulse: i * 0.7 };
+  arteryPaths.forEach((path) => createFlowParticles(path, "artery"));
+  veinPaths.forEach((path) => createFlowParticles(path, "vein"));
+}
+
+function createFlowParticles({ points, radius, name }, kind) {
+  const vectors = points.map(vectorFromPoint);
+  const curve = new THREE.CatmullRomCurve3(vectors);
+  const length = vectors.reduce((sum, point, index) => (index === 0 ? 0 : sum + point.distanceTo(vectors[index - 1])), 0);
+  const isVein = kind === "vein";
+  const count = Math.max(5, Math.min(14, Math.round(length * 5.4)));
+  const flowMaterial = new THREE.MeshBasicMaterial({
+    color: isVein ? 0x6ee7ff : 0xff7a86,
+    transparent: true,
+    opacity: isVein ? 0.88 : 0.94,
+    depthWrite: false
+  });
+  for (let i = 0; i < count; i += 1) {
+    const particle = new THREE.Mesh(new THREE.SphereGeometry(radius, 12, 12), flowMaterial.clone());
+    const t = i / count;
+    particle.position.copy(curve.getPointAt(t));
+    particle.userData = {
+      t,
+      path: curve,
+      speed: (isVein ? 0.38 : 0.54) + (i % 4) * 0.035,
+      flowDirection: 1,
+      flowKind: kind,
+      flow: true,
+      vesselName: name,
+      baseScale: isVein ? 0.92 : 1.08,
+      pulse: i * 0.74,
+      color: isVein ? 0x6ee7ff : 0xff7a86
+    };
     bloodParticles.push(particle);
     addToActiveLayer(particle);
   }
@@ -2709,7 +2742,8 @@ function animateParticles(delta, elapsed) {
     particle.userData.t = wrapFlowProgress(particle.userData.t);
     particle.position.copy(particle.userData.path.getPointAt(particle.userData.t));
     const lowOxygen = twinState?.summary?.oxygen < 94;
-    particle.material.color.setHex(lowOxygen ? 0xef4b5f : particle.userData.color || 0xffd4d4);
+    const flowColor = lowOxygen && particle.userData.flowKind !== "vein" ? 0xef4b5f : particle.userData.color || 0xffd4d4;
+    particle.material.color.setHex(flowColor);
     const pulse = particle.userData.baseScale * (1 + Math.sin(elapsed * 8 + particle.userData.pulse) * 0.22);
     particle.scale.setScalar(pulse);
     if (particle.material.transparent) particle.material.opacity = 0.58 + Math.sin(elapsed * 5 + particle.userData.pulse) * 0.18 + (clotDrag < 1 ? -0.18 : 0);
