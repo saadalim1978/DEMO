@@ -201,6 +201,15 @@ const sensorFallbackPositions = {
   vessels: [0, 0.58, 0.12]
 };
 
+const diseaseEffectAnchors = {
+  pancreasGlow: { organ: "pancreas", fallback: [-0.02, 0.68, 0.13], offset: [0, 0.02, 0.12] },
+  glucoseField: { organ: "pancreas", fallback: [0, 0.55, 0.08], offset: [0, -0.03, 0.14] },
+  lungClot: { organ: "lungs", fallback: [0.22, 1.42, 0.08], offset: [0.18, -0.02, 0.14] },
+  lungImaging: { organ: "lungs", fallback: [0, 1.38, 0.12], offset: [0, 0.02, 0.14] },
+  brain: { organ: "brain", fallback: [0, 2.48, 0.04], offset: [0, 0.02, 0.12] },
+  clot: { sensor: "legFlow", fallback: [-0.18, -1.58, 0.02], offset: [0, -0.06, 0] }
+};
+
 const teachingOrganScales = {
   brain: 1.24,
   lungs: 1.16,
@@ -1826,8 +1835,8 @@ function createLungImagingOverlay() {
     depthTest: false
   });
   [
-    [-0.19, 1.38, 0.12],
-    [0.19, 1.38, 0.12]
+    [-0.19, 0, 0],
+    [0.19, 0, 0]
   ].forEach((position, index) => {
     const glow = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 20), glowMaterial.clone());
     glow.position.set(...position);
@@ -2000,7 +2009,7 @@ function createGlucoseParticles() {
   const material = new THREE.MeshBasicMaterial({ color: 0xffd166, transparent: true, opacity: 0.85 });
   for (let i = 0; i < 42; i += 1) {
     const particle = new THREE.Mesh(new THREE.SphereGeometry(0.026, 8, 8), material.clone());
-    particle.position.set((Math.random() - 0.5) * 0.9, -0.05 + Math.random() * 1.45, 0.02 + Math.random() * 0.16);
+    particle.position.set((Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.36, (Math.random() - 0.5) * 0.18);
     particle.userData = { baseY: particle.position.y, speed: 0.8 + Math.random() * 0.8, phase: Math.random() * Math.PI * 2 };
     glucoseParticles.push(particle);
     disease.glucoseField.add(particle);
@@ -2248,6 +2257,65 @@ function organCenter(organKey) {
   return box.getCenter(new THREE.Vector3());
 }
 
+function diseaseEffectPosition(effectKey, lesion = null) {
+  const anchor = diseaseEffectAnchors[effectKey] || {};
+  const fallback = lesion?.position || anchor.fallback || [0, 0.4, 0.12];
+  let base = null;
+  if (anchor.sensor) {
+    base = sensorDisplayPosition({ id: anchor.sensor, position: fallback });
+  } else if (anchor.organ) {
+    base = organCenter(anchor.organ);
+  }
+  const position = base || new THREE.Vector3(...fallback);
+  return position.add(new THREE.Vector3(...(anchor.offset || [0, 0, 0])));
+}
+
+function carotidEffectPosition(lesion = null) {
+  const brain = organCenter("brain");
+  const heart = organCenter("heart");
+  if (brain && heart) {
+    return new THREE.Vector3(
+      THREE.MathUtils.lerp(brain.x, heart.x, 0.18) - 0.08,
+      THREE.MathUtils.lerp(brain.y, heart.y, 0.32),
+      Math.max(brain.z, heart.z) + 0.1
+    );
+  }
+  return new THREE.Vector3(...(lesion?.position || [-0.08, 2.24, 0.03]));
+}
+
+function alignDiseaseEffects(lesions = []) {
+  const byType = (type) => lesions.find((lesion) => lesion.type === type);
+  disease.pancreasGlow?.position.copy(diseaseEffectPosition("pancreasGlow", byType("diabetes")));
+  disease.glucoseField?.position.copy(diseaseEffectPosition("glucoseField", byType("glucose")));
+  disease.clot?.position.copy(diseaseEffectPosition("clot", byType("clot")));
+  disease.lungClot?.position.copy(diseaseEffectPosition("lungClot", byType("lung-clot")));
+  disease.brain?.position.copy(diseaseEffectPosition("brain", byType("stroke")));
+  disease.carotid?.position.copy(carotidEffectPosition(byType("carotid")));
+  disease.lungImaging?.position.copy(diseaseEffectPosition("lungImaging"));
+  alignPressureEffect();
+  alignKidneyEffect();
+}
+
+function alignPressureEffect() {
+  if (!disease.pressure) return;
+  const base = organCenter("heart") || new THREE.Vector3(0, 1.12, 0.12);
+  disease.pressure.children.forEach((ring, index) => {
+    ring.position.copy(base).add(new THREE.Vector3(0, 0.04 - index * 0.08, 0.1));
+    ring.rotation.set(Math.PI / 2.35, 0, 0);
+  });
+}
+
+function alignKidneyEffect() {
+  if (!disease.kidney) return;
+  const targets = [
+    organCenter("leftKidney") || new THREE.Vector3(0.18, 0.64, -0.04),
+    organCenter("rightKidney") || new THREE.Vector3(-0.18, 0.64, -0.04)
+  ];
+  disease.kidney.children.forEach((glow, index) => {
+    glow.position.copy(targets[index] || targets[0]).add(new THREE.Vector3(0, 0, 0.1));
+  });
+}
+
 function roundRect(ctx, x, y, width, height, radius) {
   ctx.beginPath();
   ctx.moveTo(x + radius, y);
@@ -2384,6 +2452,7 @@ function updateDiseaseVisuals(state) {
   const carotid = has("carotid");
   const kidney = has("kidney");
   const lungImaging = hasChestLungImaging(state.imaging);
+  alignDiseaseEffects(lesions);
 
   if (diabetes) {
     disease.pancreasGlow.visible = true;
@@ -2404,13 +2473,11 @@ function updateDiseaseVisuals(state) {
   }
   if (clot) {
     disease.clot.visible = true;
-    disease.clot.position.set(...clot.position);
     const scale = 0.8 + clot.severity * 1.15;
     disease.clot.scale.set(scale, scale, scale);
   }
   if (lungClot) {
     disease.lungClot.visible = true;
-    disease.lungClot.position.set(...lungClot.position);
   }
   if (lungImaging && disease.lungImaging) {
     disease.lungImaging.visible = true;
@@ -2428,7 +2495,6 @@ function updateDiseaseVisuals(state) {
   }
   if (carotid) {
     disease.carotid.visible = true;
-    disease.carotid.position.set(...carotid.position);
   }
   if (kidney) {
     disease.kidney.visible = true;
