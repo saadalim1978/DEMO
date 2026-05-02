@@ -758,45 +758,6 @@ function buildRecommendations(byId, risk, metabolicRisk, vascularRisk, scenario,
   return recs.slice(0, 6);
 }
 
-function localBodyAnalyst(question, state) {
-  const focus = inferFocus(question);
-  const careFocus = focus === "general" ? inferFocusFromState(state) : focus;
-  const carePathway = isCarePathwayQuestion(question) ? buildCarePathway(careFocus, state) : null;
-  const alerts = state.sensors.filter((sensor) => sensor.status !== "normal");
-  const strongest = alerts[0] || state.sensors.find((sensor) => sensor.id === "glucose");
-  const intro =
-    state.summary.risk >= 70
-      ? "المحاكاة تعرض حالة عالية الخطورة."
-      : state.summary.risk >= 40
-        ? "المحاكاة تعرض حالة متوسطة الخطورة."
-        : "المحاكاة تعرض حالة مستقرة نسبيًا.";
-
-  const focusLine = buildFocusLine(focus, state, strongest);
-  const answer = [
-    intro,
-    `السيناريو الحالي: ${state.scenario.label}. مؤشر الصحة ${state.summary.health}% ومؤشر المخاطر ${state.summary.risk}%.`,
-    focusLine,
-    carePathway?.answer || state.recommendations[1] || state.recommendations[0],
-    "تنبيه: هذه مخرجات محاكاة بحثية داعمة للتحليل ولا تمثل قرارًا علاجيًا نهائيًا دون اعتماد مختص."
-  ].join(" ");
-
-  return {
-    source: "local-ai",
-    answer,
-    confidence: state.summary.risk >= 70 ? 0.85 : 0.77,
-    severity: state.summary.risk >= 70 ? "critical" : state.summary.risk >= 40 ? "watch" : "stable",
-    actions: carePathway?.actions || state.recommendations.slice(0, 3),
-    evidence: [
-      `موثوقية النموذج: ${state.summary.modelConfidence}%`,
-      state.imaging.latest ? `آخر تصوير: ${state.imaging.latest.modalityLabel} - ${state.imaging.latest.regionLabel}` : "لا توجد صور أشعة مرفوعة بعد",
-      `سكر الدم: ${state.summary.glucose} mg/dL`,
-      `ضغط الدم: ${state.summary.bloodPressure} mmHg`,
-      `قابلية التخثر: ${state.summary.clotRisk}%`,
-      `تروية الدماغ: ${state.summary.neuroPerfusion}%`
-    ]
-  };
-}
-
 function isCarePathwayQuestion(question = "") {
   return /علاج|علاجي|الإجراء|اجراء|خطة|تدخل|تصرف|care|treatment|procedure|management|therapy/i.test(question);
 }
@@ -922,12 +883,17 @@ function logOpenAiError(scope, model, error) {
   console.warn(`[LLM] ${scope} failed for ${model}: ${name}.${message}`);
 }
 
-function buildFocusLine(focus, state, strongest) {
-  if (focus === "diabetes") return `خطر السكري المحاكى ${Math.round(state.prediction.diabetesProbability * 100)}%، مع سكر دم ${state.summary.glucose} mg/dL وسكر تراكمي ${state.summary.hba1c}%.`;
-  if (focus === "pressure") return `خطر الضغط المحاكى ${Math.round(state.prediction.hypertensionProbability * 100)}%، والضغط الحالي ${state.summary.bloodPressure} mmHg.`;
-  if (focus === "clot") return `خطر الجلطة المحاكى ${Math.round(state.prediction.clotProbability * 100)}%، مع قابلية تخثر ${state.summary.clotRisk}% وD-dimer ${state.summary.dDimer}.`;
-  if (focus === "stroke") return `خطر إشارات السكتة المحاكى ${Math.round(state.prediction.strokeSignalProbability * 100)}%، وتروية الدماغ ${state.summary.neuroPerfusion}%.`;
-  return `أبرز مؤشر يستحق الانتباه الآن: ${strongest.name} بقيمة ${strongest.value} ${strongest.unit}.`;
+function openAiConnectionFailure() {
+  const model = (process.env.OPENAI_MODEL || defaultOpenAiModel).trim() || defaultOpenAiModel;
+  return {
+    source: "llm",
+    model,
+    answer: "فشل في الاتصال",
+    confidence: 0,
+    severity: "watch",
+    actions: [],
+    evidence: []
+  };
 }
 
 function inferFocus(question = "") {
@@ -1228,7 +1194,7 @@ const server = createServer(async (request, response) => {
       const state = buildTwinState();
       const question = String(body.question || "حلل حالة التوأم الرقمي للجسم الآن.");
       const aiAnswer = await openAiBodyAnalyst(question, state);
-      sendJson(response, 200, withCarePathwayIfRequested(aiAnswer, question, state) || localBodyAnalyst(question, state));
+      sendJson(response, 200, withCarePathwayIfRequested(aiAnswer, question, state) || openAiConnectionFailure());
       return;
     }
 

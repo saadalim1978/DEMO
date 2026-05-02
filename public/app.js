@@ -2638,7 +2638,7 @@ async function askAi(defaultQuestion) {
       body: JSON.stringify({ question })
     });
     const result = await response.json();
-    dom.aiSource.textContent = result.source === "llm" ? "LLM" : "Local AI";
+    dom.aiSource.textContent = "LLM";
     dom.aiAnswer.textContent = result.answer;
     dom.aiEvidence.innerHTML = [
       ...(result.evidence || []),
@@ -2647,7 +2647,9 @@ async function askAi(defaultQuestion) {
       .map((item) => `<div class="evidence-item">${escapeHtml(item)}</div>`)
       .join("");
   } catch {
-    dom.aiAnswer.textContent = "تعذر تشغيل التحليل الآن. تحقق من اتصال API المحلي.";
+    dom.aiSource.textContent = "LLM";
+    dom.aiAnswer.textContent = "فشل في الاتصال";
+    dom.aiEvidence.innerHTML = "";
   } finally {
     dom.askBtn.disabled = false;
   }
