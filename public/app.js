@@ -2476,7 +2476,7 @@ function renderImaging(imaging = {}) {
   `
         )
         .join("")
-    : `<article class="imaging-empty">ارفع صورة وسيحدد OpenAI: CT · MRI · X-Ray · Ultrasound</article>`;
+    : `<article class="imaging-empty">ارفع صورة وسيحدد LLM: CT · MRI · X-Ray · Ultrasound</article>`;
 }
 
 function renderEvents(events) {
@@ -2505,7 +2505,7 @@ async function askAi(defaultQuestion) {
       body: JSON.stringify({ question })
     });
     const result = await response.json();
-    dom.aiSource.textContent = result.source === "openai" ? "OpenAI" : "Local AI";
+    dom.aiSource.textContent = result.source === "llm" ? "LLM" : "Local AI";
     dom.aiAnswer.textContent = result.answer;
     dom.aiEvidence.innerHTML = [
       ...(result.evidence || []),
@@ -2665,7 +2665,7 @@ async function handleImagingUpload() {
   }
 
   setImagingControlsBusy(true);
-  setTemporaryImagingStatus(`جاري تحليل ${file.name} بواسطة OpenAI لتحديد نوع الأشعة والعضو...`);
+  setTemporaryImagingStatus(`جاري تحليل ${file.name} لتحديد نوع الأشعة والعضو...`);
   try {
     const imageData = file.type.startsWith("image/") ? await readFileAsDataUrl(file) : null;
     const imageHints = imageData ? await analyzeMedicalImageHints(imageData) : null;

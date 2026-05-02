@@ -521,7 +521,7 @@ async function classifyImagingWithOpenAi(upload = {}) {
     const data = await response.json();
     const text = data.output_text || extractResponseText(data);
     if (!text) return null;
-    return normalizeImagingAnalysis(parseAiJson(text), "openai", upload);
+    return normalizeImagingAnalysis(parseAiJson(text), "llm", upload);
   } catch {
     return null;
   } finally {
@@ -604,7 +604,7 @@ function inferImagingLocally(upload = {}) {
     confidence: organ === "unknown" ? 52 : 62,
     qualityScore: estimateImagingQuality(upload, fileSize),
     finding: "",
-    reason: "تم الاستدلال محليًا لأن تحليل OpenAI للصورة غير متاح."
+    reason: "تم الاستدلال محليًا لأن تحليل LLM للصورة غير متاح."
   };
 }
 
@@ -673,7 +673,7 @@ function estimateImagingQuality(upload, fileSize) {
 
 function buildImagingFinding(modality, region, organ, qualityScore, source = "local-fallback") {
   const qualityLabel = qualityScore >= 78 ? "جودة عالية" : qualityScore >= 58 ? "جودة متوسطة" : "جودة محدودة";
-  const sourceLabel = source === "openai" ? "OpenAI" : "تحليل محلي مبدئي";
+  const sourceLabel = source === "llm" ? "LLM" : "تحليل محلي مبدئي";
   return `${qualityLabel}: حدد ${sourceLabel} أن الصورة أقرب إلى ${modality.label} لمنطقة ${region.label} وعضو ${organ.label} لتقوية مطابقة الأعضاء والمؤشرات داخل النموذج.`;
 }
 
@@ -1039,7 +1039,7 @@ function parseAiJson(text) {
     const start = cleaned.indexOf("{");
     const end = cleaned.lastIndexOf("}");
     if (start >= 0 && end > start) return JSON.parse(cleaned.slice(start, end + 1));
-    throw new Error("OpenAI response was not JSON");
+    throw new Error("LLM response was not JSON");
   }
 }
 
@@ -1052,7 +1052,7 @@ function normalizeOpenAiAnalysis(parsed, model) {
       ? parsed.answer.trim()
       : buildOpenAiFallbackAnswer(actions, evidence);
   return {
-    source: "openai",
+    source: "llm",
     model,
     answer,
     confidence: clamp(Number(parsed.confidence || 0.8), 0, 1),
