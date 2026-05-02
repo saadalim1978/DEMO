@@ -613,7 +613,6 @@ function addBodyTwinModel() {
   });
   if (usingIntegratedAnatomy) {
     withLayer("effects", () => {
-      createBloodParticles();
       createDiseaseLayers();
       createGlucoseParticles();
     });
@@ -983,6 +982,7 @@ function prepareIntegratedAnatomyEntries(entries, box) {
   layerGroups.vessels?.add(integratedGroups.vessels);
   bodyParts.skin = integratedGroups.skin;
   bodyParts.vessels = integratedGroups.vessels;
+  const integratedVesselWrappers = [];
 
   entries.forEach(({ object: child, config }) => {
     const wrapper = new THREE.Group();
@@ -994,6 +994,11 @@ function prepareIntegratedAnatomyEntries(entries, box) {
     wrapper.add(child);
     prepareIntegratedPart(child, config);
     integratedGroups[config.layer]?.add(wrapper);
+    if (config.layer === "vessels") {
+      wrapper.userData.vesselType = config.type;
+      wrapper.userData.vesselKey = config.key;
+      integratedVesselWrappers.push({ wrapper, config });
+    }
 
     if (config.layer === "organs" && config.bodyPartKey) {
       wrapper.userData.organKey = config.organKey;
@@ -1004,6 +1009,8 @@ function prepareIntegratedAnatomyEntries(entries, box) {
 
   const edge = createBodyInspectionWindow();
   integratedGroups.skin.add(edge);
+  humanGroup?.updateMatrixWorld(true);
+  withLayer("vessels", () => createIntegratedVesselFlows(integratedVesselWrappers));
 }
 
 function collectIntegratedPartRoots(sceneModel) {
@@ -1766,6 +1773,84 @@ function createBloodParticles() {
   veinPaths.forEach((path) => createFlowParticles(path, "vein"));
 }
 
+function createIntegratedVesselFlows(entries = []) {
+  entries.forEach(({ wrapper, config }) => {
+    const kind = config.type === "vein" ? "vein" : "artery";
+    const paths = extractVesselCenterlines(wrapper, config.key, kind);
+    paths.forEach((points, index) => {
+      createFlowParticles({
+        points,
+        radius: kind === "vein" ? 0.026 : 0.03,
+        name: `integrated-${config.key}-${index}`
+      }, kind);
+    });
+  });
+}
+
+function extractVesselCenterlines(wrapper, key = "", kind = "artery") {
+  const vertices = collectVesselWorldVertices(wrapper);
+  if (vertices.length < 8) return [];
+  const lowerKey = key.toLowerCase();
+  if (lowerKey.includes("arm") || lowerKey.includes("leg")) {
+    return [-1, 1]
+      .map((side) => centerlineFromPointCloud(vertices.filter((point) => point.x * side > 0.04), kind))
+      .filter((path) => path.length >= 3);
+  }
+  return [centerlineFromPointCloud(vertices, kind)].filter((path) => path.length >= 3);
+}
+
+function collectVesselWorldVertices(root) {
+  const vertices = [];
+  const scratch = new THREE.Vector3();
+  const targetLayer = layerGroups.effects || humanGroup;
+  root.updateWorldMatrix(true, true);
+  targetLayer?.updateWorldMatrix(true, false);
+  root.traverse((child) => {
+    const position = child.isMesh ? child.geometry?.attributes?.position : null;
+    if (!position) return;
+    const step = Math.max(1, Math.floor(position.count / 900));
+    for (let index = 0; index < position.count; index += step) {
+      scratch.fromBufferAttribute(position, index);
+      child.localToWorld(scratch);
+      targetLayer?.worldToLocal(scratch);
+      vertices.push(scratch.clone());
+    }
+  });
+  return vertices;
+}
+
+function centerlineFromPointCloud(points, kind) {
+  if (points.length < 8) return [];
+  const box = new THREE.Box3().setFromPoints(points);
+  const height = box.max.y - box.min.y;
+  if (height <= 0.01) return [];
+  const binCount = Math.max(4, Math.min(9, Math.round(height * 2.2)));
+  const path = [];
+  for (let bin = 0; bin < binCount; bin += 1) {
+    const top = box.max.y - (bin / binCount) * height;
+    const bottom = box.max.y - ((bin + 1) / binCount) * height;
+    const group = points.filter((point) => point.y <= top && point.y >= bottom);
+    if (group.length < 4) continue;
+    path.push(averageVesselPoint(group));
+  }
+  if (kind === "vein") path.reverse();
+  return simplifyFlowPath(path);
+}
+
+function averageVesselPoint(points) {
+  const total = points.reduce((sum, point) => sum.add(point), new THREE.Vector3());
+  return total.multiplyScalar(1 / points.length);
+}
+
+function simplifyFlowPath(points) {
+  const compact = [];
+  points.forEach((point) => {
+    const previous = compact[compact.length - 1];
+    if (!previous || previous.distanceTo(point) > 0.035) compact.push(point);
+  });
+  return compact;
+}
+
 function createFlowParticles({ points, radius, name }, kind) {
   const vectors = points.map(vectorFromPoint);
   const curve = new THREE.CatmullRomCurve3(vectors);
@@ -1775,11 +1860,13 @@ function createFlowParticles({ points, radius, name }, kind) {
   const flowMaterial = new THREE.MeshBasicMaterial({
     color: isVein ? 0x6ee7ff : 0xff7a86,
     transparent: true,
-    opacity: isVein ? 0.88 : 0.94,
-    depthWrite: false
+    opacity: isVein ? 0.9 : 0.94,
+    depthWrite: false,
+    depthTest: false
   });
   for (let i = 0; i < count; i += 1) {
     const particle = new THREE.Mesh(new THREE.SphereGeometry(radius, 12, 12), flowMaterial.clone());
+    particle.renderOrder = 8;
     const t = i / count;
     particle.position.copy(curve.getPointAt(t));
     particle.userData = {
@@ -1933,11 +2020,13 @@ function addVesselFlow(points, radius, material, name) {
     color,
     transparent: true,
     opacity: isVein ? 0.92 : 0.95,
-    depthWrite: false
+    depthWrite: false,
+    depthTest: false
   });
   const curve = new THREE.CatmullRomCurve3(points);
   for (let i = 0; i < count; i += 1) {
     const particle = new THREE.Mesh(new THREE.SphereGeometry(Math.max(radius * 1.8, 0.012), 12, 12), flowMaterial.clone());
+    particle.renderOrder = 8;
     const t = i / count;
     particle.position.copy(curve.getPointAt(t));
     particle.userData = {
@@ -2746,7 +2835,7 @@ function animateParticles(delta, elapsed) {
     particle.material.color.setHex(flowColor);
     const pulse = particle.userData.baseScale * (1 + Math.sin(elapsed * 8 + particle.userData.pulse) * 0.22);
     particle.scale.setScalar(pulse);
-    if (particle.material.transparent) particle.material.opacity = 0.58 + Math.sin(elapsed * 5 + particle.userData.pulse) * 0.18 + (clotDrag < 1 ? -0.18 : 0);
+    if (particle.material.transparent) particle.material.opacity = 0.78 + Math.sin(elapsed * 5 + particle.userData.pulse) * 0.16 + (clotDrag < 1 ? -0.18 : 0);
   });
 
   glucoseParticles.forEach((particle) => {
