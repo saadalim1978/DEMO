@@ -10,6 +10,8 @@ const port = Number(process.env.PORT || 4321);
 const host = process.env.HOST || (process.env.RENDER ? "0.0.0.0" : "127.0.0.1");
 const defaultOpenAiModel = "gpt-5.1";
 const defaultOpenAiTimeoutMs = 45000;
+const aiAnswerMaxChars = 450;
+const aiListMaxItems = 3;
 
 let activeScenario = "baseline";
 let activeIntervention = "observe";
@@ -926,7 +928,7 @@ async function openAiBodyAnalyst(question, state) {
           {
             role: "system",
             content:
-              "You are an Arabic human-body digital twin clinical decision-support analyst. Analyze the simulated sensor values, organs, scenario, intervention, trend, risk predictions, and imaging evidence. Do not provide a diagnosis, prescription, medication dose, or personalized treatment plan. If the user asks about العلاج, الإجراء العلاجي, treatment, procedure, or management, answer with a practical care pathway: urgent red flags, likely clinical assessments, imaging/labs a clinician may request, and possible clinician-supervised options. Never tell the user to start/stop a medicine. If values look urgent, clearly advise seeking emergency or real medical care. Return valid JSON only with keys: answer, severity, confidence, actions, evidence. The answer key is required and must contain a complete Arabic paragraph. severity must be stable, watch, or critical. confidence must be a number from 0 to 1. Keep answer and lists in Arabic."
+              "You are an Arabic human-body digital twin clinical decision-support analyst. Analyze the simulated sensor values, organs, scenario, intervention, trend, risk predictions, and imaging evidence. Write a concise Arabic answer only: 3 to 5 short lines, maximum 450 characters, no long explanation. Focus on the conclusion and the most important next steps. Include one short line that starts exactly with: اقتراح علاجي آمن: and gives a general clinician-supervised care suggestion. Do not provide a diagnosis, prescription, medication dose, or personalized treatment plan. If the user asks about العلاج, الإجراء العلاجي, treatment, procedure, or management, answer with a practical care pathway: urgent red flags, likely clinical assessments, imaging/labs a clinician may request, and possible clinician-supervised options. Never tell the user to start/stop a medicine. If values look urgent, clearly advise seeking emergency or real medical care. Return valid JSON only with keys: answer, severity, confidence, actions, evidence. severity must be stable, watch, or critical. confidence must be a number from 0 to 1. actions must contain at most 3 Arabic items. evidence must contain at most 3 Arabic items."
           },
           { role: "user", content: JSON.stringify({ question, state: buildOpenAiContext(state) }) }
         ]
@@ -1043,12 +1045,13 @@ function parseAiJson(text) {
 
 function normalizeOpenAiAnalysis(parsed, model) {
   const severity = ["stable", "watch", "critical"].includes(parsed.severity) ? parsed.severity : "watch";
-  const actions = toStringList(parsed.actions).slice(0, 5);
-  const evidence = toStringList(parsed.evidence).slice(0, 6);
-  const answer =
+  const actions = toStringList(parsed.actions).slice(0, aiListMaxItems);
+  const evidence = toStringList(parsed.evidence).slice(0, aiListMaxItems);
+  const rawAnswer =
     typeof parsed.answer === "string" && parsed.answer.trim()
-      ? parsed.answer.trim()
+      ? parsed.answer
       : buildOpenAiFallbackAnswer(actions, evidence);
+  const answer = compactAiAnswer(ensureSafeTreatmentSuggestion(rawAnswer, severity));
   return {
     source: "llm",
     model,
@@ -1067,7 +1070,39 @@ function buildOpenAiFallbackAnswer(actions, evidence) {
   const actionLine = actions.length
     ? `الخطوة المقترحة: ${actions[0]}`
     : "يوصى بمراجعة مسار الرعاية المناسب وربط المؤشرات بنتائج الفحص والتصوير.";
-  return `${evidenceLine} ${actionLine}`;
+  return compactAiAnswer(`${evidenceLine} ${actionLine}`);
+}
+
+function ensureSafeTreatmentSuggestion(answer, severity = "watch") {
+  const text = String(answer || "").trim();
+  if (/اقتراح\s+علاجي\s+آمن/.test(text)) return text;
+  const suggestion =
+    severity === "critical"
+      ? "اقتراح علاجي آمن: اطلب تقييماً طبياً عاجلاً ولا تبدأ أي دواء دون وصفة."
+      : "اقتراح علاجي آمن: ناقش النتائج مع الطبيب لتحديد الفحوصات أو التدخل المناسب دون بدء دواء ذاتياً.";
+  const reservedForSuggestion = Math.max(120, aiAnswerMaxChars - suggestion.length - 1);
+  const conciseText = compactAiAnswer(text, reservedForSuggestion, 4);
+  return conciseText ? `${conciseText}\n${suggestion}` : suggestion;
+}
+
+function compactAiAnswer(value, maxChars = aiAnswerMaxChars, maxLines = 5) {
+  const raw = String(value || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{2,}/g, "\n")
+    .trim();
+  if (!raw) return "";
+  const explicitLines = raw.split("\n").map((line) => line.trim()).filter(Boolean);
+  const lines =
+    explicitLines.length > 1
+      ? explicitLines
+      : raw
+          .split(/(?<=[.!؟])\s+/)
+          .map((line) => line.trim())
+          .filter(Boolean);
+  const compact = lines.slice(0, maxLines).join("\n").trim();
+  if (compact.length <= maxChars) return compact;
+  return `${compact.slice(0, Math.max(0, maxChars - 3)).trimEnd()}...`;
 }
 
 function toStringList(value) {
