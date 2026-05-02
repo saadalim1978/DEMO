@@ -1721,6 +1721,7 @@ function createFootVessels(side, artery, vein) {
 
 function createDiseaseLayers() {
   disease.pancreasGlow = addGlowSphere([-0.02, 0.68, 0.13], [0.5, 0.16, 0.12], 0xf4b740);
+  disease.lungImaging = createLungImagingOverlay();
   disease.glucoseField = new THREE.Group();
   disease.pressure = new THREE.Group();
   disease.clot = createClotGroup([-0.18, -1.58, 0.02], 0.68);
@@ -1749,6 +1750,62 @@ function createDiseaseLayers() {
   Object.values(disease).forEach((item) => {
     if (item) item.visible = false;
   });
+}
+
+function createLungImagingOverlay() {
+  const group = new THREE.Group();
+  const glowMaterial = new THREE.MeshBasicMaterial({
+    color: 0x67e8f9,
+    transparent: true,
+    opacity: 0.3,
+    depthWrite: false,
+    depthTest: false
+  });
+  const ringMaterial = new THREE.MeshBasicMaterial({
+    color: 0xbaf7ff,
+    transparent: true,
+    opacity: 0.85,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+    depthTest: false
+  });
+  const scanMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.58,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+    depthTest: false
+  });
+  [
+    [-0.19, 1.38, 0.12],
+    [0.19, 1.38, 0.12]
+  ].forEach((position, index) => {
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 20), glowMaterial.clone());
+    glow.position.set(...position);
+    glow.scale.set(0.3, 0.38, 0.18);
+    glow.renderOrder = 9;
+    glow.userData.imagingKind = "glow";
+    group.add(glow);
+
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.006, 10, 72), ringMaterial.clone());
+    ring.position.set(position[0], position[1], position[2] + 0.04);
+    ring.scale.set(0.84, 1.12, 1);
+    ring.renderOrder = 10;
+    ring.userData.imagingKind = "ring";
+    ring.userData.phase = index * Math.PI;
+    group.add(ring);
+
+    const scan = new THREE.Mesh(new THREE.PlaneGeometry(0.36, 0.018), scanMaterial.clone());
+    scan.position.set(position[0], position[1], position[2] + 0.07);
+    scan.renderOrder = 11;
+    scan.userData.imagingKind = "scan";
+    scan.userData.baseY = position[1];
+    scan.userData.phase = index * 0.75;
+    group.add(scan);
+  });
+  (layerGroups.organs || activeLayerGroup || humanGroup)?.add(group);
+  return group;
 }
 
 function createBloodParticles() {
@@ -2259,6 +2316,7 @@ function updateDiseaseVisuals(state) {
   const stroke = has("stroke");
   const carotid = has("carotid");
   const kidney = has("kidney");
+  const lungImaging = hasChestLungImaging(state.imaging);
 
   if (diabetes) {
     disease.pancreasGlow.visible = true;
@@ -2286,6 +2344,16 @@ function updateDiseaseVisuals(state) {
   if (lungClot) {
     disease.lungClot.visible = true;
     disease.lungClot.position.set(...lungClot.position);
+  }
+  if (lungImaging && disease.lungImaging) {
+    disease.lungImaging.visible = true;
+    const confidence = Math.max(0.45, Math.min(1, Number(state.imaging?.latest?.confidence || 80) / 100));
+    disease.lungImaging.children.forEach((item) => {
+      item.visible = true;
+      if (item.userData.imagingKind === "ring") item.material.opacity = 0.58 + confidence * 0.28;
+      else if (item.userData.imagingKind === "scan") item.material.opacity = 0.36 + confidence * 0.28;
+      else item.material.opacity = 0.16 + confidence * 0.3;
+    });
   }
   if (stroke) {
     disease.brain.visible = true;
@@ -2389,6 +2457,9 @@ function renderImaging(imaging = {}) {
   dom.imagingStatus.textContent =
     Date.now() < imagingStatusOverrideUntil ? imagingStatusOverride : imaging.note || "لم يتم رفع صور أشعة بعد";
   const studies = imaging.studies || [];
+  if (studies.length && imaging.latest && Date.now() >= imagingStatusOverrideUntil) {
+    dom.imagingStatus.textContent = `آخر صورة: ${imaging.latest.modalityLabel} · ${imaging.latest.regionLabel} · ${imaging.latest.detectedOrganLabel || "عضو غير محدد"}`;
+  }
   if (dom.clearImagingBtn) dom.clearImagingBtn.disabled = !studies.length;
   dom.imagingList.innerHTML = studies.length
     ? studies
@@ -2611,6 +2682,10 @@ async function handleImagingUpload() {
     });
     if (!response.ok) throw new Error("Upload failed");
     twinState = await response.json();
+    if (hasChestLungImaging(twinState?.imaging)) {
+      selectedOrganKey = "lungs";
+      selectedSensorId = "oxygen";
+    }
     renderTwin(twinState);
     const latest = twinState?.imaging?.latest;
     const detected = latest
@@ -2623,6 +2698,23 @@ async function handleImagingUpload() {
   } finally {
     setImagingControlsBusy(false);
   }
+}
+
+function hasChestLungImaging(imaging = {}) {
+  const latest = imaging.latest;
+  if (!latest) return false;
+  const text = [
+    latest.region,
+    latest.regionLabel,
+    latest.detectedOrgan,
+    latest.detectedOrganLabel,
+    latest.finding,
+    latest.modelImpact
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return latest.region === "chest" || latest.detectedOrgan === "lungs" || /chest|lung|صدر|رئ/.test(text);
 }
 
 async function clearImagingUpload() {
@@ -2855,6 +2947,18 @@ function wrapFlowProgress(value) {
 }
 
 function animateDiseaseLayers(elapsed) {
+  if (disease.lungImaging?.visible) {
+    const pulse = 1 + Math.sin(elapsed * 2.4) * 0.045;
+    disease.lungImaging.scale.set(pulse, pulse, pulse);
+    disease.lungImaging.children.forEach((item) => {
+      if (item.userData.imagingKind === "ring") {
+        const localPulse = 1 + Math.sin(elapsed * 3 + item.userData.phase) * 0.08;
+        item.scale.set(0.84 * localPulse, 1.12 * localPulse, 1);
+      } else if (item.userData.imagingKind === "scan") {
+        item.position.y = item.userData.baseY + Math.sin(elapsed * 2.1 + item.userData.phase) * 0.17;
+      }
+    });
+  }
   if (disease.pressure?.visible) {
     disease.pressure.children.forEach((ring, index) => {
       ring.scale.setScalar(1 + Math.sin(elapsed * 2.2 + index) * 0.08);
