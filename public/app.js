@@ -1775,6 +1775,7 @@ function createBloodParticles() {
 
 function createIntegratedVesselFlows(entries = []) {
   entries.forEach(({ wrapper, config }) => {
+    if (!isLimbVesselKey(config.key)) return;
     const kind = config.type === "vein" ? "vein" : "artery";
     const paths = extractVesselCenterlines(wrapper, config.key, kind);
     paths.forEach((points, index) => {
@@ -1787,6 +1788,10 @@ function createIntegratedVesselFlows(entries = []) {
   });
 }
 
+function isLimbVesselKey(key = "") {
+  return /^(arm|leg)_/i.test(key);
+}
+
 function extractVesselCenterlines(wrapper, key = "", kind = "artery") {
   const vertices = collectVesselWorldVertices(wrapper);
   if (vertices.length < 8) return [];
@@ -1796,7 +1801,7 @@ function extractVesselCenterlines(wrapper, key = "", kind = "artery") {
       .map((side) => centerlineFromPointCloud(vertices.filter((point) => point.x * side > 0.04), kind))
       .filter((path) => path.length >= 3);
   }
-  return [centerlineFromPointCloud(vertices, kind)].filter((path) => path.length >= 3);
+  return [];
 }
 
 function collectVesselWorldVertices(root) {
