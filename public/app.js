@@ -2462,6 +2462,7 @@ async function handleImagingUpload() {
   setTemporaryImagingStatus(`جاري تحليل ${file.name} بواسطة OpenAI لتحديد نوع الأشعة والعضو...`);
   try {
     const imageData = file.type.startsWith("image/") ? await readFileAsDataUrl(file) : null;
+    const imageHints = imageData ? await analyzeMedicalImageHints(imageData) : null;
     const response = await fetch("/api/imaging/upload", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -2469,7 +2470,8 @@ async function handleImagingUpload() {
         fileName: file.name,
         fileType: file.type || "application/octet-stream",
         fileSize: file.size,
-        imageData
+        imageData,
+        imageHints
       })
     });
     if (!response.ok) throw new Error("Upload failed");
@@ -2523,6 +2525,104 @@ function readFileAsDataUrl(file) {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+
+async function analyzeMedicalImageHints(imageData) {
+  try {
+    const image = await loadImageForAnalysis(imageData);
+    const maxSize = 96;
+    const scale = Math.min(1, maxSize / Math.max(image.naturalWidth, image.naturalHeight));
+    const width = Math.max(24, Math.round(image.naturalWidth * scale));
+    const height = Math.max(24, Math.round(image.naturalHeight * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) return null;
+    context.drawImage(image, 0, 0, width, height);
+    const pixels = context.getImageData(0, 0, width, height).data;
+    return scoreMedicalImagePixels(pixels, width, height, image.naturalWidth, image.naturalHeight);
+  } catch {
+    return null;
+  }
+}
+
+function loadImageForAnalysis(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = src;
+  });
+}
+
+function scoreMedicalImagePixels(pixels, width, height, naturalWidth, naturalHeight) {
+  const stats = (x0, y0, x1, y1) => {
+    const minX = Math.max(0, Math.floor(x0 * width));
+    const maxX = Math.min(width, Math.ceil(x1 * width));
+    const minY = Math.max(0, Math.floor(y0 * height));
+    const maxY = Math.min(height, Math.ceil(y1 * height));
+    let count = 0;
+    let luminance = 0;
+    let dark = 0;
+    let bright = 0;
+    let rgbDiff = 0;
+    for (let y = minY; y < maxY; y += 1) {
+      for (let x = minX; x < maxX; x += 1) {
+        const index = (y * width + x) * 4;
+        const r = pixels[index];
+        const g = pixels[index + 1];
+        const b = pixels[index + 2];
+        const luma = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+        luminance += luma;
+        dark += luma < 0.23 ? 1 : 0;
+        bright += luma > 0.72 ? 1 : 0;
+        rgbDiff += (Math.abs(r - g) + Math.abs(g - b) + Math.abs(r - b)) / 3;
+        count += 1;
+      }
+    }
+    return {
+      luminance: count ? luminance / count : 0,
+      dark: count ? dark / count : 0,
+      bright: count ? bright / count : 0,
+      grayDiff: count ? rgbDiff / count : 255
+    };
+  };
+
+  const whole = stats(0, 0, 1, 1);
+  const leftLung = stats(0.18, 0.18, 0.44, 0.68);
+  const rightLung = stats(0.56, 0.18, 0.82, 0.68);
+  const centerChest = stats(0.45, 0.12, 0.55, 0.78);
+  const topShoulders = stats(0.06, 0.04, 0.94, 0.28);
+  const lungLuma = (leftLung.luminance + rightLung.luminance) / 2;
+  const grayscaleScore = clamp01(1 - whole.grayDiff / 70);
+  const symmetryScore = clamp01(1 - Math.abs(leftLung.luminance - rightLung.luminance) / 0.28);
+  const centerContrastScore = clamp01((centerChest.luminance - lungLuma + 0.02) / 0.24);
+  const lungDarkScore = clamp01((0.62 - lungLuma) / 0.45);
+  const shoulderSignalScore = clamp01((topShoulders.bright + topShoulders.luminance) / 1.18);
+  const darkBackgroundScore = clamp01(whole.dark / 0.42);
+  const chestXrayScore = clamp01(
+    grayscaleScore * 0.28 +
+      symmetryScore * 0.18 +
+      centerContrastScore * 0.24 +
+      lungDarkScore * 0.16 +
+      shoulderSignalScore * 0.08 +
+      darkBackgroundScore * 0.06
+  );
+  return {
+    width: naturalWidth,
+    height: naturalHeight,
+    aspectRatio: Number((naturalWidth / Math.max(1, naturalHeight)).toFixed(3)),
+    grayscaleScore: Number(grayscaleScore.toFixed(3)),
+    chestXrayScore: Number(chestXrayScore.toFixed(3)),
+    lungSymmetryScore: Number(symmetryScore.toFixed(3)),
+    centerContrastScore: Number(centerContrastScore.toFixed(3)),
+    lungDarkScore: Number(lungDarkScore.toFixed(3))
+  };
+}
+
+function clamp01(value) {
+  return Math.max(0, Math.min(1, Number(value) || 0));
 }
 
 function fileExtension(name = "") {

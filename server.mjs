@@ -458,9 +458,11 @@ async function registerImagingStudy(upload = {}) {
 }
 
 async function analyzeImagingUpload(upload = {}) {
+  const imageHintAnalysis = inferImagingFromImageHints(upload);
   const openAiAnalysis = await classifyImagingWithOpenAi(upload);
+  if (imageHintAnalysis && shouldPreferImageHint(openAiAnalysis, imageHintAnalysis)) return imageHintAnalysis;
   if (openAiAnalysis) return openAiAnalysis;
-  return inferImagingLocally(upload);
+  return imageHintAnalysis || inferImagingLocally(upload);
 }
 
 async function classifyImagingWithOpenAi(upload = {}) {
@@ -521,9 +523,11 @@ async function classifyImagingWithOpenAi(upload = {}) {
 function normalizeImagingAnalysis(parsed = {}, source, upload = {}) {
   const inferred = inferImagingLocally(upload);
   const modality = imagingModalities[parsed.modality] ? parsed.modality : inferred.modality;
-  const organ = imagingOrgans[parsed.organ] ? parsed.organ : inferred.organ;
+  const parsedOrgan = imagingOrgans[parsed.organ] && parsed.organ !== "unknown" ? parsed.organ : inferred.organ;
+  const organ = imagingOrgans[parsedOrgan] ? parsedOrgan : inferred.organ;
   const regionFromOrgan = imagingOrgans[organ]?.region;
-  const region = imagingRegions[parsed.region] ? parsed.region : regionFromOrgan || inferred.region;
+  const parsedRegion = imagingRegions[parsed.region] && parsed.region !== "wholeBody" ? parsed.region : "";
+  const region = parsedRegion || regionFromOrgan || inferred.region;
   const confidenceValue = Number(parsed.confidence);
   const confidence = confidenceValue <= 1 ? confidenceValue * 100 : confidenceValue;
   return {
@@ -545,6 +549,9 @@ function normalizeImagingAnalysis(parsed = {}, source, upload = {}) {
 }
 
 function inferImagingLocally(upload = {}) {
+  const imageHintAnalysis = inferImagingFromImageHints(upload);
+  if (imageHintAnalysis) return imageHintAnalysis;
+
   const text = `${upload.fileName || ""} ${upload.fileType || ""}`.toLowerCase();
   const modality = /mri|magnetic|رنين/.test(text)
     ? "mri"
@@ -586,6 +593,40 @@ function inferImagingLocally(upload = {}) {
     finding: "",
     reason: "تم الاستدلال محليًا لأن تحليل OpenAI للصورة غير متاح."
   };
+}
+
+function inferImagingFromImageHints(upload = {}) {
+  const hints = upload.imageHints && typeof upload.imageHints === "object" ? upload.imageHints : null;
+  if (!hints) return null;
+  const chestScore = Number(hints.chestXrayScore || 0);
+  const grayscaleScore = Number(hints.grayscaleScore || 0);
+  const centerContrastScore = Number(hints.centerContrastScore || 0);
+  if (chestScore < 0.62 || grayscaleScore < 0.58 || centerContrastScore < 0.32) return null;
+  const fileSize = clamp(Number(upload.fileSize || 0), 0, 12 * 1024 * 1024);
+  const qualityScore = estimateImagingQuality(upload, fileSize);
+  const confidence = clamp(Math.round(58 + chestScore * 37), 72, 95);
+  return {
+    source: "local-image-hint",
+    modality: "xray",
+    region: "chest",
+    organ: "lungs",
+    confidence,
+    qualityScore,
+    finding: "تم التعرف على الصورة كنمط أشعة صدر X-Ray وربطها بمنطقة الصدر والرئتين لزيادة دقة التوأم الرقمي.",
+    reason: `تحليل بصري محلي: درجة نمط أشعة الصدر ${Math.round(chestScore * 100)}%.`
+  };
+}
+
+function shouldPreferImageHint(openAiAnalysis, imageHintAnalysis) {
+  if (!imageHintAnalysis) return false;
+  if (!openAiAnalysis) return true;
+  const openAiUnclear = openAiAnalysis.organ === "unknown" || openAiAnalysis.region === "wholeBody";
+  const openAiWeak = Number(openAiAnalysis.confidence || 0) < Number(imageHintAnalysis.confidence || 0) - 5;
+  const chestXrayMismatch =
+    openAiAnalysis.modality === "xray" &&
+    (openAiAnalysis.region !== "chest" || !["lungs", "heart"].includes(openAiAnalysis.organ)) &&
+    Number(imageHintAnalysis.confidence || 0) >= 78;
+  return openAiUnclear || openAiWeak || chestXrayMismatch;
 }
 
 function buildImagingSummary() {
