@@ -208,6 +208,12 @@ const sensorTemplates = [
   { id: "neuroPerfusion", name: "تروية الدماغ", metric: "neuroPerfusion", unit: "%", base: 98, amplitude: 2, decimals: 0, phase: 1.4, zone: "الدماغ", position: [0, 2.48, 0.06], warningLow: 85, criticalLow: 70 },
   { id: "vascularStiffness", name: "تيبس الأوعية", metric: "vascularStiffness", unit: "%", base: 18, amplitude: 3, decimals: 0, phase: 5.1, zone: "الأوعية", position: [0.18, 0.95, 0.08], warningHigh: 45, criticalHigh: 70 },
   { id: "inflammation", name: "التهاب CRP", metric: "inflammation", unit: "mg/L", base: 1.1, amplitude: 0.25, decimals: 1, phase: 2.2, zone: "التهاب", position: [0.06, 0.08, 0.08], warningHigh: 3, criticalHigh: 10 },
+  { id: "smallIntestineMotility", name: "حركة الأمعاء الدقيقة", metric: "smallIntestineMotility", unit: "%", base: 88, amplitude: 4, decimals: 0, phase: 1.05, zone: "الأمعاء الدقيقة", position: [-0.08, 0.31, 0.17], warningLow: 65, criticalLow: 45 },
+  { id: "nutrientAbsorption", name: "امتصاص المغذيات", metric: "nutrientAbsorption", unit: "%", base: 92, amplitude: 3, decimals: 0, phase: 2.45, zone: "الأمعاء الدقيقة", position: [0.08, 0.24, 0.17], warningLow: 75, criticalLow: 55 },
+  { id: "smallIntestineInflammation", name: "التهاب الأمعاء الدقيقة", metric: "smallIntestineInflammation", unit: "mg/L", base: 1.0, amplitude: 0.22, decimals: 1, phase: 3.15, zone: "الأمعاء الدقيقة", position: [0, 0.38, 0.18], warningHigh: 3, criticalHigh: 10 },
+  { id: "largeIntestineMotility", name: "حركة الأمعاء الغليظة", metric: "largeIntestineMotility", unit: "%", base: 84, amplitude: 5, decimals: 0, phase: 4.05, zone: "الأمعاء الغليظة", position: [-0.2, 0.46, 0.16], warningLow: 62, criticalLow: 42 },
+  { id: "fluidAbsorption", name: "امتصاص السوائل", metric: "fluidAbsorption", unit: "%", base: 91, amplitude: 3, decimals: 0, phase: 0.35, zone: "الأمعاء الغليظة", position: [0.2, 0.46, 0.16], warningLow: 75, criticalLow: 55 },
+  { id: "colonInflammation", name: "التهاب الأمعاء الغليظة", metric: "colonInflammation", unit: "mg/L", base: 1.2, amplitude: 0.25, decimals: 1, phase: 5.25, zone: "الأمعاء الغليظة", position: [0, 0.52, 0.17], warningHigh: 3, criticalHigh: 10 },
   { id: "painScore", name: "ألم/تنميل محاكى", metric: "painScore", unit: "/10", base: 0, amplitude: 0.3, decimals: 0, phase: 0.3, zone: "الأعراض", position: [-0.38, -0.7, 0.04], warningHigh: 4, criticalHigh: 7 }
 ];
 
@@ -219,7 +225,8 @@ const anatomy = [
   { id: "spleen", name: "الطحال", color: "#9254de", region: "immune" },
   { id: "stomach", name: "المعدة", color: "#ff9f80", region: "digestive" },
   { id: "pancreas", name: "البنكرياس", color: "#f4b740", region: "metabolic" },
-  { id: "intestines", name: "الأمعاء", color: "#ffb3a7", region: "digestive" },
+  { id: "smallIntestine", name: "الأمعاء الدقيقة", color: "#ffb3a7", region: "digestive" },
+  { id: "largeIntestine", name: "الأمعاء الغليظة", color: "#d68a7c", region: "digestive" },
   { id: "kidneys", name: "الكلى", color: "#c084fc", region: "renal" },
   { id: "bladder", name: "المثانة", color: "#ff77aa", region: "renal" },
   { id: "vessels", name: "الأوعية", color: "#ff5d73", region: "vascular" }
@@ -235,10 +242,10 @@ const imagingModalities = {
 const imagingRegions = {
   brain: { id: "brain", label: "الدماغ", systems: ["brain", "vessels"], risk: "stroke" },
   chest: { id: "chest", label: "الصدر", systems: ["lungs", "heart", "vessels"], risk: "cardio" },
-  abdomen: { id: "abdomen", label: "البطن", systems: ["liver", "spleen", "stomach", "pancreas", "intestines"], risk: "metabolic" },
+  abdomen: { id: "abdomen", label: "البطن", systems: ["liver", "spleen", "stomach", "pancreas", "smallIntestine", "largeIntestine"], risk: "metabolic" },
   pelvis: { id: "pelvis", label: "الحوض", systems: ["kidneys", "bladder", "vessels"], risk: "renal" },
   vascular: { id: "vascular", label: "الأوعية", systems: ["vessels", "heart"], risk: "vascular" },
-  wholeBody: { id: "wholeBody", label: "كامل الجسم", systems: ["brain", "heart", "lungs", "kidneys", "vessels"], risk: "global" }
+  wholeBody: { id: "wholeBody", label: "كامل الجسم", systems: ["brain", "heart", "lungs", "stomach", "smallIntestine", "largeIntestine", "kidneys", "vessels"], risk: "global" }
 };
 
 const imagingOrgans = {
@@ -252,6 +259,8 @@ const imagingOrgans = {
   kidneys: { id: "kidneys", label: "الكلى", region: "pelvis" },
   bladder: { id: "bladder", label: "المثانة", region: "pelvis" },
   intestines: { id: "intestines", label: "الأمعاء", region: "abdomen" },
+  smallIntestine: { id: "smallIntestine", label: "الأمعاء الدقيقة", region: "abdomen" },
+  largeIntestine: { id: "largeIntestine", label: "الأمعاء الغليظة", region: "abdomen" },
   vessels: { id: "vessels", label: "الأوعية", region: "vascular" },
   bones: { id: "bones", label: "العظام", region: "wholeBody" },
   unknown: { id: "unknown", label: "غير محدد", region: "wholeBody" }
@@ -489,7 +498,7 @@ async function classifyImagingWithOpenAi(upload = {}) {
           {
             role: "system",
             content:
-              "You classify medical imaging screenshots for a non-diagnostic digital-twin demo. Return valid JSON only. Do not diagnose disease. Choose modality from: ct, mri, xray, ultrasound. Choose region from: brain, chest, abdomen, pelvis, vascular, wholeBody. Choose organ from: brain, lungs, heart, liver, stomach, pancreas, kidneys, bladder, intestines, vessels, bones, unknown. Provide Arabic finding and reason. Keys: modality, region, organ, confidence, qualityScore, finding, reason."
+              "You classify medical imaging screenshots for a non-diagnostic digital-twin demo. Return valid JSON only. Do not diagnose disease. Choose modality from: ct, mri, xray, ultrasound. Choose region from: brain, chest, abdomen, pelvis, vascular, wholeBody. Choose organ from: brain, lungs, heart, liver, stomach, pancreas, kidneys, bladder, intestines, smallIntestine, largeIntestine, vessels, bones, unknown. Provide Arabic finding and reason. Keys: modality, region, organ, confidence, qualityScore, finding, reason."
           },
           {
             role: "user",
@@ -576,11 +585,15 @@ function inferImagingLocally(upload = {}) {
               ? "liver"
               : /pancreas|بنكرياس/.test(text)
                 ? "pancreas"
-                : /abdomen|بطن|stomach|معدة/.test(text)
-                  ? "stomach"
-                  : /vessel|vascular|doppler|وع/.test(text)
-                    ? "vessels"
-                    : "unknown";
+                : /small[-_\s]*intestine|jejunum|ileum|أمعاء دقيقة|امعاء دقيقة/.test(text)
+                  ? "smallIntestine"
+                  : /large[-_\s]*intestine|colon|colonoscopy|قولون|أمعاء غليظة|امعاء غليظة/.test(text)
+                    ? "largeIntestine"
+                    : /abdomen|بطن|stomach|معدة/.test(text)
+                      ? "stomach"
+                      : /vessel|vascular|doppler|وع/.test(text)
+                        ? "vessels"
+                        : "unknown";
   const region = imagingOrgans[organ]?.region || "wholeBody";
   const fileSize = clamp(Number(upload.fileSize || 0), 0, 12 * 1024 * 1024);
   return {
@@ -959,6 +972,12 @@ function buildOpenAiContext(state) {
     "neuroPerfusion",
     "vascularStiffness",
     "inflammation",
+    "smallIntestineMotility",
+    "nutrientAbsorption",
+    "smallIntestineInflammation",
+    "largeIntestineMotility",
+    "fluidAbsorption",
+    "colonInflammation",
     "painScore"
   ];
   const sensorsById = new Map(state.sensors.map((sensor) => [sensor.id, sensor]));

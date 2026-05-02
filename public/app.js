@@ -121,7 +121,9 @@ const organMetricLinks = {
   pancreas: { label: "البنكرياس", color: "#f4b740", sensors: ["glucose", "hba1c", "insulinResistance"] },
   kidneys: { label: "الكلى", color: "#c084fc", sensors: ["egfr", "systolic", "diastolic"] },
   bladder: { label: "المثانة", color: "#ff77aa", sensors: ["egfr"] },
-  intestines: { label: "الأمعاء", color: "#ffb3a7", sensors: ["bmi", "inflammation", "triglycerides"] },
+  smallIntestine: { label: "الأمعاء الدقيقة", color: "#ffb3a7", sensors: ["smallIntestineMotility", "nutrientAbsorption", "smallIntestineInflammation"] },
+  largeIntestine: { label: "الأمعاء الغليظة", color: "#d68a7c", sensors: ["largeIntestineMotility", "fluidAbsorption", "colonInflammation"] },
+  intestines: { label: "الأمعاء", color: "#ffb3a7", sensors: ["smallIntestineMotility", "nutrientAbsorption", "largeIntestineMotility", "fluidAbsorption", "inflammation"] },
   vessels: { label: "الأوعية الدموية", color: "#ff5d73", sensors: ["systolic", "diastolic", "clotRisk", "dDimer", "legFlow", "vascularStiffness"] }
 };
 const sensorOrganMap = {
@@ -142,7 +144,13 @@ const sensorOrganMap = {
   plateletCount: "spleen",
   legFlow: "vessels",
   vascularStiffness: "vessels",
-  bmi: "intestines",
+  smallIntestineMotility: "smallIntestine",
+  nutrientAbsorption: "smallIntestine",
+  smallIntestineInflammation: "smallIntestine",
+  largeIntestineMotility: "largeIntestine",
+  fluidAbsorption: "largeIntestine",
+  colonInflammation: "largeIntestine",
+  bmi: "smallIntestine",
   inflammation: "intestines",
   painScore: "vessels"
 };
@@ -371,7 +379,7 @@ if (renderer) requestAnimationFrame(animate);
 
 async function loadAnatomyManifest() {
   try {
-    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-32", { cache: "no-store" });
+    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-34", { cache: "no-store" });
     if (!response.ok) throw new Error(`Manifest HTTP ${response.status}`);
     const manifest = await response.json();
     if (manifest.integratedAnatomy) integratedAnatomyAsset = normalizeIntegratedAnatomy(manifest.integratedAnatomy);
@@ -1023,8 +1031,8 @@ function integratedPartConfig(name = "") {
     spleen: { recognized: true, layer: "organs", key: "spleen", bodyPartKey: "spleen", organKey: "spleen", color: 0x9254de, emissive: 0x261039, opacity: 0.82 },
     stomach: { recognized: true, layer: "organs", key: "stomach", bodyPartKey: "stomach", organKey: "stomach", color: 0xff9f80, emissive: 0x44140c, opacity: 0.88 },
     pancreas: { recognized: true, layer: "organs", key: "pancreas", bodyPartKey: "pancreas", organKey: "pancreas", color: 0xf4b740, emissive: 0x5a3600, opacity: 0.95 },
-    small_intestine: { recognized: true, layer: "organs", key: "small-intestine", bodyPartKey: "smallIntestine", organKey: "intestines", color: 0xffb3a7, emissive: 0x4e1b16, opacity: 0.82 },
-    large_intestine: { recognized: true, layer: "organs", key: "large-intestine", bodyPartKey: "largeIntestine", organKey: "intestines", color: 0xd68a7c, emissive: 0x4e1b16, opacity: 0.78 },
+    small_intestine: { recognized: true, layer: "organs", key: "small-intestine", bodyPartKey: "smallIntestine", organKey: "smallIntestine", color: 0xffb3a7, emissive: 0x4e1b16, opacity: 0.82 },
+    large_intestine: { recognized: true, layer: "organs", key: "large-intestine", bodyPartKey: "largeIntestine", organKey: "largeIntestine", color: 0xd68a7c, emissive: 0x4e1b16, opacity: 0.78 },
     kidney_left: { recognized: true, layer: "organs", key: "left-kidney", bodyPartKey: "leftKidney", organKey: "kidneys", color: 0xc084fc, emissive: 0x28113c, opacity: 0.9 },
     kidney_right: { recognized: true, layer: "organs", key: "right-kidney", bodyPartKey: "rightKidney", organKey: "kidneys", color: 0xc084fc, emissive: 0x28113c, opacity: 0.9 },
     bladder: { recognized: true, layer: "organs", key: "bladder", bodyPartKey: "bladder", organKey: "bladder", color: 0xff77aa, emissive: 0x4c0b24, opacity: 0.86 }
@@ -1309,7 +1317,6 @@ function organAssetMaterial(config) {
 
 function organGroupKey(key = "") {
   if (key === "leftKidney" || key === "rightKidney") return "kidneys";
-  if (key === "smallIntestine" || key === "largeIntestine") return "intestines";
   return key;
 }
 
@@ -1780,7 +1787,8 @@ function createAnatomyLabels() {
   createAnatomyLabel("المعدة", "#ff9f80", [0.66, 0.92, 0.2]);
   createAnatomyLabel("البنكرياس", "#f4b740", [-0.5, 0.7, 0.18]);
   createAnatomyLabel("الكلى", "#c084fc", [0.55, 0.62, 0.18]);
-  createAnatomyLabel("الأمعاء", "#ffb3a7", [0.55, 0.34, 0.18]);
+  createAnatomyLabel("الأمعاء الدقيقة", "#ffb3a7", [0.55, 0.38, 0.18]);
+  createAnatomyLabel("الأمعاء الغليظة", "#d68a7c", [0.55, 0.26, 0.18]);
   createAnatomyLabel("المثانة", "#ff77aa", [0.5, -0.12, 0.18]);
   createAnatomyLabel("الأوعية", "#ff5d73", [-0.6, 0.5, 0.18]);
 }
