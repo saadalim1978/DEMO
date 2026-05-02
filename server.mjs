@@ -8,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, "public");
 const port = Number(process.env.PORT || 4321);
 const host = process.env.HOST || (process.env.RENDER ? "0.0.0.0" : "127.0.0.1");
-const defaultOpenAiModel = "gpt-5.5";
+const defaultOpenAiModel = "gpt-5.1";
 const defaultOpenAiTimeoutMs = 45000;
 
 let activeScenario = "baseline";
