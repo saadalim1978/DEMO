@@ -1,5 +1,5 @@
 {
-  "version": "2026-05-01.model-v2-anatomy-parts-1",
+  "version": "2026-05-02.model-v2-stomach-supplement-2",
   "_notes": [
     "Organ and vessel coordinates are unchanged; only the skin envelope uses stretch fitting for visualization containment.",
     "Body shell calibrated with fit [3.08, 5.28, 1.38] so hands, feet, vessels, brain, and organs sit inside the external skin.",
@@ -254,19 +254,19 @@
       "file": "realistic_stomach.glb",
       "label": "Stomach",
       "position": [
-        0.1,
-        0.78,
-        0.06
+        0.23,
+        0.92,
+        0.18
       ],
       "fit": [
-        0.26,
-        0.28,
-        0.18
+        0.36,
+        0.42,
+        0.26
       ],
       "rotation": [
         0,
-        -0.35,
-        0
+        -0.7,
+        -0.16
       ],
       "labelOffset": [
         0.5,
@@ -276,7 +276,7 @@
       "material": {
         "color": "#ff9f80",
         "emissive": "#44140c",
-        "opacity": 0.88
+        "opacity": 0.94
       }
     },
     {

@@ -261,10 +261,10 @@ let organAssets = [
     key: "stomach",
     file: "realistic_stomach.glb",
     label: "Stomach",
-    position: [0.1, 0.78, 0.06],
-    fit: [0.26, 0.28, 0.18],
-    rotation: [0, -0.35, 0],
-    material: { color: 0xff9f80, emissive: 0x44140c, opacity: 0.88 }
+    position: [0.23, 0.92, 0.18],
+    fit: [0.36, 0.42, 0.26],
+    rotation: [0, -0.7, -0.16],
+    material: { color: 0xff9f80, emissive: 0x44140c, opacity: 0.94 }
   },
   {
     key: "pancreas",
@@ -370,7 +370,7 @@ if (renderer) requestAnimationFrame(animate);
 
 async function loadAnatomyManifest() {
   try {
-    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-26", { cache: "no-store" });
+    const response = await fetch("/anatomy-manifest.json?v=body-anatomy-31", { cache: "no-store" });
     if (!response.ok) throw new Error(`Manifest HTTP ${response.status}`);
     const manifest = await response.json();
     if (manifest.integratedAnatomy) integratedAnatomyAsset = normalizeIntegratedAnatomy(manifest.integratedAnatomy);
@@ -915,6 +915,7 @@ async function loadIntegratedAnatomyModel() {
       })
     );
     prepareIntegratedAnatomyParts(loadedParts);
+    await loadSupplementalIntegratedOrgans();
     document.body.dataset.bodyShell = "integrated-human-anatomy-parts";
     applyAnatomyAppearance();
     applyLayerVisibility();
@@ -930,6 +931,29 @@ async function loadIntegratedAnatomyModel() {
   applyLayerVisibility();
   applyCutawayMode();
   applyTeachingMode();
+}
+
+async function loadSupplementalIntegratedOrgans() {
+  const supplementalAssets = organAssets.filter((asset) => asset.key === "stomach" && !bodyParts[asset.key]);
+  if (!supplementalAssets.length) return;
+
+  const organLayer = new THREE.Group();
+  organLayer.name = "supplemental-integrated-organs";
+  layerGroups.organs?.add(organLayer);
+
+  const results = await Promise.allSettled(
+    supplementalAssets.map(async (asset) => {
+      const gltf = await gltfLoader.loadAsync(`/models/organs/${asset.file}`);
+      const model = prepareOrganModel(gltf.scene, asset);
+      organLayer.add(model);
+      bodyParts[asset.key] = model;
+      return model;
+    })
+  );
+
+  if (results.some((result) => result.status === "rejected")) {
+    console.warn("Some supplemental integrated organs failed to load", results);
+  }
 }
 
 function integratedPartUrl(file) {
@@ -1020,6 +1044,7 @@ function integratedPartConfig(name = "") {
     heart: { recognized: true, layer: "organs", key: "heart", bodyPartKey: "heart", organKey: "heart", color: 0xef4b5f, emissive: 0x4c0712, opacity: 0.96 },
     liver: { recognized: true, layer: "organs", key: "liver", bodyPartKey: "liver", organKey: "liver", color: 0x9a4d2f, emissive: 0x341006, opacity: 0.86 },
     spleen: { recognized: true, layer: "organs", key: "spleen", bodyPartKey: "spleen", organKey: "spleen", color: 0x9254de, emissive: 0x261039, opacity: 0.82 },
+    stomach: { recognized: true, layer: "organs", key: "stomach", bodyPartKey: "stomach", organKey: "stomach", color: 0xff9f80, emissive: 0x44140c, opacity: 0.88 },
     pancreas: { recognized: true, layer: "organs", key: "pancreas", bodyPartKey: "pancreas", organKey: "pancreas", color: 0xf4b740, emissive: 0x5a3600, opacity: 0.95 },
     small_intestine: { recognized: true, layer: "organs", key: "small-intestine", bodyPartKey: "smallIntestine", organKey: "intestines", color: 0xffb3a7, emissive: 0x4e1b16, opacity: 0.82 },
     large_intestine: { recognized: true, layer: "organs", key: "large-intestine", bodyPartKey: "largeIntestine", organKey: "intestines", color: 0xd68a7c, emissive: 0x4e1b16, opacity: 0.78 },
@@ -1775,7 +1800,7 @@ function createAnatomyLabels() {
   createAnatomyLabel("الرئتان", "#48c7d8", [0.55, 1.37, 0.18]);
   createAnatomyLabel("القلب", "#ef4b5f", [-0.5, 1.18, 0.18]);
   createAnatomyLabel("الكبد", "#9a4d2f", [-0.62, 0.92, 0.18]);
-  createAnatomyLabel("المعدة", "#ff9f80", [0.6, 0.78, 0.18]);
+  createAnatomyLabel("المعدة", "#ff9f80", [0.66, 0.92, 0.2]);
   createAnatomyLabel("البنكرياس", "#f4b740", [-0.5, 0.7, 0.18]);
   createAnatomyLabel("الكلى", "#c084fc", [0.55, 0.62, 0.18]);
   createAnatomyLabel("الأمعاء", "#ffb3a7", [0.55, 0.34, 0.18]);

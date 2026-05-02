@@ -215,9 +215,13 @@ const anatomy = [
   { id: "brain", name: "الدماغ", color: "#a78bfa", region: "nervous" },
   { id: "heart", name: "القلب", color: "#ef4b5f", region: "cardio" },
   { id: "lungs", name: "الرئتان", color: "#48c7d8", region: "respiratory" },
+  { id: "liver", name: "الكبد", color: "#9a4d2f", region: "digestive" },
   { id: "spleen", name: "الطحال", color: "#9254de", region: "immune" },
+  { id: "stomach", name: "المعدة", color: "#ff9f80", region: "digestive" },
   { id: "pancreas", name: "البنكرياس", color: "#f4b740", region: "metabolic" },
+  { id: "intestines", name: "الأمعاء", color: "#ffb3a7", region: "digestive" },
   { id: "kidneys", name: "الكلى", color: "#c084fc", region: "renal" },
+  { id: "bladder", name: "المثانة", color: "#ff77aa", region: "renal" },
   { id: "vessels", name: "الأوعية", color: "#ff5d73", region: "vascular" }
 ];
 
