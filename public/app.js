@@ -403,6 +403,8 @@ try {
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
   renderer.localClippingEnabled = true;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -597,7 +599,16 @@ function initScene() {
   key.position.set(4.5, 7, 5.2);
   key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
+  key.shadow.bias = -0.0005;
+  key.shadow.normalBias = 0.02;
+  key.shadow.radius = 4;
+  key.shadow.camera.near = 0.5;
+  key.shadow.camera.far = 24;
   scene.add(key);
+
+  const rim = new THREE.DirectionalLight(0x9fb3d1, 0.55);
+  rim.position.set(-3.2, 4.5, -4.8);
+  scene.add(rim);
 
   const redFill = new THREE.PointLight(0xef4b5f, 17, 9);
   redFill.position.set(-3.6, 2.4, 2.9);
