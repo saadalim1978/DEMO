@@ -3160,10 +3160,15 @@ function animate() {
   controls?.update();
 
   if (humanGroup) {
+    humanGroup.position.y = Math.sin(elapsed * 0.55) * 0.008;
+    humanGroup.rotation.z = Math.sin(elapsed * 0.32) * 0.004;
     animateLungBreathing(elapsed);
     const bpm = Math.max(45, twinState?.summary?.heartRate || 72);
-    const beat = Math.exp(-Math.pow(((elapsed % (60 / bpm)) / (60 / bpm) - 0.08) / 0.075, 2)) * 0.08;
-    if (bodyParts.heart) applyOrganDisplayScale(bodyParts.heart, [1 + beat * 1.4, 1 + beat * 1.4, 1 + beat * 1.4]);
+    const beatPhase = (elapsed % (60 / bpm)) / (60 / bpm);
+    const beat = Math.exp(-Math.pow((beatPhase - 0.08) / 0.075, 2)) * 0.08;
+    const echoBeat = Math.exp(-Math.pow((beatPhase - 0.32) / 0.085, 2)) * 0.04;
+    const totalBeat = beat + echoBeat;
+    if (bodyParts.heart) applyOrganDisplayScale(bodyParts.heart, [1 + totalBeat * 1.4, 1 + totalBeat * 1.4, 1 + totalBeat * 1.4]);
   }
 
   animateParticles(delta, elapsed);
