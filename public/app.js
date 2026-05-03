@@ -388,8 +388,46 @@ let organAssets = [
 ];
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x171a20);
-scene.fog = new THREE.Fog(0x171a20, 10, 24);
+scene.background = createSceneBackgroundTexture();
+scene.fog = new THREE.Fog(0x161a22, 11, 26);
+
+function createSceneBackgroundTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 4;
+  canvas.height = 256;
+  const ctx = canvas.getContext("2d");
+  const gradient = ctx.createLinearGradient(0, 0, 0, 256);
+  gradient.addColorStop(0.0, "#0c1019");
+  gradient.addColorStop(0.55, "#171a22");
+  gradient.addColorStop(1.0, "#23262f");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 4, 256);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function createFloorAlphaTexture() {
+  const size = 256;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  gradient.addColorStop(0.0, "#ffffff");
+  gradient.addColorStop(0.55, "#9b9b9b");
+  gradient.addColorStop(1.0, "#000000");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, size, size);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.needsUpdate = true;
+  return texture;
+}
 
 const DEFAULT_CAMERA_POSITION = new THREE.Vector3(0, 0.64, 8.55);
 const DEFAULT_CAMERA_TARGET = new THREE.Vector3(0, 0.34, 0.1);
@@ -619,13 +657,14 @@ function initScene() {
   scene.add(cyanFill);
 
   const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(8.8, 8.8),
+    new THREE.CircleGeometry(5.4, 96),
     new THREE.MeshStandardMaterial({
       color: 0x14171d,
       transparent: true,
-      opacity: 0.18,
-      roughness: 0.82,
-      metalness: 0.08
+      opacity: 0.22,
+      roughness: 0.86,
+      metalness: 0.06,
+      alphaMap: createFloorAlphaTexture()
     })
   );
   floor.rotation.x = -Math.PI / 2;
@@ -637,7 +676,7 @@ function initScene() {
   grid.position.y = -2.405;
   (Array.isArray(grid.material) ? grid.material : [grid.material]).forEach((material) => {
     material.transparent = true;
-    material.opacity = 0.14;
+    material.opacity = 0.1;
   });
   scene.add(grid);
 
