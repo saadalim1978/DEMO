@@ -266,8 +266,18 @@ const anatomyPalettes = {
 };
 
 const ORGAN_VERTEX_TINTS = {
-  brain: 0xa78bfa,
-  lungs: 0xc8e0f0
+  brain: 0xd8a3a0,
+  lungs: 0x7da5c5,
+  heart: 0xc8302e,
+  liver: 0x6e3122,
+  spleen: 0x6e2a3a,
+  stomach: 0xc8866a,
+  pancreas: 0xd8a878,
+  smallIntestine: 0xb56a3f,
+  largeIntestine: 0xa05a37,
+  leftKidney: 0x8e3f50,
+  rightKidney: 0x8e3f50,
+  bladder: 0xf0d0a8
 };
 const anatomyAppearance = {
   palette: "natural",
@@ -1225,9 +1235,10 @@ function integratedVertexColorMaterial(role, customTint) {
   else if (isVein) tint = palette.veinTint || 0x6694c8;
   else if (isVessel) tint = palette.vesselTint;
   else tint = palette.organTint;
+  const useVertexColors = !(role === "organ" && customTint);
   const material = new THREE.MeshBasicMaterial({
     color: tint,
-    vertexColors: true,
+    vertexColors: useVertexColors,
     transparent: !isVessel,
     opacity: role === "organ" ? anatomyAppearance.organOpacity : 0.98,
     depthWrite: isVessel,
