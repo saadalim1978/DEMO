@@ -1147,8 +1147,17 @@ function integratedPartMaterial(config) {
 
 function integratedSkinMaterial() {
   const palette = anatomyPalettes[anatomyAppearance.palette] || anatomyPalettes.natural;
-  const material = new THREE.MeshBasicMaterial({
+  const material = new THREE.MeshPhysicalMaterial({
     color: palette.skin,
+    roughness: 0.58,
+    metalness: 0.02,
+    clearcoat: 0.35,
+    clearcoatRoughness: 0.45,
+    sheen: 0.25,
+    sheenColor: new THREE.Color(0xffd0c2),
+    sheenRoughness: 0.7,
+    emissive: 0x2a1310,
+    emissiveIntensity: 0.05,
     transparent: true,
     opacity: skinShellOpacity(),
     depthWrite: false,
@@ -1161,12 +1170,17 @@ function integratedSkinMaterial() {
 
 function integratedVertexColorMaterial(role) {
   const palette = anatomyPalettes[anatomyAppearance.palette] || anatomyPalettes.natural;
-  const material = new THREE.MeshBasicMaterial({
-    color: role === "vessel" ? palette.vesselTint : palette.organTint,
+  const isVessel = role === "vessel";
+  const material = new THREE.MeshStandardMaterial({
+    color: isVessel ? palette.vesselTint : palette.organTint,
     vertexColors: true,
-    transparent: role !== "vessel",
+    roughness: isVessel ? 0.5 : 0.62,
+    metalness: isVessel ? 0.06 : 0.02,
+    emissive: isVessel ? 0x2a0307 : 0x150705,
+    emissiveIntensity: isVessel ? 0.18 : 0.12,
+    transparent: !isVessel,
     opacity: role === "organ" ? anatomyAppearance.organOpacity : 0.98,
-    depthWrite: role === "vessel",
+    depthWrite: isVessel,
     side: THREE.DoubleSide
   });
   material.userData.appearanceRole = role;
