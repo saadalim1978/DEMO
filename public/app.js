@@ -158,33 +158,15 @@ const sensorOrganMap = {
 };
 
 const sensorAnchorOffsets = {
-  glucose: [0.02, 0.02, 0.12],
-  hba1c: [0.13, 0.04, 0.12],
-  insulinResistance: [-0.12, 0.04, 0.12],
-  heartRate: [-0.03, 0.02, 0.12],
-  oxygen: [0.22, 0.04, 0.14],
-  ldl: [-0.16, 0.0, 0.14],
-  triglycerides: [-0.08, -0.08, 0.15],
-  egfr: [-0.18, 0.02, 0.1],
-  splenicPerfusion: [0.06, 0.04, 0.12],
-  spleenSize: [0.12, -0.02, 0.12],
-  plateletCount: [0, -0.08, 0.12],
-  smallIntestineMotility: [-0.12, 0.04, 0.14],
-  nutrientAbsorption: [0.12, 0.02, 0.14],
-  smallIntestineInflammation: [0, 0.12, 0.14],
-  largeIntestineMotility: [-0.18, 0.04, 0.14],
-  fluidAbsorption: [0.18, 0.04, 0.14],
-  colonInflammation: [0, 0.14, 0.14],
-  systolic: [-0.08, 0.34, 0.12],
-  diastolic: [0.1, 0.18, 0.12],
-  vascularStiffness: [0.16, 0.0, 0.12],
-  clotRisk: [-0.12, -0.86, 0.12],
-  dDimer: [0.12, -1.12, 0.12],
+  systolic: [-0.06, 0.34, 0.14],
+  diastolic: [0.1, 0.22, 0.14],
+  vascularStiffness: [0.16, 0.05, 0.14],
+  clotRisk: [-0.16, -0.86, 0.12],
+  dDimer: [0.16, -1.12, 0.12],
   legFlow: [-0.22, -1.42, 0.12],
-  painScore: [-0.34, -1.02, 0.12],
-  inflammation: [0.14, 0.02, 0.14],
-  bmi: [0, -0.18, 0.14],
-  neuroPerfusion: [0, 0.02, 0.14]
+  painScore: [0.32, -1.34, 0.12],
+  bmi: [0, -0.22, 0.16],
+  neuroPerfusion: [0, 0.04, 0.16]
 };
 
 const sensorFallbackPositions = {
@@ -2379,8 +2361,26 @@ function createAnatomyLabel(text, color, position) {
 function sensorDisplayPosition(sensor) {
   const organKey = sensorOrganMap[sensor.id] || "vessels";
   const base = organCenter(organKey) || new THREE.Vector3(...(sensorFallbackPositions[organKey] || sensor.position || [0, 0.4, 0.12]));
-  const offset = new THREE.Vector3(...(sensorAnchorOffsets[sensor.id] || [0, 0, 0.12]));
+  const manualOffset = sensorAnchorOffsets[sensor.id];
+  const offset = manualOffset
+    ? new THREE.Vector3(...manualOffset)
+    : autoSensorOffset(sensor.id, organKey);
   return base.add(offset);
+}
+
+function autoSensorOffset(sensorId, organKey) {
+  const allSensors = twinState?.sensors || [];
+  const organSensors = allSensors.filter((sensor) => (sensorOrganMap[sensor.id] || "vessels") === organKey);
+  if (!organSensors.length) return new THREE.Vector3(0, 0, 0.14);
+  const index = organSensors.findIndex((sensor) => sensor.id === sensorId);
+  const total = organSensors.length;
+  const radius = total === 1 ? 0 : Math.min(0.18, 0.07 + total * 0.018);
+  const angle = total === 1 ? 0 : (index / total) * Math.PI * 2 - Math.PI / 2;
+  return new THREE.Vector3(
+    Math.sin(angle) * radius,
+    Math.cos(angle) * radius * 0.6,
+    0.14
+  );
 }
 
 function organCenter(organKey) {
