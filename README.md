@@ -1,6 +1,6 @@
 # Digital Body Twin Demo: AI + API + 3D
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/saadalim1978/DEMO)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/saadalim1978/digitaltwins)
 
 مشروع demo لتوأم رقمي بحثي للجسم البشري:
 
