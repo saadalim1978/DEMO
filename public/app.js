@@ -1556,7 +1556,16 @@ function selectOrgan(organKey) {
   const sensors = sensorsForOrgan(selectedOrganKey);
   if (sensors[0]) selectedSensorId = sensors[0].id;
   renderTwin(twinState);
+  focusOrgan(selectedOrganKey);
 }
+
+const cameraTween = {
+  active: false,
+  fromTarget: new THREE.Vector3(),
+  toTarget: new THREE.Vector3(),
+  startTime: 0,
+  duration: 720
+};
 
 function focusOrgan(organKey) {
   const objects = organObjects(organKey);
@@ -1564,7 +1573,18 @@ function focusOrgan(organKey) {
   const box = new THREE.Box3();
   objects.forEach((object) => box.expandByObject(object));
   if (box.isEmpty()) return;
-  controls.target.copy(box.getCenter(new THREE.Vector3()));
+  cameraTween.fromTarget.copy(controls.target);
+  cameraTween.toTarget.copy(box.getCenter(new THREE.Vector3()));
+  cameraTween.startTime = performance.now();
+  cameraTween.active = true;
+}
+
+function advanceCameraTween(now) {
+  if (!cameraTween.active || !controls) return;
+  const t = Math.min(1, (now - cameraTween.startTime) / cameraTween.duration);
+  const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+  controls.target.lerpVectors(cameraTween.fromTarget, cameraTween.toTarget, eased);
+  if (t >= 1) cameraTween.active = false;
 }
 
 function addHumanSilhouette() {
@@ -3136,6 +3156,7 @@ function animate() {
   const delta = clock.getDelta();
   const elapsed = clock.elapsedTime;
   updateDebugHelpers();
+  advanceCameraTween(performance.now());
   controls?.update();
 
   if (humanGroup) {
