@@ -2684,7 +2684,6 @@ function updateControlBadges(state) {
   }
 }
 
-const affectedOrganHalos = new Map();
 const LESION_TO_ORGAN = {
   diabetes: "pancreas",
   glucose: "pancreas",
@@ -2696,82 +2695,12 @@ const LESION_TO_ORGAN = {
   kidney: "kidneys"
 };
 
-function severityColor(severity) {
-  if (severity >= 0.65) return 0xef4b5f;
-  if (severity >= 0.35) return 0xf4b740;
-  return 0xfbe27a;
-}
-
-function updateAffectedOrganHalos(lesions) {
-  const peakBySeverity = new Map();
-  for (const lesion of lesions || []) {
-    const organKey = LESION_TO_ORGAN[lesion.type];
-    if (!organKey) continue;
-    const current = peakBySeverity.get(organKey) || 0;
-    if ((lesion.severity || 0) > current) peakBySeverity.set(organKey, lesion.severity || 0);
-  }
-
-  for (const [organKey, severity] of peakBySeverity) {
-    const center = organCenter(organKey);
-    if (!center) continue;
-    const objects = organObjects(organKey);
-    const box = new THREE.Box3();
-    objects.forEach((object) => box.expandByObject(object));
-    const size = box.getSize(new THREE.Vector3());
-    const baseRadius = Math.max(size.x, size.y, size.z) * 0.62 + 0.05;
-
-    let halo = affectedOrganHalos.get(organKey);
-    if (!halo) {
-      const material = new THREE.MeshBasicMaterial({
-        color: severityColor(severity),
-        transparent: true,
-        opacity: 0.45,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false
-      });
-      halo = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 20), material);
-      halo.userData.isAffectedHalo = true;
-      halo.renderOrder = 5;
-      humanGroup?.add(halo);
-      affectedOrganHalos.set(organKey, halo);
-    }
-    halo.material.color.setHex(severityColor(severity));
-    const localCenter = humanGroup ? humanGroup.worldToLocal(center.clone()) : center;
-    halo.position.copy(localCenter);
-    halo.userData.baseRadius = baseRadius;
-    halo.userData.severity = severity;
-    halo.visible = true;
-  }
-
-  for (const [organKey, halo] of affectedOrganHalos) {
-    if (!peakBySeverity.has(organKey)) {
-      halo.parent?.remove(halo);
-      halo.material?.dispose?.();
-      halo.geometry?.dispose?.();
-      affectedOrganHalos.delete(organKey);
-    }
-  }
-}
-
-function animateAffectedOrganHalos(elapsed) {
-  for (const halo of affectedOrganHalos.values()) {
-    const severity = halo.userData.severity || 0.5;
-    const baseRadius = halo.userData.baseRadius || 0.3;
-    const phase = halo.position.x * 4 + halo.position.y * 2;
-    const opacityBase = 0.28 + severity * 0.4;
-    halo.material.opacity = opacityBase * (0.65 + Math.sin(elapsed * 2 + phase) * 0.35);
-    const pulseScale = 1 + Math.sin(elapsed * 1.6 + phase) * (0.04 + severity * 0.05);
-    halo.scale.setScalar(baseRadius * pulseScale);
-  }
-}
-
 function updateDiseaseVisuals(state) {
   Object.values(disease).forEach((item) => {
     if (item) item.visible = false;
   });
 
   const lesions = state.lesions || [];
-  updateAffectedOrganHalos(lesions);
   const has = (type) => lesions.find((lesion) => lesion.type === type);
   const diabetes = has("diabetes");
   const glucose = has("glucose");
@@ -3467,7 +3396,6 @@ function animate() {
 
   animateParticles(delta, elapsed);
   animateDiseaseLayers(elapsed);
-  animateAffectedOrganHalos(elapsed);
   animateSensors(elapsed);
   renderer.render(scene, camera);
   markWebglReadyIfCanvasHasSignal();
