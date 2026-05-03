@@ -49,12 +49,14 @@ const dom = {
   imagingConfidence: document.querySelector("#imagingConfidence"),
   refreshBtn: document.querySelector("#refreshBtn"),
   resetCameraBtn: document.querySelector("#resetCameraBtn"),
-  layerToggles: document.querySelectorAll("[data-layer-toggle]"),
+  layerCards: document.querySelectorAll("[data-layer-card]"),
   paletteButtons: document.querySelectorAll("[data-anatomy-palette]"),
   skinOpacityRange: document.querySelector("#skinOpacityRange"),
   organOpacityRange: document.querySelector("#organOpacityRange"),
   cutawayToggle: document.querySelector("#cutawayToggle"),
-  teachingModeToggle: document.querySelector("#teachingModeToggle")
+  teachingModeToggle: document.querySelector("#teachingModeToggle"),
+  controlHub: document.querySelector(".control-hub"),
+  controlHubToggle: document.querySelector("#controlHubToggle")
 };
 
 const statusColors = {
@@ -885,8 +887,9 @@ function applyLayerVisibility() {
   Object.entries(layerGroups).forEach(([key, group]) => {
     group.visible = layerState[key] !== false;
   });
-  dom.layerToggles.forEach((input) => {
-    input.checked = layerState[input.dataset.layerToggle] !== false;
+  dom.layerCards.forEach((card) => {
+    const key = card.dataset.layerCard;
+    if (key in layerState) card.setAttribute("aria-pressed", String(layerState[key] !== false));
   });
 }
 
@@ -964,8 +967,14 @@ function syncAppearanceControls() {
   dom.paletteButtons.forEach((button) => {
     button.classList.toggle("is-active", button.dataset.anatomyPalette === anatomyAppearance.palette);
   });
-  if (dom.skinOpacityRange) dom.skinOpacityRange.value = Math.round(anatomyAppearance.skinOpacity * 100);
-  if (dom.organOpacityRange) dom.organOpacityRange.value = Math.round(anatomyAppearance.organOpacity * 100);
+  const skinPercent = Math.round(anatomyAppearance.skinOpacity * 100);
+  const organPercent = Math.round(anatomyAppearance.organOpacity * 100);
+  if (dom.skinOpacityRange) dom.skinOpacityRange.value = skinPercent;
+  if (dom.organOpacityRange) dom.organOpacityRange.value = organPercent;
+  document.querySelectorAll('[data-slider-value="skin"]').forEach((el) => (el.textContent = `${skinPercent}%`));
+  document.querySelectorAll('[data-slider-value="organs"]').forEach((el) => (el.textContent = `${organPercent}%`));
+  document.querySelectorAll('[data-meta="skin"]').forEach((el) => (el.textContent = `${skinPercent}%`));
+  document.querySelectorAll('[data-meta="organs"]').forEach((el) => (el.textContent = `${organPercent}%`));
 }
 
 function applyAnatomyAppearance() {
@@ -2632,7 +2641,47 @@ function renderTwin(state) {
   renderImaging(state.imaging);
   renderPredictions(state.prediction);
   renderEvents(state.events);
+  updateControlBadges(state);
   refreshIcons();
+}
+
+function updateControlBadges(state) {
+  if (!state) return;
+  const sensorsBadge = document.querySelector('[data-meta="sensors"]');
+  const effectsBadge = document.querySelector('[data-meta="effects"]');
+  const vesselsBadge = document.querySelector('[data-meta="vessels"]');
+
+  if (sensorsBadge) {
+    const alerts = (state.sensors || []).filter((sensor) => sensor.status !== "normal");
+    const critical = alerts.filter((sensor) => sensor.status === "critical").length;
+    sensorsBadge.textContent = alerts.length ? String(alerts.length) : "";
+    sensorsBadge.classList.toggle("is-alert", critical > 0);
+    sensorsBadge.classList.toggle("is-warn", critical === 0 && alerts.length > 0);
+  }
+
+  if (effectsBadge) {
+    const lesionCount = (state.lesions || []).length;
+    effectsBadge.textContent = lesionCount ? String(lesionCount) : "";
+    const hasSevere = (state.lesions || []).some((lesion) => (lesion.severity ?? 0) >= 0.6);
+    effectsBadge.classList.toggle("is-alert", hasSevere);
+    effectsBadge.classList.toggle("is-warn", !hasSevere && lesionCount > 0);
+  }
+
+  if (vesselsBadge) {
+    const vascularRisk = state.summary?.vascularRisk ?? 0;
+    if (vascularRisk >= 60) {
+      vesselsBadge.textContent = `${vascularRisk}%`;
+      vesselsBadge.classList.add("is-alert");
+      vesselsBadge.classList.remove("is-warn");
+    } else if (vascularRisk >= 35) {
+      vesselsBadge.textContent = `${vascularRisk}%`;
+      vesselsBadge.classList.add("is-warn");
+      vesselsBadge.classList.remove("is-alert");
+    } else {
+      vesselsBadge.textContent = "";
+      vesselsBadge.classList.remove("is-alert", "is-warn");
+    }
+  }
 }
 
 function updateDiseaseVisuals(state) {
@@ -2871,9 +2920,13 @@ function wireEvents() {
     setTemporaryImagingStatus(`تم اختيار ${file.name} · جاري تحديد النوع والمنطقة بالذكاء الاصطناعي...`);
     handleImagingUpload();
   });
-  dom.layerToggles.forEach((input) => {
-    input.addEventListener("change", () => {
-      layerState[input.dataset.layerToggle] = input.checked;
+  dom.layerCards.forEach((card) => {
+    card.addEventListener("click", () => {
+      const key = card.dataset.layerCard;
+      if (!(key in layerState)) return;
+      const next = card.getAttribute("aria-pressed") !== "true";
+      card.setAttribute("aria-pressed", String(next));
+      layerState[key] = next;
       applyLayerVisibility();
     });
   });
@@ -2882,6 +2935,12 @@ function wireEvents() {
   });
   dom.skinOpacityRange?.addEventListener("input", () => setAppearanceOpacity("skin", dom.skinOpacityRange.value));
   dom.organOpacityRange?.addEventListener("input", () => setAppearanceOpacity("organs", dom.organOpacityRange.value));
+  dom.controlHubToggle?.addEventListener("click", () => {
+    const collapsed = dom.controlHub?.dataset.collapsed === "true";
+    if (!dom.controlHub) return;
+    dom.controlHub.dataset.collapsed = String(!collapsed);
+    dom.controlHubToggle.setAttribute("aria-expanded", String(collapsed));
+  });
   dom.cutawayToggle?.addEventListener("change", () => {
     cutawayEnabled = dom.cutawayToggle.checked;
     applyCutawayMode();

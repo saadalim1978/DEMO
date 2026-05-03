@@ -173,43 +173,88 @@
             <div id="organLinkMetrics" class="organ-metric-chips"></div>
           </div>
           <div class="scene-disclaimer" id="disclaimer">تم إنشاء التوأم الرقمي بواسطة المهندس سعد الشهري.</div>
-          <div class="layer-controls" aria-label="طبقات النموذج">
-            <label class="layer-toggle">
-              <input type="checkbox" data-layer-toggle="skin" checked />
-              <span>الجلد</span>
-            </label>
-            <label class="layer-toggle">
-              <input type="checkbox" data-layer-toggle="organs" checked />
-              <span>الأعضاء</span>
-            </label>
-            <label class="layer-toggle">
-              <input type="checkbox" data-layer-toggle="vessels" checked />
-              <span>الأوعية</span>
-            </label>
-            <label class="layer-toggle">
-              <input type="checkbox" data-layer-toggle="sensors" />
-              <span>المستشعرات</span>
-            </label>
-            <label class="layer-toggle">
-              <input type="checkbox" data-layer-toggle="labels" />
-              <span>التسميات</span>
-            </label>
-            <label class="layer-toggle">
-              <input type="checkbox" data-layer-toggle="effects" />
-              <span>المؤثرات</span>
-            </label>
-            <label class="layer-toggle appearance-slider">
-              <span>الجلد</span>
-              <input id="skinOpacityRange" type="range" min="18" max="72" value="54" />
-            </label>
-            <label class="layer-toggle appearance-slider">
-              <span>الأعضاء</span>
-              <input id="organOpacityRange" type="range" min="48" max="100" value="88" />
-            </label>
-            <div class="layer-toggle palette-swatches" aria-label="نمط الألوان">
-              <button class="palette-swatch is-active natural" type="button" data-anatomy-palette="natural" title="طبيعي" aria-label="طبيعي"></button>
-              <button class="palette-swatch research" type="button" data-anatomy-palette="research" title="بحثي شفاف" aria-label="بحثي شفاف"></button>
-              <button class="palette-swatch cool" type="button" data-anatomy-palette="cool" title="أزرق طبي" aria-label="أزرق طبي"></button>
+          <div class="control-hub" aria-label="لوحة التحكم بالنموذج">
+            <button id="controlHubToggle" class="control-hub-collapse" type="button" aria-label="طي/توسيع لوحة التحكم" aria-expanded="true">
+              <i data-lucide="chevrons-down"></i>
+            </button>
+            <div class="control-hub-body">
+              <section class="control-hub-section" data-section="anatomy">
+                <header class="control-hub-header">
+                  <span class="control-hub-title">طبقات التشريح</span>
+                  <span class="control-hub-hint">اضغط لإظهار/إخفاء</span>
+                </header>
+                <div class="control-hub-cards">
+                  <button class="control-card" type="button" data-layer-card="skin" aria-pressed="true">
+                    <span class="control-card-meta" data-meta="skin">54%</span>
+                    <i data-lucide="user-round"></i>
+                    <span class="control-card-name">الجلد</span>
+                  </button>
+                  <button class="control-card" type="button" data-layer-card="organs" aria-pressed="true">
+                    <span class="control-card-meta" data-meta="organs">88%</span>
+                    <i data-lucide="heart"></i>
+                    <span class="control-card-name">الأعضاء</span>
+                  </button>
+                  <button class="control-card" type="button" data-layer-card="vessels" aria-pressed="true">
+                    <span class="control-card-meta" data-meta="vessels"></span>
+                    <i data-lucide="git-branch"></i>
+                    <span class="control-card-name">الأوعية</span>
+                  </button>
+                </div>
+                <div class="control-hub-sliders">
+                  <label class="control-hub-slider">
+                    <span>شفافية الجلد <strong data-slider-value="skin">54%</strong></span>
+                    <input id="skinOpacityRange" type="range" min="18" max="72" value="54" />
+                  </label>
+                  <label class="control-hub-slider">
+                    <span>شفافية الأعضاء <strong data-slider-value="organs">88%</strong></span>
+                    <input id="organOpacityRange" type="range" min="48" max="100" value="88" />
+                  </label>
+                </div>
+              </section>
+
+              <section class="control-hub-section" data-section="overlay">
+                <header class="control-hub-header">
+                  <span class="control-hub-title">تراكب المعلومات</span>
+                  <span class="control-hub-hint">يرتبط بالحالة الحية</span>
+                </header>
+                <div class="control-hub-cards">
+                  <button class="control-card" type="button" data-layer-card="sensors" aria-pressed="false">
+                    <span class="control-card-meta" data-meta="sensors">--</span>
+                    <i data-lucide="radio"></i>
+                    <span class="control-card-name">المستشعرات</span>
+                  </button>
+                  <button class="control-card" type="button" data-layer-card="labels" aria-pressed="false">
+                    <span class="control-card-meta" data-meta="labels"></span>
+                    <i data-lucide="tag"></i>
+                    <span class="control-card-name">التسميات</span>
+                  </button>
+                  <button class="control-card" type="button" data-layer-card="effects" aria-pressed="false">
+                    <span class="control-card-meta" data-meta="effects">--</span>
+                    <i data-lucide="sparkles"></i>
+                    <span class="control-card-name">المؤثرات</span>
+                  </button>
+                </div>
+              </section>
+
+              <section class="control-hub-section" data-section="palette">
+                <header class="control-hub-header">
+                  <span class="control-hub-title">نمط العرض</span>
+                </header>
+                <div class="control-hub-pills">
+                  <button class="control-pill is-active" type="button" data-anatomy-palette="natural">
+                    <span class="control-pill-dot natural"></span>
+                    <span>طبيعي</span>
+                  </button>
+                  <button class="control-pill" type="button" data-anatomy-palette="research">
+                    <span class="control-pill-dot research"></span>
+                    <span>بحثي</span>
+                  </button>
+                  <button class="control-pill" type="button" data-anatomy-palette="cool">
+                    <span class="control-pill-dot cool"></span>
+                    <span>بارد</span>
+                  </button>
+                </div>
+              </section>
             </div>
           </div>
         </section>
