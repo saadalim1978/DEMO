@@ -1169,8 +1169,9 @@ function integratedPartConfig(name = "") {
 
 function prepareIntegratedPart(object, config) {
   const material = integratedPartMaterial(config);
+  const wantsOutline = config.layer === "organs";
   object.traverse((child) => {
-    if (!child.isMesh) return;
+    if (!child.isMesh || child.userData?.isOrganOutline) return;
     child.castShadow = true;
     child.receiveShadow = true;
     child.frustumCulled = false;
@@ -1178,7 +1179,26 @@ function prepareIntegratedPart(object, config) {
     child.material = material.clone();
     child.userData.organKey = config.organKey;
     child.userData.organPartKey = config.bodyPartKey || config.key;
+    if (wantsOutline) attachOrganOutline(child);
   });
+}
+
+function attachOrganOutline(mesh) {
+  if (!mesh.geometry) return;
+  const outlineMaterial = new THREE.MeshBasicMaterial({
+    color: 0x09090c,
+    side: THREE.BackSide,
+    transparent: true,
+    opacity: 0.78,
+    depthWrite: false
+  });
+  const outline = new THREE.Mesh(mesh.geometry, outlineMaterial);
+  outline.scale.setScalar(1.04);
+  outline.renderOrder = (mesh.renderOrder || 0) - 1;
+  outline.userData.isOrganOutline = true;
+  outline.castShadow = false;
+  outline.receiveShadow = false;
+  mesh.add(outline);
 }
 
 function integratedPartMaterial(config) {
@@ -1506,6 +1526,7 @@ function rememberMaterialBase(material) {
 function setOrganMaterialHighlight(object, active, color = 0xffffff) {
   object?.traverse?.((child) => {
     if (!child.isMesh || !child.material) return;
+    if (child.userData?.isOrganOutline) return;
     const materials = Array.isArray(child.material) ? child.material : [child.material];
     materials.forEach((material) => {
       rememberMaterialBase(material);
