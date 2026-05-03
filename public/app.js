@@ -2472,16 +2472,54 @@ function buildSensors(sensors) {
   }
 }
 
+const sensorHistory = new Map();
+const SENSOR_HISTORY_MAX = 24;
+
+function recordSensorHistory(sensors) {
+  if (!Array.isArray(sensors)) return;
+  sensors.forEach((sensor) => {
+    if (!sensor?.id || !Number.isFinite(sensor.value)) return;
+    const series = sensorHistory.get(sensor.id) || [];
+    series.push(sensor.value);
+    if (series.length > SENSOR_HISTORY_MAX) series.shift();
+    sensorHistory.set(sensor.id, series);
+  });
+}
+
 async function refreshTwin() {
   try {
     const response = await fetch("/api/twin");
     if (!response.ok) throw new Error("API error");
     twinState = await response.json();
+    recordSensorHistory(twinState.sensors);
     selectedSensorId ||= twinState.sensors[0]?.id;
     renderTwin(twinState);
   } catch {
     dom.aiAnswer.textContent = "تعذر الاتصال بواجهة API المحلية.";
   }
+}
+
+function renderSparkline(sensorId, status) {
+  const series = sensorHistory.get(sensorId) || [];
+  if (series.length < 2) return "";
+  const width = 64;
+  const height = 22;
+  const padding = 2;
+  const min = Math.min(...series);
+  const max = Math.max(...series);
+  const range = max - min || 1;
+  const stepX = (width - padding * 2) / (series.length - 1);
+  const points = series.map((value, index) => {
+    const x = padding + index * stepX;
+    const y = padding + (height - padding * 2) * (1 - (value - min) / range);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const stroke = status === "critical" ? "#ef4b5f" : status === "warning" ? "#f4b740" : "#48c7d8";
+  return `
+    <svg class="sensor-sparkline" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" aria-hidden="true">
+      <polyline fill="none" stroke="${stroke}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" points="${points.join(" ")}" />
+    </svg>
+  `;
 }
 
 function renderTwin(state) {
@@ -2602,6 +2640,7 @@ function renderSensors(sensors) {
         <strong>${escapeHtml(sensor.name)}</strong>
         <small>${statusLabels[sensor.status]} · ${escapeHtml(sensor.zone)}</small>
       </span>
+      ${renderSparkline(sensor.id, sensor.status)}
       <span class="sensor-value">${sensor.value} ${escapeHtml(sensor.unit)}</span>
     `;
     item.addEventListener("click", () => {

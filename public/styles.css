@@ -1338,12 +1338,22 @@ body[data-scenario="heart_failure"] .fallback-heart {
 
 .sensor-item {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr auto auto;
   align-items: center;
   gap: 10px;
   width: 100%;
   color: var(--text);
   text-align: right;
+}
+
+.sensor-sparkline {
+  display: block;
+  opacity: 0.85;
+  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.35));
+}
+
+.sensor-item.selected .sensor-sparkline {
+  opacity: 1;
 }
 
 .sensor-item.selected {
