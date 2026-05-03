@@ -2181,12 +2181,33 @@ function createClotGroup(position, scale = 1) {
 function addGlowSphere(position, scale, color) {
   const mesh = new THREE.Mesh(
     new THREE.SphereGeometry(1, 36, 24),
-    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.22, depthWrite: false })
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.34,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    })
   );
   mesh.position.set(...position);
   mesh.scale.set(...scale);
+  mesh.userData.baseScale = new THREE.Vector3(...scale);
   mesh.visible = false;
   addToActiveLayer(mesh);
+
+  const halo = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 24, 18),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.16,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    })
+  );
+  halo.scale.set(scale[0] * 1.65, scale[1] * 1.65, scale[2] * 1.65);
+  halo.userData.isDiseaseHalo = true;
+  mesh.add(halo);
   return mesh;
 }
 
@@ -3342,7 +3363,19 @@ function animateDiseaseLayers(elapsed) {
     }
   });
   [disease.brain, disease.pancreasGlow].forEach((mesh) => {
-    if (mesh?.visible) mesh.scale.multiplyScalar(1 + Math.sin(elapsed * 3) * 0.0008);
+    if (!mesh?.visible) return;
+    const base = mesh.userData.baseScale;
+    if (!base) return;
+    const beat = 1 + Math.sin(elapsed * 2.6) * 0.12;
+    mesh.scale.set(base.x * beat, base.y * beat, base.z * beat);
+    mesh.material.opacity = 0.32 + Math.sin(elapsed * 2.6) * 0.12;
+  });
+  Object.values(disease).forEach((item) => {
+    if (!item?.visible || !item.children) return;
+    item.children.forEach((child) => {
+      if (!child.userData?.isDiseaseHalo || !child.material) return;
+      child.material.opacity = 0.13 + Math.sin(elapsed * 1.6) * 0.07;
+    });
   });
 }
 
