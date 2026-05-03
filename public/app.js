@@ -260,9 +260,9 @@ let cutawayEnabled = false;
 let teachingModeEnabled = false;
 
 const anatomyPalettes = {
-  natural: { skin: 0xd8b48f, organTint: 0xffffff, vesselTint: 0xffffff },
-  research: { skin: 0x7d7467, organTint: 0xffd6aa, vesselTint: 0xe8f4ff },
-  cool: { skin: 0x667077, organTint: 0xd8f2ff, vesselTint: 0xd6e5ff }
+  natural: { skin: 0xd8b48f, organTint: 0xfff0e8, vesselTint: 0xffffff, arteryTint: 0xff7480, veinTint: 0x6da0d6 },
+  research: { skin: 0x7d7467, organTint: 0xffd6aa, vesselTint: 0xe8f4ff, arteryTint: 0xff8b94, veinTint: 0x9bb6e2 },
+  cool: { skin: 0x667077, organTint: 0xd8f2ff, vesselTint: 0xd6e5ff, arteryTint: 0xff9ba6, veinTint: 0x86b3e8 }
 };
 const anatomyAppearance = {
   palette: "natural",
@@ -976,6 +976,16 @@ function applyAnatomyAppearance() {
         material.transparent = false;
         material.opacity = 0.98;
         material.depthWrite = true;
+      } else if (role === "artery") {
+        material.color?.setHex?.(palette.arteryTint || 0xff7480);
+        material.transparent = false;
+        material.opacity = 0.98;
+        material.depthWrite = true;
+      } else if (role === "vein") {
+        material.color?.setHex?.(palette.veinTint || 0x6da0d6);
+        material.transparent = false;
+        material.opacity = 0.98;
+        material.depthWrite = true;
       }
       material.needsUpdate = true;
     });
@@ -1176,10 +1186,10 @@ function integratedPartMaterial(config) {
     return integratedSkinMaterial();
   }
   if (config.type === "artery") {
-    return integratedVertexColorMaterial("vessel");
+    return integratedVertexColorMaterial("artery");
   }
   if (config.type === "vein") {
-    return integratedVertexColorMaterial("vessel");
+    return integratedVertexColorMaterial("vein");
   }
   return integratedVertexColorMaterial("organ");
 }
@@ -1200,12 +1210,20 @@ function integratedSkinMaterial() {
 
 function integratedVertexColorMaterial(role) {
   const palette = anatomyPalettes[anatomyAppearance.palette] || anatomyPalettes.natural;
+  const isArtery = role === "artery";
+  const isVein = role === "vein";
+  const isVessel = isArtery || isVein || role === "vessel";
+  let tint;
+  if (isArtery) tint = palette.arteryTint || 0xff7480;
+  else if (isVein) tint = palette.veinTint || 0x6da0d6;
+  else if (isVessel) tint = palette.vesselTint;
+  else tint = palette.organTint;
   const material = new THREE.MeshBasicMaterial({
-    color: role === "vessel" ? palette.vesselTint : palette.organTint,
+    color: tint,
     vertexColors: true,
-    transparent: role !== "vessel",
+    transparent: !isVessel,
     opacity: role === "organ" ? anatomyAppearance.organOpacity : 0.98,
-    depthWrite: role === "vessel",
+    depthWrite: isVessel,
     side: THREE.DoubleSide
   });
   material.userData.appearanceRole = role;
