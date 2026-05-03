@@ -1212,21 +1212,49 @@ body[data-scenario="heart_failure"] .fallback-heart {
 }
 
 .metric-tile {
+  position: relative;
   min-height: 108px;
   padding: 14px;
   border-top: 3px solid var(--blue);
+  background:
+    radial-gradient(120% 80% at 100% 0%, rgba(72, 199, 216, 0.08), transparent 60%),
+    var(--surface);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-top-color 180ms ease;
+}
+
+.metric-tile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 35%);
+}
+
+.metric-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
 }
 
 .metric-tile.health {
   border-top-color: var(--green);
+  background:
+    radial-gradient(120% 80% at 100% 0%, rgba(70, 196, 131, 0.12), transparent 60%),
+    var(--surface);
 }
 
 .metric-tile.risk {
   border-top-color: var(--amber);
+  background:
+    radial-gradient(120% 80% at 100% 0%, rgba(244, 183, 64, 0.14), transparent 60%),
+    var(--surface);
 }
 
 .metric-tile.perfusion {
   border-top-color: var(--cyan);
+  background:
+    radial-gradient(120% 80% at 100% 0%, rgba(72, 199, 216, 0.14), transparent 60%),
+    var(--surface);
 }
 
 .metric-tile span,
