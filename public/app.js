@@ -2854,6 +2854,10 @@ function renderSensors(sensors) {
     item.addEventListener("click", () => {
       selectedSensorId = sensor.id;
       selectedOrganKey = sensorOrganMap[sensor.id] || selectedOrganKey;
+      if (!layerState.sensors) {
+        layerState.sensors = true;
+        applyLayerVisibility();
+      }
       focusSensor(sensor.id);
       renderTwin(twinState);
     });
@@ -3010,6 +3014,8 @@ function wireEvents() {
       card.setAttribute("aria-pressed", String(next));
       layerState[key] = next;
       applyLayerVisibility();
+      if (next && key === "sensors") jumpToFirstAlert();
+      if (next && key === "effects") highlightFirstLesion();
     });
   });
   dom.paletteButtons.forEach((button) => {
@@ -3128,7 +3134,38 @@ function focusSensor(sensorId) {
   if (!group || !controls) return;
   const worldPosition = new THREE.Vector3();
   group.getWorldPosition(worldPosition);
-  controls.target.copy(worldPosition);
+  cameraTween.fromTarget.copy(controls.target);
+  cameraTween.toTarget.copy(worldPosition);
+  cameraTween.startTime = performance.now();
+  cameraTween.active = true;
+  group.userData.burstAt = performance.now();
+}
+
+function jumpToFirstAlert() {
+  if (!twinState?.sensors) return;
+  const alerts = twinState.sensors
+    .filter((sensor) => sensor.status !== "normal")
+    .sort((a, b) => (b.status === "critical" ? 1 : 0) - (a.status === "critical" ? 1 : 0));
+  const target = alerts[0];
+  if (!target) return;
+  selectedSensorId = target.id;
+  selectedOrganKey = sensorOrganMap[target.id] || selectedOrganKey;
+  focusSensor(target.id);
+  renderTwin(twinState);
+  const item = dom.sensorList?.querySelector(`[data-sensor-id="${target.id}"]`);
+  item?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function highlightFirstLesion() {
+  const lesions = twinState?.lesions || [];
+  if (!lesions.length) return;
+  const sorted = [...lesions].sort((a, b) => (b.severity || 0) - (a.severity || 0));
+  const target = sorted[0];
+  const organKey = LESION_TO_ORGAN[target.type];
+  if (!organKey) return;
+  selectedOrganKey = organKey;
+  focusOrgan(organKey);
+  renderTwin(twinState);
 }
 
 function resetCamera() {
@@ -3540,7 +3577,14 @@ function animateSensors(elapsed) {
     const pulse = 1 + Math.sin(elapsed * 3.4 + group.position.x) * 0.055;
     const selected = group.userData.sensorId === selectedSensorId ? 1.32 : 1;
     const alertScale = sensor.status === "critical" ? 1.22 : sensor.status === "warning" ? 1.1 : 1;
-    group.scale.setScalar(selected * alertScale * pulse);
+    const burstAt = group.userData.burstAt || 0;
+    let burstScale = 1;
+    if (burstAt) {
+      const burstAge = (performance.now() - burstAt) / 800;
+      if (burstAge < 1) burstScale = 1 + (1 - burstAge) * 0.6;
+      else delete group.userData.burstAt;
+    }
+    group.scale.setScalar(selected * alertScale * pulse * burstScale);
   }
 }
 
