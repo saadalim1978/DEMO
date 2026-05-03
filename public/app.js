@@ -260,9 +260,14 @@ let cutawayEnabled = false;
 let teachingModeEnabled = false;
 
 const anatomyPalettes = {
-  natural: { skin: 0xd8b48f, organTint: 0xfff0e8, vesselTint: 0xffffff, arteryTint: 0xff7480, veinTint: 0x6da0d6 },
-  research: { skin: 0x7d7467, organTint: 0xffd6aa, vesselTint: 0xe8f4ff, arteryTint: 0xff8b94, veinTint: 0x9bb6e2 },
-  cool: { skin: 0x667077, organTint: 0xd8f2ff, vesselTint: 0xd6e5ff, arteryTint: 0xff9ba6, veinTint: 0x86b3e8 }
+  natural: { skin: 0xe0bd9a, organTint: 0xfff0e8, vesselTint: 0xffffff, arteryTint: 0xe06974, veinTint: 0x6694c8 },
+  research: { skin: 0x7d7467, organTint: 0xffd6aa, vesselTint: 0xe8f4ff, arteryTint: 0xd97a82, veinTint: 0x8aa6d2 },
+  cool: { skin: 0x667077, organTint: 0xd8f2ff, vesselTint: 0xd6e5ff, arteryTint: 0xe08a96, veinTint: 0x76a3d8 }
+};
+
+const ORGAN_VERTEX_TINTS = {
+  brain: 0xa78bfa,
+  lungs: 0xc8e0f0
 };
 const anatomyAppearance = {
   palette: "natural",
@@ -967,7 +972,7 @@ function applyAnatomyAppearance() {
         material.opacity = skinShellOpacity();
         material.depthWrite = false;
       } else if (role === "organ") {
-        material.color?.setHex?.(palette.organTint);
+        material.color?.setHex?.(material.userData.customTint || palette.organTint);
         material.transparent = true;
         material.opacity = anatomyAppearance.organOpacity;
         material.depthWrite = false;
@@ -977,12 +982,12 @@ function applyAnatomyAppearance() {
         material.opacity = 0.98;
         material.depthWrite = true;
       } else if (role === "artery") {
-        material.color?.setHex?.(palette.arteryTint || 0xff7480);
+        material.color?.setHex?.(palette.arteryTint || 0xe06974);
         material.transparent = false;
         material.opacity = 0.98;
         material.depthWrite = true;
       } else if (role === "vein") {
-        material.color?.setHex?.(palette.veinTint || 0x6da0d6);
+        material.color?.setHex?.(palette.veinTint || 0x6694c8);
         material.transparent = false;
         material.opacity = 0.98;
         material.depthWrite = true;
@@ -1169,9 +1174,8 @@ function integratedPartConfig(name = "") {
 
 function prepareIntegratedPart(object, config) {
   const material = integratedPartMaterial(config);
-  const wantsOutline = config.layer === "organs";
   object.traverse((child) => {
-    if (!child.isMesh || child.userData?.isOrganOutline) return;
+    if (!child.isMesh) return;
     child.castShadow = true;
     child.receiveShadow = true;
     child.frustumCulled = false;
@@ -1179,26 +1183,7 @@ function prepareIntegratedPart(object, config) {
     child.material = material.clone();
     child.userData.organKey = config.organKey;
     child.userData.organPartKey = config.bodyPartKey || config.key;
-    if (wantsOutline) attachOrganOutline(child);
   });
-}
-
-function attachOrganOutline(mesh) {
-  if (!mesh.geometry) return;
-  const outlineMaterial = new THREE.MeshBasicMaterial({
-    color: 0x09090c,
-    side: THREE.BackSide,
-    transparent: true,
-    opacity: 0.78,
-    depthWrite: false
-  });
-  const outline = new THREE.Mesh(mesh.geometry, outlineMaterial);
-  outline.scale.setScalar(1.04);
-  outline.renderOrder = (mesh.renderOrder || 0) - 1;
-  outline.userData.isOrganOutline = true;
-  outline.castShadow = false;
-  outline.receiveShadow = false;
-  mesh.add(outline);
 }
 
 function integratedPartMaterial(config) {
@@ -1211,7 +1196,8 @@ function integratedPartMaterial(config) {
   if (config.type === "vein") {
     return integratedVertexColorMaterial("vein");
   }
-  return integratedVertexColorMaterial("organ");
+  const customTint = ORGAN_VERTEX_TINTS[config.bodyPartKey] || ORGAN_VERTEX_TINTS[config.organKey];
+  return integratedVertexColorMaterial("organ", customTint);
 }
 
 function integratedSkinMaterial() {
@@ -1228,14 +1214,15 @@ function integratedSkinMaterial() {
   return material;
 }
 
-function integratedVertexColorMaterial(role) {
+function integratedVertexColorMaterial(role, customTint) {
   const palette = anatomyPalettes[anatomyAppearance.palette] || anatomyPalettes.natural;
   const isArtery = role === "artery";
   const isVein = role === "vein";
   const isVessel = isArtery || isVein || role === "vessel";
   let tint;
-  if (isArtery) tint = palette.arteryTint || 0xff7480;
-  else if (isVein) tint = palette.veinTint || 0x6da0d6;
+  if (customTint) tint = customTint;
+  else if (isArtery) tint = palette.arteryTint || 0xe06974;
+  else if (isVein) tint = palette.veinTint || 0x6694c8;
   else if (isVessel) tint = palette.vesselTint;
   else tint = palette.organTint;
   const material = new THREE.MeshBasicMaterial({
@@ -1247,6 +1234,7 @@ function integratedVertexColorMaterial(role) {
     side: THREE.DoubleSide
   });
   material.userData.appearanceRole = role;
+  if (customTint) material.userData.customTint = customTint;
   return material;
 }
 
