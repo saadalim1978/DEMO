@@ -2794,6 +2794,56 @@ function wireEvents() {
       selectOrgan(organKey);
     }
   });
+
+  let hoveredOrganKey = "";
+  let lastHoverCheck = 0;
+  renderer.domElement.addEventListener("pointermove", (event) => {
+    const now = performance.now();
+    if (now - lastHoverCheck < 50) return;
+    lastHoverCheck = now;
+    const rect = renderer.domElement.getBoundingClientRect();
+    pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(pointer, camera);
+    const organHit = raycaster.intersectObjects(organMeshes(), true)[0];
+    const key = selectableOrganKey(organHit?.object?.userData?.organKey);
+    if (key !== hoveredOrganKey) {
+      hoveredOrganKey = key;
+      renderer.domElement.style.cursor = key ? "pointer" : "";
+      updateHoverTooltip(key, event.clientX, event.clientY);
+    } else if (key) {
+      updateHoverTooltip(key, event.clientX, event.clientY);
+    }
+  });
+  renderer.domElement.addEventListener("pointerleave", () => {
+    hoveredOrganKey = "";
+    renderer.domElement.style.cursor = "";
+    updateHoverTooltip("", 0, 0);
+  });
+}
+
+let hoverTooltipEl = null;
+function updateHoverTooltip(organKey, clientX, clientY) {
+  if (!hoverTooltipEl) {
+    hoverTooltipEl = document.createElement("div");
+    hoverTooltipEl.className = "organ-hover-tooltip";
+    document.body.appendChild(hoverTooltipEl);
+  }
+  if (!organKey) {
+    hoverTooltipEl.style.display = "none";
+    return;
+  }
+  const link = organMetricLinks[organKey];
+  if (!link) {
+    hoverTooltipEl.style.display = "none";
+    return;
+  }
+  hoverTooltipEl.textContent = link.label;
+  hoverTooltipEl.style.display = "block";
+  const offsetX = 14;
+  const offsetY = 14;
+  hoverTooltipEl.style.left = `${clientX + offsetX}px`;
+  hoverTooltipEl.style.top = `${clientY + offsetY}px`;
 }
 
 function focusSensor(sensorId) {

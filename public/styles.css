@@ -1785,3 +1785,21 @@ textarea:focus {
     grid-template-columns: 1fr;
   }
 }
+
+.organ-hover-tooltip {
+  position: fixed;
+  z-index: 1200;
+  display: none;
+  pointer-events: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(20, 24, 32, 0.92);
+  color: #f3f6fa;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.42);
+  white-space: nowrap;
+  transform: translateZ(0);
+}
