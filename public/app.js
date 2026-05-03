@@ -2443,14 +2443,28 @@ function buildSensors(sensors) {
     let group = sensorMeshes.get(sensor.id);
     if (!group) {
       group = new THREE.Group();
+      const glow = new THREE.Mesh(
+        new THREE.SphereGeometry(0.092, 18, 14),
+        new THREE.MeshBasicMaterial({
+          color,
+          transparent: true,
+          opacity: 0,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false
+        })
+      );
+      glow.name = "sensor-glow";
+      glow.userData.targetOpacity = 0;
+      group.add(glow);
+
       const shell = new THREE.Mesh(
-        new THREE.SphereGeometry(0.045, 24, 18),
+        new THREE.SphereGeometry(0.05, 24, 18),
         new THREE.MeshStandardMaterial({
           color,
           emissive: color,
           emissiveIntensity: 0.62,
-          roughness: 0.25,
-          metalness: 0.12
+          roughness: 0.22,
+          metalness: 0.14
         })
       );
       shell.name = "sensor-shell";
@@ -2458,13 +2472,21 @@ function buildSensors(sensors) {
       group.add(shell);
 
       const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(0.09, 0.0045, 8, 32),
-        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.58 })
+        new THREE.TorusGeometry(0.09, 0.0048, 8, 36),
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.62 })
       );
       ring.rotation.x = Math.PI / 2;
       ring.name = "sensor-ring";
       ring.userData.sensorId = sensor.id;
       group.add(ring);
+
+      const outerRing = new THREE.Mesh(
+        new THREE.TorusGeometry(0.122, 0.0028, 6, 40),
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0 })
+      );
+      outerRing.rotation.x = Math.PI / 2;
+      outerRing.name = "sensor-outer-ring";
+      group.add(outerRing);
 
       const stem = new THREE.Mesh(
         new THREE.CylinderGeometry(0.004, 0.004, 0.18, 8),
@@ -2482,10 +2504,20 @@ function buildSensors(sensors) {
     group.userData.sensor = sensor;
     const shell = group.getObjectByName("sensor-shell");
     const ring = group.getObjectByName("sensor-ring");
+    const outerRing = group.getObjectByName("sensor-outer-ring");
+    const glow = group.getObjectByName("sensor-glow");
     shell.material.color.setHex(color);
     shell.material.emissive.setHex(color);
-    shell.material.emissiveIntensity = sensor.status === "critical" ? 1.45 : sensor.status === "warning" ? 1.08 : 0.68;
+    shell.material.emissiveIntensity = sensor.status === "critical" ? 1.55 : sensor.status === "warning" ? 1.15 : 0.7;
     ring.material.color.setHex(color);
+    if (outerRing) {
+      outerRing.material.color.setHex(color);
+      outerRing.material.opacity = sensor.status === "critical" ? 0.48 : sensor.status === "warning" ? 0.3 : 0;
+    }
+    if (glow) {
+      glow.material.color.setHex(color);
+      glow.userData.targetOpacity = sensor.status === "critical" ? 0.55 : sensor.status === "warning" ? 0.32 : 0;
+    }
     group.scale.setScalar(sensor.id === selectedSensorId ? 1.32 : 1);
   });
 
@@ -3319,7 +3351,18 @@ function animateSensors(elapsed) {
     const sensor = group.userData.sensor;
     const ring = group.getObjectByName("sensor-ring");
     if (!sensor || !ring) continue;
-    ring.rotation.z = elapsed * 0.9;
+    const ringSpeed = sensor.status === "critical" ? 1.7 : sensor.status === "warning" ? 1.2 : 0.9;
+    ring.rotation.z = elapsed * ringSpeed;
+    const outerRing = group.getObjectByName("sensor-outer-ring");
+    if (outerRing) outerRing.rotation.z = -elapsed * (ringSpeed * 0.7);
+    const glow = group.getObjectByName("sensor-glow");
+    if (glow) {
+      const target = glow.userData.targetOpacity || 0;
+      const breathe = target > 0 ? 0.7 + Math.sin(elapsed * 4 + group.position.x) * 0.3 : 0;
+      glow.material.opacity = target * breathe;
+      const glowPulse = 1 + Math.sin(elapsed * 3 + group.position.x) * 0.18;
+      glow.scale.setScalar(glowPulse);
+    }
     const pulse = 1 + Math.sin(elapsed * 3.4 + group.position.x) * 0.055;
     const selected = group.userData.sensorId === selectedSensorId ? 1.32 : 1;
     const alertScale = sensor.status === "critical" ? 1.22 : sensor.status === "warning" ? 1.1 : 1;
