@@ -472,7 +472,7 @@ if (renderer) initScene();
 initializeAuth();
 wireEvents();
 resize();
-refreshTwin().then(() => askAi("حلل حالة الجسم الآن مع التركيز على السكري والضغط والجلطات."));
+refreshTwin().then(() => askAi("حلل حالة الجسم الآن مع التركيز على السكري وأمراض القلب والشرايين وسرطان القولون والسكتة وسرطان الثدي."));
 setInterval(refreshTwin, 2600);
 if (renderer) requestAnimationFrame(animate);
 
@@ -3177,7 +3177,7 @@ function iconForIntervention(id) {
 function renderPredictions(prediction) {
   const rows = [
     ["دقة النموذج", `${prediction.modelConfidence || 72}%`, "مدعومة بالمؤشرات وصور الأشعة"],
-    ["خطر السكري", `${Math.round((prediction.diabetesProbability || 0) * 100)}%`, "محاكاة أيضية"],
+    ["خطر السكري", `${Math.round((prediction.diabetesProbability || 0) * 100)}%`, "اعتمادًا على السكر والسكر التراكمي"],
     ["خطر القلب والشرايين (ASCVD)", `${Math.round((prediction.cardiovascularAscvdProbability || 0) * 100)}%`, "اعتمادًا على الضغط وLDL وتيبس الأوعية"],
     ["خطر سرطان القولون والمستقيم", `${Math.round((prediction.colorectalCancerProbability || 0) * 100)}%`, "محاكاة على التهاب القولون وحركة الأمعاء"],
     ["إشارات سكتة", `${Math.round((prediction.strokeSignalProbability || 0) * 100)}%`, prediction.suggestedMonitoring],
