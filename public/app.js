@@ -3039,12 +3039,12 @@ function updateControlBadges(state) {
 const LESION_TO_ORGAN = {
   diabetes: "pancreas",
   glucose: "pancreas",
-  hypertension: "heart",
-  clot: "vessels",
-  "lung-clot": "lungs",
+  ascvd: "heart",
+  "colorectal-mass": "largeIntestine",
   stroke: "brain",
   carotid: "brain",
-  kidney: "kidneys"
+  kidney: "kidneys",
+  "breast-mass": null
 };
 
 function updateDiseaseVisuals(state) {
@@ -3177,10 +3177,11 @@ function iconForIntervention(id) {
 function renderPredictions(prediction) {
   const rows = [
     ["دقة النموذج", `${prediction.modelConfidence || 72}%`, "مدعومة بالمؤشرات وصور الأشعة"],
-    ["خطر السكري", `${Math.round(prediction.diabetesProbability * 100)}%`, "محاكاة أيضية"],
-    ["خطر الضغط", `${Math.round(prediction.hypertensionProbability * 100)}%`, "اعتمادًا على الضغط وتيبس الأوعية"],
-    ["خطر الجلطات", `${Math.round(prediction.clotProbability * 100)}%`, "قابلية التخثر وD-dimer"],
-    ["إشارات سكتة", `${Math.round(prediction.strokeSignalProbability * 100)}%`, prediction.suggestedMonitoring]
+    ["خطر السكري", `${Math.round((prediction.diabetesProbability || 0) * 100)}%`, "محاكاة أيضية"],
+    ["خطر القلب والشرايين (ASCVD)", `${Math.round((prediction.cardiovascularAscvdProbability || 0) * 100)}%`, "اعتمادًا على الضغط وLDL وتيبس الأوعية"],
+    ["خطر سرطان القولون والمستقيم", `${Math.round((prediction.colorectalCancerProbability || 0) * 100)}%`, "محاكاة على التهاب القولون وحركة الأمعاء"],
+    ["إشارات سكتة", `${Math.round((prediction.strokeSignalProbability || 0) * 100)}%`, prediction.suggestedMonitoring],
+    ["خطر سرطان الثدي", `${Math.round((prediction.breastCancerProbability || 0) * 100)}%`, "محاكاة على عوامل الالتهاب"]
   ];
 
   dom.predictionList.innerHTML = rows

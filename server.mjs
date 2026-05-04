@@ -48,42 +48,39 @@ const scenarios = {
     }
   },
   cardiovascular_ascvd: {
-    label: "ارتفاع ضغط الدم",
-    shortLabel: "ضغط",
-    description: "ارتفاع محاكى في الضغط الشرياني مع إجهاد على القلب والكلى والأوعية.",
-    severity: 0.56,
-    disease: "hypertension",
+    label: "خطر القلب والشرايين (ASCVD)",
+    shortLabel: "قلب وشرايين",
+    description: "تصلب شرياني محاكى مع ارتفاع الضغط والكوليسترول وإجهاد على القلب والكلى.",
+    severity: 0.62,
+    disease: "cardiovascular_ascvd",
     modifiers: {
-      systolic: 44,
-      diastolic: 22,
-      heartRate: 14,
-      ldl: 18,
+      systolic: 38,
+      diastolic: 18,
+      heartRate: 12,
+      ldl: 64,
+      triglycerides: 38,
       egfr: -8,
-      neuroPerfusion: -5,
-      vascularStiffness: 38,
-      clotRisk: 12,
-      inflammation: 1.4
+      neuroPerfusion: -4,
+      vascularStiffness: 46,
+      clotRisk: 10,
+      inflammation: 1.8
     }
   },
   colorectal_cancer: {
-    label: "خطر جلطة",
-    shortLabel: "جلطات",
-    description: "ارتفاع محاكى في قابلية التخثر مع خثرة في وريد الساق واحتمال انتقالها للرئة.",
-    severity: 0.76,
-    disease: "thrombosis",
+    label: "خطر سرطان القولون والمستقيم",
+    shortLabel: "سرطان قولون",
+    description: "كتلة محاكاة في الأمعاء الغليظة مع التهاب موضعي وتغير في حركة الأمعاء وامتصاص السوائل.",
+    severity: 0.7,
+    disease: "colorectal_cancer",
     modifiers: {
-      clotRisk: 62,
-      dDimer: 780,
-      oxygen: -4,
-      heartRate: 26,
-      systolic: -4,
-      neuroPerfusion: -4,
-      splenicPerfusion: -8,
-      spleenSize: 0.6,
-      plateletCount: 92,
-      inflammation: 4.2,
-      legFlow: -42,
-      painScore: 5
+      colonInflammation: 6.4,
+      largeIntestineMotility: -28,
+      fluidAbsorption: -18,
+      smallIntestineInflammation: 1.4,
+      inflammation: 3.2,
+      painScore: 4,
+      bmi: -1.8,
+      heartRate: 8
     }
   },
   stroke: {
@@ -107,26 +104,18 @@ const scenarios = {
     }
   },
   breast_cancer: {
-    label: "متلازمة أيضية",
-    shortLabel: "أيضي",
-    description: "تجمع محاكى لعوامل السكر والضغط والدهون، ما يرفع مخاطر القلب والجلطات.",
-    severity: 0.68,
-    disease: "metabolic",
+    label: "خطر سرطان الثدي",
+    shortLabel: "سرطان ثدي",
+    description: "كتلة محاكاة في الثدي مع التهاب موضعي وتغير في عوامل الالتهاب والوزن.",
+    severity: 0.6,
+    disease: "breast_cancer",
     modifiers: {
-      glucose: 46,
-      hba1c: 0.8,
-      insulinResistance: 34,
-      systolic: 28,
-      diastolic: 12,
-      ldl: 44,
-      triglycerides: 86,
-      bmi: 7.2,
-      clotRisk: 28,
-      vascularStiffness: 34,
-      spleenSize: 0.5,
-      plateletCount: 38,
-      egfr: -9,
-      inflammation: 3
+      inflammation: 2.4,
+      painScore: 2,
+      bmi: 1.6,
+      ldl: 12,
+      heartRate: 6,
+      plateletCount: 14
     }
   }
 };
@@ -296,9 +285,11 @@ function oscillate(template, t) {
   const micro = Math.sin(t / 950 + template.phase * 0.7) * template.amplitude * 0.14;
   let value = template.base + wave + micro + (scenario.modifiers[template.metric] || 0) + (intervention.modifiers[template.metric] || 0);
 
-  if (activeScenario === "colorectal_cancer" && template.metric === "dDimer") value += Math.max(0, Math.sin(t / 1200) * 160);
+  if (activeScenario === "colorectal_cancer" && template.metric === "colonInflammation") value += Math.max(0, Math.sin(t / 1200) * 1.4);
   if (activeScenario === "stroke" && template.metric === "neuroPerfusion") value -= Math.max(0, Math.sin(t / 1400) * 7);
   if (activeScenario === "diabetes" && template.metric === "glucose") value += Math.max(0, Math.sin(t / 1600) * 18);
+  if (activeScenario === "breast_cancer" && template.metric === "inflammation") value += Math.max(0, Math.sin(t / 1500) * 0.8);
+  if (activeScenario === "cardiovascular_ascvd" && template.metric === "ldl") value += Math.max(0, Math.sin(t / 1700) * 14);
 
   if (["glucose", "ldl", "triglycerides", "dDimer"].includes(template.metric)) value = clamp(value, 0, 1500);
   if (["oxygen", "clotRisk", "legFlow", "neuroPerfusion", "vascularStiffness", "insulinResistance", "splenicPerfusion"].includes(template.metric)) value = clamp(value, 0, 100);
@@ -410,18 +401,24 @@ function buildLesions(byId, scenario) {
     lesions.push({ id: "pancreas-stress", type: "diabetes", label: "إجهاد البنكرياس", severity: clamp((byId.glucose.value - 110) / 110, 0.18, 1), position: [-0.04, 0.66, 0.13], color: "#f4b740" });
     lesions.push({ id: "glucose-field", type: "glucose", label: "ارتفاع السكر حول الأوعية", severity: clamp((byId.glucose.value - 110) / 120, 0.12, 1), position: [0, 0.55, 0.08], color: "#ffd166" });
   }
-  if (scenario.disease === "hypertension" || byId.systolic.value >= 130 || byId.vascularStiffness.value >= 45) {
-    lesions.push({ id: "arterial-pressure", type: "hypertension", label: "ضغط عال على الشرايين", severity: clamp((byId.systolic.value - 120) / 75, 0.18, 1), position: [0, 1.1, 0.1], color: "#ef4b5f" });
+  if (scenario.disease === "cardiovascular_ascvd" || byId.systolic.value >= 130 || byId.vascularStiffness.value >= 45 || byId.ldl.value >= 160) {
+    lesions.push({ id: "ascvd-plaque", type: "ascvd", label: "تصلب شرياني محاكى", severity: clamp(((byId.systolic.value - 120) / 75 + (byId.ldl.value - 110) / 130) / 2, 0.2, 1), position: [0, 1.1, 0.1], color: "#ef4b5f" });
+    lesions.push({ id: "ldl-burden", type: "ascvd", label: "حمل LDL على الأوعية", severity: clamp((byId.ldl.value - 110) / 130, 0.12, 1), position: [-0.16, 0.84, 0.12], color: "#ffbe55" });
   }
-  if (scenario.disease === "thrombosis" || byId.clotRisk.value >= 35 || byId.dDimer.value >= 500) {
-    lesions.push({ id: "leg-thrombus", type: "clot", label: "خثرة محاكاة في وريد الساق", severity: clamp(byId.clotRisk.value / 100, 0.2, 1), position: [-0.18, -1.58, 0.02], color: "#6f1d1b" });
-    if (byId.oxygen.value < 95) lesions.push({ id: "lung-risk", type: "lung-clot", label: "تنبيه رئوي محاكى", severity: clamp((96 - byId.oxygen.value) / 10, 0.1, 1), position: [0.22, 1.42, 0.08], color: "#ff7b7b" });
+  if (scenario.disease === "colorectal_cancer" || byId.colonInflammation.value >= 4 || byId.largeIntestineMotility.value <= 65) {
+    lesions.push({ id: "colon-mass", type: "colorectal-mass", label: "كتلة محاكاة في الأمعاء الغليظة", severity: clamp((byId.colonInflammation.value - 1) / 8 + (84 - byId.largeIntestineMotility.value) / 60, 0.22, 1), position: [-0.18, 0.46, 0.16], color: "#a64a3a" });
+    if (byId.fluidAbsorption.value < 78) lesions.push({ id: "colon-malabsorption", type: "colorectal-mass", label: "ضعف امتصاص السوائل", severity: clamp((90 - byId.fluidAbsorption.value) / 35, 0.12, 1), position: [0.18, 0.42, 0.16], color: "#d68a7c" });
   }
   if (scenario.disease === "stroke" || byId.neuroPerfusion.value <= 85) {
     lesions.push({ id: "brain-perfusion", type: "stroke", label: "نقص تروية دماغي محاكى", severity: clamp((95 - byId.neuroPerfusion.value) / 35, 0.16, 1), position: [0, 2.48, 0.04], color: "#a78bfa" });
     lesions.push({ id: "carotid-plaque", type: "carotid", label: "إجهاد الشريان السباتي", severity: clamp((byId.ldl.value - 110) / 120, 0.12, 1), position: [-0.08, 2.24, 0.03], color: "#ffbe55" });
   }
-  if (byId.egfr.value <= 75 || ["diabetes", "hypertension", "metabolic"].includes(scenario.disease)) {
+  if (scenario.disease === "breast_cancer") {
+    const severity = clamp(scenario.severity * 0.9 + (byId.inflammation.value - 1.5) / 8, 0.25, 1);
+    lesions.push({ id: "breast-mass-left", type: "breast-mass", label: "كتلة محاكاة في الثدي الأيسر", severity, position: [0.16, 1.34, 0.16], color: "#e879a9" });
+    if (byId.inflammation.value >= 3) lesions.push({ id: "breast-inflammation", type: "breast-mass", label: "التهاب موضعي حول الكتلة", severity: clamp((byId.inflammation.value - 1) / 8, 0.12, 1), position: [0.16, 1.34, 0.18], color: "#f9a8c5" });
+  }
+  if (byId.egfr.value <= 75 || ["diabetes", "cardiovascular_ascvd"].includes(scenario.disease)) {
     lesions.push({ id: "kidney-stress", type: "kidney", label: "ضغط على الكلى", severity: clamp((95 - byId.egfr.value) / 55, 0.1, 1), position: [-0.28, 0.34, -0.08], color: "#c084fc" });
   }
   return lesions;
@@ -720,15 +717,60 @@ function buildEvents(alerts, scenario, intervention, imaging) {
 
 function buildPrediction(byId, risk, metabolicRisk, vascularRisk, scenario, imaging) {
   const diabetesProbability = clamp(Number(((metabolicRisk / 100) * 0.72 + (byId.hba1c.value >= 6.5 ? 0.18 : 0.03)).toFixed(2)), 0.03, 0.96);
-  const hypertensionProbability = clamp(Number(((vascularRisk / 100) * 0.62 + (byId.systolic.value >= 140 ? 0.18 : 0.04)).toFixed(2)), 0.03, 0.96);
-  const clotProbability = clamp(Number((byId.clotRisk.value * 0.009 + (byId.dDimer.value >= 500 ? 0.18 : 0.03) + (scenario.disease === "thrombosis" ? 0.2 : 0)).toFixed(2)), 0.03, 0.96);
-  const strokeSignalProbability = clamp(Number(((100 - byId.neuroPerfusion.value) * 0.018 + vascularRisk * 0.004 + (scenario.disease === "stroke" ? 0.22 : 0.02)).toFixed(2)), 0.03, 0.94);
+  const cardiovascularAscvdProbability = clamp(
+    Number(
+      (
+        (vascularRisk / 100) * 0.5 +
+        Math.max(0, byId.ldl.value - 110) * 0.0024 +
+        (byId.systolic.value >= 140 ? 0.16 : 0.04) +
+        (byId.vascularStiffness.value >= 45 ? 0.1 : 0.02) +
+        (scenario.disease === "cardiovascular_ascvd" ? 0.18 : 0)
+      ).toFixed(2)
+    ),
+    0.03,
+    0.96
+  );
+  const colorectalCancerProbability = clamp(
+    Number(
+      (
+        Math.max(0, byId.colonInflammation.value - 1.2) * 0.05 +
+        Math.max(0, 88 - byId.largeIntestineMotility.value) * 0.005 +
+        Math.max(0, 90 - byId.fluidAbsorption.value) * 0.004 +
+        (scenario.disease === "colorectal_cancer" ? 0.32 : 0.02)
+      ).toFixed(2)
+    ),
+    0.03,
+    0.94
+  );
+  const strokeSignalProbability = clamp(
+    Number(
+      (
+        (100 - byId.neuroPerfusion.value) * 0.018 +
+        vascularRisk * 0.004 +
+        (scenario.disease === "stroke" ? 0.22 : 0.02)
+      ).toFixed(2)
+    ),
+    0.03,
+    0.94
+  );
+  const breastCancerProbability = clamp(
+    Number(
+      (
+        Math.max(0, byId.inflammation.value - 1.2) * 0.04 +
+        Math.max(0, byId.bmi.value - 25) * 0.012 +
+        (scenario.disease === "breast_cancer" ? 0.34 : 0.02)
+      ).toFixed(2)
+    ),
+    0.03,
+    0.94
+  );
   return {
-    riskAfter30Min: clamp(Math.round(risk + (byId.neuroPerfusion.value < 80 ? 12 : 2) + (byId.clotRisk.value > 65 ? 10 : 0)), 0, 100),
+    riskAfter30Min: clamp(Math.round(risk + (byId.neuroPerfusion.value < 80 ? 12 : 2) + (byId.colonInflammation.value > 5 ? 6 : 0)), 0, 100),
     diabetesProbability,
-    hypertensionProbability,
-    clotProbability,
+    cardiovascularAscvdProbability,
+    colorectalCancerProbability,
     strokeSignalProbability,
+    breastCancerProbability,
     modelConfidence: imaging?.modelConfidence || 72,
     suggestedMonitoring: risk >= 70 ? "مراقبة محاكاة دقيقة كل دقيقة" : risk >= 40 ? "مراقبة نشطة كل 5 دقائق" : "مراقبة روتينية"
   };
@@ -745,18 +787,22 @@ function buildRecommendations(byId, risk, metabolicRisk, vascularRisk, scenario,
     recs.push("ارتفاع السكر أو السكر التراكمي في الواقع يحتاج تأكيدًا بفحوصات مخبرية ومراجعة مختص.");
     recs.push("في المحاكاة: جرّب تدخل ضبط السكر أو نمط الحياة ولاحظ أثره على البنكرياس والكلى.");
   }
-  if (scenario.disease === "hypertension" || byId.systolic.value >= 130 || vascularRisk >= 55) {
-    recs.push("ارتفاع الضغط عامل خطر مهم للقلب والسكتة، ويحتاج قياسات متكررة وتقييمًا طبيًا في الواقع.");
-    recs.push("في المحاكاة: جرّب ضبط الضغط ولاحظ تغير تروية الدماغ والكلى.");
+  if (scenario.disease === "cardiovascular_ascvd" || byId.systolic.value >= 130 || byId.ldl.value >= 160 || vascularRisk >= 55) {
+    recs.push("تصلب الشرايين وارتفاع LDL والضغط عوامل خطر متكاملة، يحتاج تقييمها فحوصات دم وتخطيط قلب ومراجعة مختص.");
+    recs.push("في المحاكاة: جرّب ضبط الضغط أو نمط الحياة ولاحظ تأثيرها على الكوليسترول وتيبس الأوعية.");
   }
-  if (scenario.disease === "thrombosis" || byId.clotRisk.value >= 35) {
-    recs.push("علامات الجلطة الحقيقية مثل تورم/ألم ساق مفاجئ أو ضيق نفس تستدعي رعاية طبية عاجلة.");
-    recs.push("في المحاكاة: جرّب مسار الجلطات وشاهد أثره على تدفق الساق والأكسجة.");
+  if (scenario.disease === "colorectal_cancer" || byId.colonInflammation.value >= 4 || byId.largeIntestineMotility.value <= 65) {
+    recs.push("تنبيه محاكاة فقط: علامات الكتلة في القولون تحتاج تأكيدًا بمنظار قولون وتحاليل CEA وفحص دم خفي في البراز عند طبيب.");
+    recs.push("في المحاكاة: راقب التهاب القولون وامتصاص السوائل بعد كل تدخل.");
   }
   if (scenario.disease === "stroke" || byId.neuroPerfusion.value <= 85) {
     recs.push("علامات السكتة مثل ضعف الوجه أو الذراع أو اضطراب الكلام حالة طارئة وليست مجالًا للتجربة.");
   }
-  if (risk < 35) recs.push("الحالة مستقرة في النموذج. انتقل إلى سيناريو السكري أو الضغط أو الجلطات لرؤية استجابة الجسم.");
+  if (scenario.disease === "breast_cancer") {
+    recs.push("تنبيه محاكاة فقط: أي كتلة جديدة أو تغير في الثدي يحتاج فحصًا سريريًا وتصويرًا بالماموغرام أو الموجات فوق الصوتية عند مختص.");
+    recs.push("في المحاكاة: راقب مؤشرات الالتهاب وعوامل الخطر بعد كل تدخل.");
+  }
+  if (risk < 35) recs.push("الحالة مستقرة في النموذج. انتقل إلى سيناريو السكري أو القلب والشرايين أو سرطان القولون أو السكتة أو سرطان الثدي لرؤية استجابة الجسم.");
   return recs.slice(0, 6);
 }
 
@@ -765,9 +811,10 @@ function isCarePathwayQuestion(question = "") {
 }
 
 function inferFocusFromState(state) {
-  if (state.scenario?.disease === "thrombosis" || state.summary.clotRisk >= 35 || state.summary.dDimer >= 500) return "clot";
+  if (state.scenario?.disease === "colorectal_cancer") return "colorectal_cancer";
+  if (state.scenario?.disease === "breast_cancer") return "breast_cancer";
   if (state.scenario?.disease === "stroke" || state.summary.neuroPerfusion <= 85) return "stroke";
-  if (state.scenario?.disease === "hypertension" || Number(String(state.summary.bloodPressure).split("/")[0]) >= 130) return "pressure";
+  if (state.scenario?.disease === "cardiovascular_ascvd" || Number(String(state.summary.bloodPressure).split("/")[0]) >= 130) return "pressure";
   if (state.scenario?.disease === "diabetes" || state.summary.glucose >= 126 || state.summary.hba1c >= 5.7) return "diabetes";
   return "general";
 }
