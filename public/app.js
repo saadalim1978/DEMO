@@ -250,18 +250,18 @@ const anatomyPalettes = {
 };
 
 const ORGAN_VERTEX_TINTS = {
-  brain: 0xd8a3a0,
-  lungs: 0x7da5c5,
-  heart: 0xc8302e,
-  liver: 0x6e3122,
-  spleen: 0x6e2a3a,
-  stomach: 0xc8866a,
-  pancreas: 0xd8a878,
-  smallIntestine: 0xb56a3f,
-  largeIntestine: 0xa05a37,
-  leftKidney: 0x8e3f50,
-  rightKidney: 0x8e3f50,
-  bladder: 0xf0d0a8
+  brain: 0xf5c0cd,
+  lungs: 0x6fa8d6,
+  heart: 0xc8302c,
+  liver: 0x8b4513,
+  spleen: 0x6b1f2e,
+  stomach: 0xdc9682,
+  pancreas: 0xe8b547,
+  smallIntestine: 0xe0925e,
+  largeIntestine: 0xc97a4a,
+  leftKidney: 0x8b3a3a,
+  rightKidney: 0x8b3a3a,
+  bladder: 0x4fa890
 };
 const anatomyAppearance = {
   palette: "natural",
@@ -1026,6 +1026,327 @@ function applyOrganDisplayScale(object, multiplier = [1, 1, 1]) {
   object.scale.set(base.x * display * multiplier[0], base.y * display * multiplier[1], base.z * display * multiplier[2]);
 }
 
+function rescaleAroundCenter(obj, scaleFactor) {
+  const box = new THREE.Box3().setFromObject(obj);
+  const center = box.getCenter(new THREE.Vector3());
+  const wrapper = new THREE.Group();
+  obj.position.sub(center);
+  wrapper.add(obj);
+  wrapper.scale.setScalar(scaleFactor);
+  wrapper.position.copy(center);
+  return wrapper;
+}
+
+const PROCEDURAL_PART_KEYS = new Set([
+  "stomach",
+  "arm_arteries",
+  "arm_veins",
+  "leg_arteries",
+  "leg_veins"
+]);
+
+function placeholderMaterial() {
+  return new THREE.MeshBasicMaterial({ color: 0xffffff });
+}
+
+function buildProceduralStomachScene() {
+  const spine = [
+    [+0.005, 0.435, 0.020, 0.020, 0.025],
+    [+0.030, 0.450, 0.005, 0.045, 0.040],
+    [+0.060, 0.435, 0.000, 0.055, 0.045],
+    [+0.075, 0.410, 0.010, 0.060, 0.050],
+    [+0.075, 0.385, 0.020, 0.060, 0.055],
+    [+0.060, 0.360, 0.025, 0.055, 0.050],
+    [+0.030, 0.340, 0.025, 0.045, 0.040],
+    [-0.005, 0.330, 0.020, 0.030, 0.030],
+    [-0.030, 0.335, 0.015, 0.022, 0.022],
+    [-0.045, 0.345, 0.010, 0.015, 0.018]
+  ];
+  const RING = 16;
+  const points = spine.map((p) => new THREE.Vector3(p[0], p[1], p[2]));
+  const tangents = points.map((_, i) => {
+    const prev = points[Math.max(0, i - 1)];
+    const next = points[Math.min(points.length - 1, i + 1)];
+    return next.clone().sub(prev).normalize();
+  });
+
+  const positions = [];
+  const indices = [];
+  for (let i = 0; i < spine.length; i += 1) {
+    const [x, y, z, rx, rz] = spine[i];
+    const T = tangents[i];
+    const up = Math.abs(T.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+    const A = new THREE.Vector3().crossVectors(T, up).normalize();
+    const B = new THREE.Vector3().crossVectors(T, A).normalize();
+    for (let j = 0; j < RING; j += 1) {
+      const ang = (j / RING) * Math.PI * 2;
+      let cx = Math.cos(ang) * rx;
+      const cz = Math.sin(ang) * rz;
+      cx *= cx > 0 ? 1.15 : 0.7;
+      const v = new THREE.Vector3(x, y, z)
+        .add(A.clone().multiplyScalar(cx))
+        .add(B.clone().multiplyScalar(cz));
+      positions.push(v.x, v.y, v.z);
+    }
+  }
+  for (let i = 0; i < spine.length - 1; i += 1) {
+    for (let j = 0; j < RING; j += 1) {
+      const a = i * RING + j;
+      const b = i * RING + ((j + 1) % RING);
+      const c = (i + 1) * RING + j;
+      const d = (i + 1) * RING + ((j + 1) % RING);
+      indices.push(a, c, b, b, c, d);
+    }
+  }
+  const startCap = positions.length / 3;
+  positions.push(points[0].x, points[0].y, points[0].z);
+  for (let j = 0; j < RING; j += 1) {
+    indices.push(startCap, (j + 1) % RING, j);
+  }
+  const endCap = positions.length / 3;
+  const last = points[points.length - 1];
+  positions.push(last.x, last.y, last.z);
+  const lastRing = (spine.length - 1) * RING;
+  for (let j = 0; j < RING; j += 1) {
+    indices.push(endCap, lastRing + j, lastRing + ((j + 1) % RING));
+  }
+
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geom.setIndex(indices);
+  geom.computeVertexNormals();
+  const mesh = new THREE.Mesh(geom, placeholderMaterial());
+  mesh.name = "stomach-procedural";
+  const group = new THREE.Group();
+  group.name = "stomach";
+  group.add(mesh);
+  return group;
+}
+
+function makeVesselTubeMesh(pts, baseRadius, segments = 64) {
+  const curve = new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(p[0], p[1], p[2])));
+  const radial = 12;
+  const positions = [];
+  const indices = [];
+  for (let i = 0; i <= segments; i += 1) {
+    const t = i / segments;
+    const p = curve.getPointAt(t);
+    const T = curve.getTangentAt(t);
+    const up = Math.abs(T.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+    const A = new THREE.Vector3().crossVectors(T, up).normalize();
+    const B = new THREE.Vector3().crossVectors(T, A).normalize();
+    const startTaper = Math.min(t / 0.05, 1);
+    const endTaper = Math.min((1 - t) / 0.15, 1);
+    let r = baseRadius * startTaper * Math.pow(endTaper, 0.5);
+    r *= 1.0 + 0.05 * Math.sin(t * Math.PI * 6);
+    for (let j = 0; j < radial; j += 1) {
+      const ang = (j / radial) * Math.PI * 2;
+      const v = p
+        .clone()
+        .add(A.clone().multiplyScalar(Math.cos(ang) * r))
+        .add(B.clone().multiplyScalar(Math.sin(ang) * r));
+      positions.push(v.x, v.y, v.z);
+    }
+  }
+  for (let i = 0; i < segments; i += 1) {
+    for (let j = 0; j < radial; j += 1) {
+      const a = i * radial + j;
+      const b = i * radial + ((j + 1) % radial);
+      const c = (i + 1) * radial + j;
+      const d = (i + 1) * radial + ((j + 1) % radial);
+      indices.push(a, c, b, b, c, d);
+    }
+  }
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geom.setIndex(indices);
+  geom.computeVertexNormals();
+  return new THREE.Mesh(geom, placeholderMaterial());
+}
+
+function buildArmArteriesScene() {
+  const group = new THREE.Group();
+  group.name = "arm_arteries";
+  for (const sx of [+1, -1]) {
+    group.add(
+      makeVesselTubeMesh(
+        [
+          [sx * 0.105, 0.520, 0.005],
+          [sx * 0.135, 0.460, 0.005],
+          [sx * 0.180, 0.380, 0.000],
+          [sx * 0.230, 0.290, -0.005],
+          [sx * 0.280, 0.210, -0.005],
+          [sx * 0.320, 0.140, 0.000],
+          [sx * 0.360, 0.090, 0.005],
+          [sx * 0.405, 0.060, 0.010],
+          [sx * 0.450, 0.045, 0.013],
+          [sx * 0.475, 0.035, 0.015],
+          [sx * 0.490, 0.025, 0.014]
+        ],
+        0.0045
+      )
+    );
+    group.add(
+      makeVesselTubeMesh(
+        [
+          [sx * 0.320, 0.140, 0.000],
+          [sx * 0.355, 0.090, -0.005],
+          [sx * 0.400, 0.060, -0.005],
+          [sx * 0.445, 0.045, 0.000],
+          [sx * 0.475, 0.030, 0.005]
+        ],
+        0.0022
+      )
+    );
+  }
+  return group;
+}
+
+function buildArmVeinsScene() {
+  const group = new THREE.Group();
+  group.name = "arm_veins";
+  for (const sx of [+1, -1]) {
+    group.add(
+      makeVesselTubeMesh(
+        [
+          [sx * 0.110, 0.520, 0.013],
+          [sx * 0.140, 0.460, 0.013],
+          [sx * 0.185, 0.380, 0.010],
+          [sx * 0.235, 0.290, 0.010],
+          [sx * 0.285, 0.210, 0.014],
+          [sx * 0.325, 0.140, 0.020],
+          [sx * 0.365, 0.090, 0.022],
+          [sx * 0.410, 0.060, 0.024],
+          [sx * 0.455, 0.045, 0.024],
+          [sx * 0.480, 0.035, 0.022],
+          [sx * 0.495, 0.025, 0.020]
+        ],
+        0.005
+      )
+    );
+    group.add(
+      makeVesselTubeMesh(
+        [
+          [sx * 0.115, 0.520, 0.022],
+          [sx * 0.150, 0.460, 0.027],
+          [sx * 0.195, 0.380, 0.027],
+          [sx * 0.245, 0.290, 0.024],
+          [sx * 0.295, 0.210, 0.022],
+          [sx * 0.335, 0.140, 0.024],
+          [sx * 0.375, 0.090, 0.027],
+          [sx * 0.420, 0.060, 0.028],
+          [sx * 0.460, 0.045, 0.027],
+          [sx * 0.485, 0.035, 0.024]
+        ],
+        0.0042
+      )
+    );
+  }
+  return group;
+}
+
+function buildLegArteriesScene() {
+  const group = new THREE.Group();
+  group.name = "leg_arteries";
+  for (const sx of [+1, -1]) {
+    group.add(
+      makeVesselTubeMesh(
+        [
+          [sx * 0.06, 0.05, 0.005],
+          [sx * 0.10, -0.02, 0.010],
+          [sx * 0.13, -0.10, 0.005],
+          [sx * 0.14, -0.20, -0.005],
+          [sx * 0.14, -0.30, -0.015],
+          [sx * 0.13, -0.40, -0.020],
+          [sx * 0.13, -0.50, -0.020],
+          [sx * 0.13, -0.60, -0.025],
+          [sx * 0.15, -0.70, -0.040],
+          [sx * 0.18, -0.78, -0.075],
+          [sx * 0.20, -0.83, -0.110],
+          [sx * 0.20, -0.85, -0.135]
+        ],
+        0.006
+      )
+    );
+    group.add(
+      makeVesselTubeMesh(
+        [
+          [sx * 0.13, -0.40, -0.020],
+          [sx * 0.12, -0.50, -0.030],
+          [sx * 0.13, -0.60, -0.040],
+          [sx * 0.16, -0.70, -0.045],
+          [sx * 0.18, -0.78, -0.030],
+          [sx * 0.20, -0.85, -0.020],
+          [sx * 0.21, -0.86, -0.060]
+        ],
+        0.003
+      )
+    );
+  }
+  return group;
+}
+
+function buildLegVeinsScene() {
+  const group = new THREE.Group();
+  group.name = "leg_veins";
+  for (const sx of [+1, -1]) {
+    group.add(
+      makeVesselTubeMesh(
+        [
+          [sx * 0.05, 0.05, 0.005],
+          [sx * 0.08, -0.02, 0.013],
+          [sx * 0.11, -0.10, 0.008],
+          [sx * 0.12, -0.20, -0.002],
+          [sx * 0.12, -0.30, -0.012],
+          [sx * 0.11, -0.40, -0.018],
+          [sx * 0.11, -0.50, -0.018],
+          [sx * 0.11, -0.60, -0.022],
+          [sx * 0.13, -0.70, -0.038],
+          [sx * 0.17, -0.78, -0.060],
+          [sx * 0.19, -0.83, -0.090],
+          [sx * 0.20, -0.85, -0.120]
+        ],
+        0.0075
+      )
+    );
+    group.add(
+      makeVesselTubeMesh(
+        [
+          [sx * 0.06, -0.02, 0.022],
+          [sx * 0.08, -0.10, 0.028],
+          [sx * 0.09, -0.20, 0.024],
+          [sx * 0.09, -0.30, 0.014],
+          [sx * 0.10, -0.40, 0.004],
+          [sx * 0.10, -0.50, -0.005],
+          [sx * 0.11, -0.60, -0.015],
+          [sx * 0.13, -0.70, -0.035],
+          [sx * 0.16, -0.78, -0.060],
+          [sx * 0.18, -0.83, -0.080]
+        ],
+        0.0045
+      )
+    );
+  }
+  return group;
+}
+
+function buildProceduralPartScene(key) {
+  switch (key) {
+    case "stomach":
+      return buildProceduralStomachScene();
+    case "arm_arteries":
+      return buildArmArteriesScene();
+    case "arm_veins":
+      return buildArmVeinsScene();
+    case "leg_arteries":
+      return buildLegArteriesScene();
+    case "leg_veins":
+      return buildLegVeinsScene();
+    default:
+      return null;
+  }
+}
+
 async function loadNihBodyShell() {
   const gltf = await gltfLoader.loadAsync(`/models/body/${bodyShellAsset.file}`);
   const shell = prepareBodyShell(gltf.scene);
@@ -1040,6 +1361,9 @@ async function loadIntegratedAnatomyModel() {
   if (Array.isArray(integratedAnatomyAsset.parts) && integratedAnatomyAsset.parts.length) {
     const loadedParts = await Promise.all(
       integratedAnatomyAsset.parts.map(async (part) => {
+        if (PROCEDURAL_PART_KEYS.has(part.key)) {
+          return { asset: part, sceneModel: buildProceduralPartScene(part.key) };
+        }
         const gltf = await gltfLoader.loadAsync(integratedPartUrl(part.file));
         return { asset: part, sceneModel: gltf.scene };
       })
@@ -1076,8 +1400,12 @@ function prepareIntegratedAnatomyModel(sceneModel) {
 function prepareIntegratedAnatomyParts(loadedParts) {
   const box = new THREE.Box3();
   const entries = loadedParts.map(({ asset, sceneModel }) => {
-    box.union(new THREE.Box3().setFromObject(sceneModel));
-    return { object: sceneModel, config: integratedPartConfig(asset.key || asset.file), asset };
+    let model = sceneModel;
+    if (asset.key === "spleen") {
+      model = rescaleAroundCenter(model, 0.62);
+    }
+    box.union(new THREE.Box3().setFromObject(model));
+    return { object: model, config: integratedPartConfig(asset.key || asset.file), asset };
   });
   prepareIntegratedAnatomyEntries(entries, box);
 }
@@ -1180,7 +1508,7 @@ function prepareIntegratedPart(object, config) {
     child.castShadow = true;
     child.receiveShadow = true;
     child.frustumCulled = false;
-    child.renderOrder = config.layer === "skin" ? 1 : 4;
+    child.renderOrder = config.layer === "skin" ? 999 : 4;
     child.material = material.clone();
     child.userData.organKey = config.organKey;
     child.userData.organPartKey = config.bodyPartKey || config.key;
@@ -1203,12 +1531,16 @@ function integratedPartMaterial(config) {
 
 function integratedSkinMaterial() {
   const palette = anatomyPalettes[anatomyAppearance.palette] || anatomyPalettes.natural;
-  const material = new THREE.MeshBasicMaterial({
+  const material = new THREE.MeshPhysicalMaterial({
     color: palette.skin,
     transparent: true,
     opacity: skinShellOpacity(),
-    depthWrite: false,
-    side: THREE.DoubleSide
+    roughness: 0.6,
+    metalness: 0.0,
+    transmission: 0.3,
+    thickness: 0.5,
+    side: THREE.DoubleSide,
+    depthWrite: false
   });
   material.userData.appearanceRole = "skin";
   installSkinCutawayShader(material);
@@ -1220,22 +1552,43 @@ function integratedVertexColorMaterial(role, customTint) {
   const isArtery = role === "artery";
   const isVein = role === "vein";
   const isVessel = isArtery || isVein || role === "vessel";
-  let tint;
-  if (customTint) tint = customTint;
-  else if (isArtery) tint = palette.arteryTint || 0xe06974;
-  else if (isVein) tint = palette.veinTint || 0x6694c8;
-  else if (isVessel) tint = palette.vesselTint;
-  else tint = palette.organTint;
-  const useVertexColors = !(role === "organ" && customTint);
-  const material = new THREE.MeshBasicMaterial({
+
+  if (isVessel) {
+    let tint;
+    if (customTint) tint = customTint;
+    else if (isArtery) tint = palette.arteryTint || 0xe06974;
+    else if (isVein) tint = palette.veinTint || 0x6694c8;
+    else tint = palette.vesselTint;
+    const emissive = isVein ? 0x000814 : 0x330000;
+    const material = new THREE.MeshPhysicalMaterial({
+      color: tint,
+      roughness: 0.35,
+      metalness: 0.0,
+      clearcoat: 0.4,
+      clearcoatRoughness: 0.3,
+      emissive,
+      emissiveIntensity: 0.3,
+      transparent: false,
+      opacity: 0.98,
+      depthWrite: true,
+      side: THREE.DoubleSide
+    });
+    material.userData.appearanceRole = role;
+    if (customTint) material.userData.customTint = customTint;
+    return material;
+  }
+
+  const tint = customTint || palette.organTint;
+  const material = new THREE.MeshPhongMaterial({
     color: tint,
-    vertexColors: useVertexColors,
-    transparent: !isVessel,
-    opacity: role === "organ" ? anatomyAppearance.organOpacity : 0.98,
-    depthWrite: isVessel,
-    side: THREE.DoubleSide
+    transparent: true,
+    opacity: anatomyAppearance.organOpacity,
+    shininess: 40,
+    specular: 0x333333,
+    side: THREE.DoubleSide,
+    depthWrite: false
   });
-  material.userData.appearanceRole = role;
+  material.userData.appearanceRole = role || "organ";
   if (customTint) material.userData.customTint = customTint;
   return material;
 }
