@@ -55,13 +55,13 @@ GET /api/twin
 POST /api/twin/simulate
 Content-Type: application/json
 
-{ "scenario": "diabetes_risk" }
+{ "scenario": "diabetes" }
 ```
 
 القيم الممكنة:
 
 ```text
-baseline, diabetes_risk, hypertension, thrombosis, stroke_risk, cardio_metabolic
+baseline, diabetes, cardiovascular_ascvd, colorectal_cancer, stroke, breast_cancer
 ```
 
 ```http

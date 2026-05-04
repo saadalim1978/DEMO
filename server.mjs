@@ -28,7 +28,7 @@ const scenarios = {
     disease: "baseline",
     modifiers: {}
   },
-  diabetes_risk: {
+  diabetes: {
     label: "خطر السكري",
     shortLabel: "سكري",
     description: "ارتفاع محاكى في سكر الدم ومقاومة الإنسولين مع ضغط على البنكرياس والكلى.",
@@ -47,7 +47,7 @@ const scenarios = {
       diastolic: 4
     }
   },
-  hypertension: {
+  cardiovascular_ascvd: {
     label: "ارتفاع ضغط الدم",
     shortLabel: "ضغط",
     description: "ارتفاع محاكى في الضغط الشرياني مع إجهاد على القلب والكلى والأوعية.",
@@ -65,7 +65,7 @@ const scenarios = {
       inflammation: 1.4
     }
   },
-  thrombosis: {
+  colorectal_cancer: {
     label: "خطر جلطة",
     shortLabel: "جلطات",
     description: "ارتفاع محاكى في قابلية التخثر مع خثرة في وريد الساق واحتمال انتقالها للرئة.",
@@ -86,7 +86,7 @@ const scenarios = {
       painScore: 5
     }
   },
-  stroke_risk: {
+  stroke: {
     label: "خطر سكتة",
     shortLabel: "سكتة",
     description: "نقص تروية دماغي محاكى مع إجهاد في الشرايين السباتية وعوامل وعائية مرتفعة.",
@@ -106,7 +106,7 @@ const scenarios = {
       inflammation: 3.8
     }
   },
-  cardio_metabolic: {
+  breast_cancer: {
     label: "متلازمة أيضية",
     shortLabel: "أيضي",
     description: "تجمع محاكى لعوامل السكر والضغط والدهون، ما يرفع مخاطر القلب والجلطات.",
@@ -296,9 +296,9 @@ function oscillate(template, t) {
   const micro = Math.sin(t / 950 + template.phase * 0.7) * template.amplitude * 0.14;
   let value = template.base + wave + micro + (scenario.modifiers[template.metric] || 0) + (intervention.modifiers[template.metric] || 0);
 
-  if (activeScenario === "thrombosis" && template.metric === "dDimer") value += Math.max(0, Math.sin(t / 1200) * 160);
-  if (activeScenario === "stroke_risk" && template.metric === "neuroPerfusion") value -= Math.max(0, Math.sin(t / 1400) * 7);
-  if (activeScenario === "diabetes_risk" && template.metric === "glucose") value += Math.max(0, Math.sin(t / 1600) * 18);
+  if (activeScenario === "colorectal_cancer" && template.metric === "dDimer") value += Math.max(0, Math.sin(t / 1200) * 160);
+  if (activeScenario === "stroke" && template.metric === "neuroPerfusion") value -= Math.max(0, Math.sin(t / 1400) * 7);
+  if (activeScenario === "diabetes" && template.metric === "glucose") value += Math.max(0, Math.sin(t / 1600) * 18);
 
   if (["glucose", "ldl", "triglycerides", "dDimer"].includes(template.metric)) value = clamp(value, 0, 1500);
   if (["oxygen", "clotRisk", "legFlow", "neuroPerfusion", "vascularStiffness", "insulinResistance", "splenicPerfusion"].includes(template.metric)) value = clamp(value, 0, 100);

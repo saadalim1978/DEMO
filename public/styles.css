@@ -755,11 +755,11 @@ body.webgl-ready .fallback-human {
   opacity: 0;
 }
 
-body[data-scenario="thrombosis"] .fb-clot,
-body[data-scenario="stroke_risk"] .fb-brain,
-body[data-scenario="diabetes_risk"] .fb-pancreas,
-body[data-scenario="hypertension"] .vessel-main,
-body[data-scenario="cardio_metabolic"] .fb-pancreas {
+body[data-scenario="colorectal_cancer"] .fb-clot,
+body[data-scenario="stroke"] .fb-brain,
+body[data-scenario="diabetes"] .fb-pancreas,
+body[data-scenario="cardiovascular_ascvd"] .vessel-main,
+body[data-scenario="breast_cancer"] .fb-pancreas {
   opacity: 1;
   filter: saturate(1.55) brightness(1.18);
 }
