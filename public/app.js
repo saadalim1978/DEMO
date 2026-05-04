@@ -976,6 +976,10 @@ function applyAnatomyAppearance() {
       const role = material.userData?.appearanceRole;
       if (!role) return;
       delete material.userData.organBase;
+      if (material.emissive && typeof material.userData.naturalEmissive === "number") {
+        material.emissive.setHex(material.userData.naturalEmissive);
+        material.emissiveIntensity = material.userData.naturalEmissiveIntensity ?? 1;
+      }
       if (role === "skin") {
         material.color?.setHex?.(palette.skin);
         material.transparent = true;
@@ -1543,6 +1547,8 @@ function integratedSkinMaterial() {
     side: THREE.DoubleSide
   });
   material.userData.appearanceRole = "skin";
+  material.userData.naturalEmissive = 0x000000;
+  material.userData.naturalEmissiveIntensity = 1;
   installSkinCutawayShader(material);
   return material;
 }
@@ -1574,6 +1580,8 @@ function integratedVertexColorMaterial(role, customTint) {
       side: THREE.DoubleSide
     });
     material.userData.appearanceRole = role;
+    material.userData.naturalEmissive = emissive;
+    material.userData.naturalEmissiveIntensity = 0.3;
     if (customTint) material.userData.customTint = customTint;
     return material;
   }
@@ -1589,6 +1597,8 @@ function integratedVertexColorMaterial(role, customTint) {
     depthWrite: false
   });
   material.userData.appearanceRole = role || "organ";
+  material.userData.naturalEmissive = 0x000000;
+  material.userData.naturalEmissiveIntensity = 1;
   if (customTint) material.userData.customTint = customTint;
   return material;
 }
