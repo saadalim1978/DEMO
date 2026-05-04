@@ -452,7 +452,9 @@ h2 {
 .scenario-btn {
   min-width: 86px;
   height: 42px;
-  padding: 0 10px;
+  padding: 0 14px;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 .scenario-btn svg,
@@ -744,22 +746,36 @@ body.webgl-ready .fallback-human {
   box-shadow: 0 0 14px rgba(255, 93, 115, 0.55);
 }
 
-.fb-clot {
-  top: 75%;
-  left: 35%;
-  width: 18px;
-  height: 16px;
-  border-radius: 50%;
-  background: #6f1d1b;
-  box-shadow: 0 0 16px rgba(239, 75, 95, 0.8);
+.fb-colon {
+  position: absolute;
+  top: 56%;
+  left: 30%;
+  width: 40%;
+  height: 6%;
+  border-radius: 30% 30% 999px 999px;
+  background: #a64a3a;
+  box-shadow: 0 0 14px rgba(166, 74, 58, 0.7);
   opacity: 0;
 }
 
-body[data-scenario="colorectal_cancer"] .fb-clot,
+.fb-breast-mass {
+  position: absolute;
+  top: 30%;
+  left: 38%;
+  width: 4%;
+  height: 4%;
+  border-radius: 50%;
+  background: #e879a9;
+  box-shadow: 0 0 14px rgba(232, 121, 169, 0.85);
+  opacity: 0;
+}
+
+body[data-scenario="colorectal_cancer"] .fb-colon,
 body[data-scenario="stroke"] .fb-brain,
 body[data-scenario="diabetes"] .fb-pancreas,
 body[data-scenario="cardiovascular_ascvd"] .vessel-main,
-body[data-scenario="breast_cancer"] .fb-pancreas {
+body[data-scenario="cardiovascular_ascvd"] .fb-heart,
+body[data-scenario="breast_cancer"] .fb-breast-mass {
   opacity: 1;
   filter: saturate(1.55) brightness(1.18);
 }
