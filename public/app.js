@@ -192,9 +192,9 @@ const diseaseEffectAnchors = {
   lungImaging: { organ: "lungs", fallback: [0, 1.38, 0], offset: [0, 0.02, 0] },
   brain: { organ: "brain", fallback: [0, 2.48, 0], offset: [0, 0.02, 0] },
   clot: { fallback: [-0.18, -1.5, -0.02], offset: [0, 0, 0] },
-  heartGlow: { organ: "heart", fallback: [0.06, 1.18, 0.06], offset: [0, 0, 0.02] },
+  heartGlow: { organ: "heart", fallback: [0.06, 1.18, 0.06], offset: [0, 0, 0.12] },
   colonMass: { organ: "largeIntestine", fallback: [-0.18, 0.46, 0.16], offset: [0, 0, 0.04] },
-  breastMass: { fallback: [0.16, 1.34, 0.16], offset: [0, 0, 0] }
+  breastMass: { fallback: [0.16, 1.34, 0.18], offset: [0, 0, 0.04] }
 };
 
 const teachingOrganScales = {
@@ -2260,14 +2260,23 @@ function createDiseaseLayers() {
   disease.lungClot = createClotGroup([0.22, 1.42, -0.02], 0.5);
   disease.brain = addGlowSphere([0, 2.66, 0], [0.3, 0.2, 0.22], 0xa78bfa);
   disease.carotid = createClotGroup([-0.08, 2.24, 0], 0.36);
-  disease.heartGlow = addGlowSphere([0.06, 1.18, 0.06], [0.32, 0.3, 0.24], 0xef4b5f);
+  disease.heartGlow = addGlowSphere([0.06, 1.18, 0.18], [0.5, 0.46, 0.4], 0xef4b5f);
+  disease.heartGlow.material.opacity = 0.5;
+  disease.heartGlow.material.depthTest = false;
+  disease.heartGlow.material.depthWrite = false;
+  disease.heartGlow.renderOrder = 9;
   disease.colonMass = createClotGroup([-0.18, 0.46, 0.16], 0.78);
   disease.colonMass.children.forEach((node) => {
     if (node.material) node.material = node.material.clone();
     if (node.material?.color) node.material.color.setHex(0xa64a3a);
     if (node.material?.emissive) node.material.emissive.setHex(0x3a1208);
   });
-  disease.breastMass = addGlowSphere([0.16, 1.34, 0.16], [0.14, 0.14, 0.12], 0xe879a9);
+  disease.breastMass = createClotGroup([0.16, 1.34, 0.18], 0.5);
+  disease.breastMass.children.forEach((node) => {
+    if (node.material) node.material = node.material.clone();
+    if (node.material?.color) node.material.color.setHex(0xdc2626);
+    if (node.material?.emissive) node.material.emissive.setHex(0x4a0606);
+  });
   disease.kidney = new THREE.Group();
 
   [[0.27, 0.56, -0.15], [-0.27, 0.56, -0.15]].forEach((pos) => {
@@ -3138,7 +3147,8 @@ function updateDiseaseVisuals(state) {
   }
   if (breastMass && disease.breastMass) {
     disease.breastMass.visible = true;
-    disease.breastMass.material.opacity = 0.2 + breastMass.severity * 0.42;
+    const scale = 0.85 + breastMass.severity * 1.1;
+    disease.breastMass.scale.set(scale, scale, scale);
   }
 }
 
@@ -3836,13 +3846,13 @@ function animateDiseaseLayers(elapsed) {
       }
     });
   }
-  [disease.clot, disease.lungClot, disease.carotid, disease.colonMass].forEach((group) => {
+  [disease.clot, disease.lungClot, disease.carotid, disease.colonMass, disease.breastMass].forEach((group) => {
     if (group?.visible) {
       group.rotation.y += 0.01;
       group.rotation.x = Math.sin(elapsed * 1.7) * 0.12;
     }
   });
-  [disease.brain, disease.pancreasGlow, disease.heartGlow, disease.breastMass].forEach((mesh) => {
+  [disease.brain, disease.pancreasGlow, disease.heartGlow].forEach((mesh) => {
     if (!mesh?.visible) return;
     const base = mesh.userData.baseScale;
     if (!base) return;
