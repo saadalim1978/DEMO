@@ -1508,7 +1508,7 @@ function prepareIntegratedPart(object, config) {
     child.castShadow = true;
     child.receiveShadow = true;
     child.frustumCulled = false;
-    child.renderOrder = config.layer === "skin" ? 999 : 4;
+    child.renderOrder = config.layer === "skin" ? 1 : 4;
     child.material = material.clone();
     child.userData.organKey = config.organKey;
     child.userData.organPartKey = config.bodyPartKey || config.key;
@@ -1531,16 +1531,12 @@ function integratedPartMaterial(config) {
 
 function integratedSkinMaterial() {
   const palette = anatomyPalettes[anatomyAppearance.palette] || anatomyPalettes.natural;
-  const material = new THREE.MeshPhysicalMaterial({
+  const material = new THREE.MeshBasicMaterial({
     color: palette.skin,
     transparent: true,
     opacity: skinShellOpacity(),
-    roughness: 0.6,
-    metalness: 0.0,
-    transmission: 0.3,
-    thickness: 0.5,
-    side: THREE.DoubleSide,
-    depthWrite: false
+    depthWrite: false,
+    side: THREE.DoubleSide
   });
   material.userData.appearanceRole = "skin";
   installSkinCutawayShader(material);
