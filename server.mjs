@@ -1213,9 +1213,11 @@ async function serveStatic(request, response) {
   const ext = path.extname(filePath).toLowerCase();
   const contents = await readFile(filePath);
   const noStore = [".html", ".js", ".css"].includes(ext);
+  const shortCache = [".glb", ".gltf", ".json"].includes(ext);
+  const cacheControl = noStore ? "no-store" : shortCache ? "public, max-age=60, must-revalidate" : "public, max-age=3600";
   response.writeHead(200, {
     "Content-Type": mimeTypes[ext] || "application/octet-stream",
-    "Cache-Control": noStore ? "no-store" : "public, max-age=3600"
+    "Cache-Control": cacheControl
   });
   response.end(contents);
 }
