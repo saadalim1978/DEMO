@@ -814,7 +814,7 @@ function inferFocusFromState(state) {
   if (state.scenario?.disease === "colorectal_cancer") return "colorectal_cancer";
   if (state.scenario?.disease === "breast_cancer") return "breast_cancer";
   if (state.scenario?.disease === "stroke" || state.summary.neuroPerfusion <= 85) return "stroke";
-  if (state.scenario?.disease === "cardiovascular_ascvd" || Number(String(state.summary.bloodPressure).split("/")[0]) >= 130) return "pressure";
+  if (state.scenario?.disease === "cardiovascular_ascvd" || Number(String(state.summary.bloodPressure).split("/")[0]) >= 130) return "ascvd";
   if (state.scenario?.disease === "diabetes" || state.summary.glucose >= 126 || state.summary.hba1c >= 5.7) return "diabetes";
   return "general";
 }
@@ -824,18 +824,6 @@ function buildCarePathway(focus, state) {
     state.summary.risk >= 70
       ? "بما أن المؤشرات في المحاكاة عالية الخطورة، فالمسار الآمن يكون بتقييم طبي عاجل."
       : "الإجراء يعتمد على الفحص السريري والتصوير والتحاليل، وليس على الديمو وحده.";
-
-  if (focus === "clot") {
-    return {
-      answer:
-        `${emergencyPrefix} في مسار الجلطات المحتمل: يتم تقييم أعراض مثل تورم أو ألم الساق أو ضيق النفس، ثم قد يطلب الطبيب فحص دوبلر للأوردة أو CT للرئة مع D-dimer وتحاليل التخثر. إذا تأكدت جلطة، فالخيارات التي يناقشها الفريق الطبي قد تشمل مضادات التخثر، أو إذابة/قسطرة للجلطة في الحالات الشديدة، مع أكسجين ومراقبة عند وجود نقص أكسجة. لا يبدأ أي دواء أو جرعة بدون طبيب.`,
-      actions: [
-        "إذا ظهر ضيق نفس، ألم صدر، إغماء، أو تورم ساق مفاجئ: التوجه للطوارئ فورًا.",
-        "طلب تقييم طبي مع فحص دوبلر/CT حسب مكان الاشتباه وتحاليل التخثر.",
-        "مناقشة مضادات التخثر أو القسطرة/إذابة الجلطة فقط إذا أكد الطبيب التشخيص."
-      ]
-    };
-  }
 
   if (focus === "stroke") {
     return {
@@ -849,14 +837,14 @@ function buildCarePathway(focus, state) {
     };
   }
 
-  if (focus === "pressure") {
+  if (focus === "ascvd") {
     return {
       answer:
-        `${emergencyPrefix} في مسار ارتفاع الضغط: يعاد القياس بطريقة صحيحة، وتراجع الأعراض المصاحبة مثل ألم الصدر أو ضيق النفس أو ضعف عصبي. إذا كان الضغط شديدًا أو معه أعراض، فالتقييم العاجل مهم. الطبيب قد يناقش أدوية خفض الضغط، تحاليل كلى وأملاح، وتخطيط قلب، مع متابعة نمط الحياة حسب الحالة.`,
+        `${emergencyPrefix} في مسار خطر القلب والشرايين (ASCVD): يجمع الطبيب عوامل الخطر (الضغط، LDL، السكر، التدخين، العمر، التاريخ العائلي) ويناقش حساب نسبة خطر عشر سنوات. التقييم يشمل تحاليل دهون، فحص دم وسكر، تخطيط قلب، وأحياناً تصوير شرايين أو سكور كالسيوم تاجي. الإجراء يعتمد على الحالة وقد يشمل أدوية خفض الضغط أو الستاتين أو مضاد صفيحات بقرار طبي. لا يبدأ أي دواء بدون طبيب.`,
       actions: [
-        "إعادة قياس الضغط بعد راحة وبوضعية صحيحة.",
-        "الطوارئ عند ألم صدر، ضيق نفس، ضعف عصبي، أو قراءات شديدة جدًا.",
-        "مراجعة الطبيب لاختيار أدوية وفحوصات مناسبة دون بدء علاج عشوائي."
+        "الطوارئ عند ألم صدر مستمر، ضيق نفس مفاجئ، أو ضعف عصبي حاد.",
+        "طلب تحاليل دهون كاملة وسكر وتخطيط قلب لتقييم خطر ASCVD.",
+        "مناقشة الستاتين/خفض الضغط/تعديل نمط الحياة مع الطبيب وفق درجة الخطر."
       ]
     };
   }
@@ -869,6 +857,30 @@ function buildCarePathway(focus, state) {
         "تأكيد قراءة السكر ومراجعة الأعراض العامة.",
         "التقييم العاجل عند قيء، خمول شديد، تنفس غير طبيعي، أو سكر مرتفع جدًا.",
         "مراجعة الطبيب لتعديل الخطة العلاجية بناءً على التحاليل."
+      ]
+    };
+  }
+
+  if (focus === "colorectal_cancer") {
+    return {
+      answer:
+        `${emergencyPrefix} في مسار اشتباه سرطان القولون والمستقيم: يقيّم الطبيب الأعراض المثيرة للقلق مثل دم في البراز، تغير مستمر في عادة الإخراج، فقر دم بدون سبب، أو نزول وزن غير مفسر. التقييم يبدأ بفحص سريري وتحاليل دم (بما فيها CEA وCBC وفحص دم خفي في البراز)، ثم منظار قولون كامل لأخذ خزعات. إذا تأكد التشخيص فالخيارات تشمل جراحة، علاج كيميائي، أو إشعاعي حسب المرحلة، بقرار فريق أورام متخصص.`,
+      actions: [
+        "ظهور دم أحمر صريح أو ألم بطن شديد أو انسداد: الطوارئ.",
+        "حجز فحص سريري وتحاليل دم وفحص دم خفي في البراز عند الطبيب.",
+        "تحضير لمنظار قولون كامل لأخذ خزعات قبل أي قرار علاجي."
+      ]
+    };
+  }
+
+  if (focus === "breast_cancer") {
+    return {
+      answer:
+        `${emergencyPrefix} في مسار اشتباه سرطان الثدي: أي كتلة جديدة، تغير في شكل الثدي أو الحلمة، إفرازات غير طبيعية، أو ألم موضعي مستمر يحتاج فحصاً سريرياً عاجلاً. التقييم يبدأ بماموغرام وموجات صوتية على الثدي، وقد يضاف MRI ثدي عند اللزوم، ثم خزعة من الكتلة عند الاشتباه. إذا تأكد التشخيص فالخيارات تشمل جراحة، علاج إشعاعي، علاج كيميائي، علاج هرموني أو موجه حسب نوع الورم ومرحلته بقرار فريق أورام.`,
+      actions: [
+        "أي كتلة جديدة أو تغير ملحوظ في الثدي: حجز فحص سريري عاجل.",
+        "إجراء ماموغرام وأشعة موجات صوتية للثدي حسب توصية الطبيب.",
+        "التحضير لخزعة موجهة من الكتلة قبل أي قرار علاجي."
       ]
     };
   }
@@ -889,7 +901,7 @@ function withCarePathwayIfRequested(analysis, question, state) {
   const focus = inferFocus(question);
   const careFocus = focus === "general" ? inferFocusFromState(state) : focus;
   const carePathway = buildCarePathway(careFocus, state);
-  const alreadySpecific = /دوبلر|قسطرة|مضادات التخثر|CT|MRI|الطوارئ|إذابة/i.test(analysis.answer || "");
+  const alreadySpecific = /منظار قولون|colonoscopy|ماموغرام|mammogram|خزعة|biopsy|ستاتين|statin|قسطرة|مضادات التخثر|CT|MRI|الطوارئ|إذابة|CEA|دهون كاملة/i.test(analysis.answer || "");
   return {
     ...analysis,
     answer: alreadySpecific ? analysis.answer : `${analysis.answer} ${carePathway.answer}`,
@@ -946,10 +958,11 @@ function openAiConnectionFailure() {
 }
 
 function inferFocus(question = "") {
+  if (/قولون|مستقيم|أمعاء غليظة|منظار قولون|cea|colorectal|colon cancer|bowel cancer|colonoscopy/i.test(question)) return "colorectal_cancer";
+  if (/ثدي|ماموغرام|ماموجرام|breast|mammogram|mammography|ca\s*15-3/i.test(question)) return "breast_cancer";
+  if (/سكت|دماغ|شلل نصفي|stroke|brain|tia|cerebrovascular/i.test(question)) return "stroke";
   if (/سكر|سكري|جلوكوز|diabetes|glucose|hba1c/i.test(question)) return "diabetes";
-  if (/ضغط|hypertension|pressure|blood pressure/i.test(question)) return "pressure";
-  if (/جلط|خثر|تخثر|clot|thrombus|dvt/i.test(question)) return "clot";
-  if (/سكت|دماغ|stroke|brain/i.test(question)) return "stroke";
+  if (/ضغط|تصلب|كوليسترول|شرايين|قلب|hypertension|pressure|blood pressure|ascvd|cardiovascular|atherosclerosis|ldl|cholesterol/i.test(question)) return "ascvd";
   return "general";
 }
 
@@ -1009,12 +1022,7 @@ function buildOpenAiContext(state) {
     "ldl",
     "triglycerides",
     "bmi",
-    "clotRisk",
-    "dDimer",
-    "splenicPerfusion",
-    "spleenSize",
     "plateletCount",
-    "legFlow",
     "egfr",
     "neuroPerfusion",
     "vascularStiffness",
