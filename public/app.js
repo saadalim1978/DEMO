@@ -259,14 +259,14 @@ const anatomyPalettes = {
 
 const ORGAN_VERTEX_TINTS = {
   brain: 0xf5c0cd,
-  lungs: 0x6fa8d6,
-  heart: 0xc8302c,
+  lungs: 0x7dc4d8,
+  heart: 0xb22828,
   liver: 0x8b4513,
   spleen: 0x6b1f2e,
-  stomach: 0xdc9682,
+  stomach: 0xd49075,
   pancreas: 0xe8b547,
-  smallIntestine: 0xe0925e,
-  largeIntestine: 0xc97a4a,
+  smallIntestine: 0xd88858,
+  largeIntestine: 0xb8703e,
   leftKidney: 0x8b3a3a,
   rightKidney: 0x8b3a3a,
   bladder: 0x4fa890
@@ -947,7 +947,8 @@ function setAnatomyPalette(palette) {
 }
 
 function setAppearanceOpacity(kind, value) {
-  const opacity = Math.max(0.18, Math.min(1, Number(value) / 100));
+  const transparency = Math.max(0, Math.min(100, Number(value))) / 100;
+  const opacity = Math.max(0.1, 1 - transparency);
   if (kind === "skin") anatomyAppearance.skinOpacity = opacity;
   if (kind === "organs") anatomyAppearance.organOpacity = opacity;
   applyAnatomyAppearance();
@@ -957,14 +958,14 @@ function syncAppearanceControls() {
   dom.paletteButtons.forEach((button) => {
     button.classList.toggle("is-active", button.dataset.anatomyPalette === anatomyAppearance.palette);
   });
-  const skinPercent = Math.round(anatomyAppearance.skinOpacity * 100);
-  const organPercent = Math.round(anatomyAppearance.organOpacity * 100);
-  if (dom.skinOpacityRange) dom.skinOpacityRange.value = skinPercent;
-  if (dom.organOpacityRange) dom.organOpacityRange.value = organPercent;
-  document.querySelectorAll('[data-slider-value="skin"]').forEach((el) => (el.textContent = `${skinPercent}%`));
-  document.querySelectorAll('[data-slider-value="organs"]').forEach((el) => (el.textContent = `${organPercent}%`));
-  document.querySelectorAll('[data-meta="skin"]').forEach((el) => (el.textContent = `${skinPercent}%`));
-  document.querySelectorAll('[data-meta="organs"]').forEach((el) => (el.textContent = `${organPercent}%`));
+  const skinTransparency = Math.round((1 - anatomyAppearance.skinOpacity) * 100);
+  const organTransparency = Math.round((1 - anatomyAppearance.organOpacity) * 100);
+  if (dom.skinOpacityRange) dom.skinOpacityRange.value = skinTransparency;
+  if (dom.organOpacityRange) dom.organOpacityRange.value = organTransparency;
+  document.querySelectorAll('[data-slider-value="skin"]').forEach((el) => (el.textContent = `${skinTransparency}%`));
+  document.querySelectorAll('[data-slider-value="organs"]').forEach((el) => (el.textContent = `${organTransparency}%`));
+  document.querySelectorAll('[data-meta="skin"]').forEach((el) => (el.textContent = `${skinTransparency}%`));
+  document.querySelectorAll('[data-meta="organs"]').forEach((el) => (el.textContent = `${organTransparency}%`));
 }
 
 function applyAnatomyAppearance() {
