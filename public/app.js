@@ -228,7 +228,11 @@ const defaultIntegratedAnatomyParts = [
   { key: "kidney_left", file: "kidney_left.glb" },
   { key: "kidney_right", file: "kidney_right.glb" },
   { key: "bladder", file: "bladder.glb" },
-  { key: "blood_vasculature", file: "blood_vasculature.glb" }
+  { key: "blood_vasculature", file: "blood_vasculature.glb" },
+  { key: "arm_arteries", file: "arm_arteries.glb" },
+  { key: "arm_veins", file: "arm_veins.glb" },
+  { key: "leg_arteries", file: "leg_arteries.glb" },
+  { key: "leg_veins", file: "leg_veins.glb" }
 ];
 
 const layerState = {
