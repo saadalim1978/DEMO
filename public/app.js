@@ -2394,19 +2394,11 @@ function createBloodParticles() {
   veinPaths.forEach((path) => createFlowParticles(path, "vein"));
 }
 
-function createIntegratedVesselFlows(entries = []) {
-  entries.forEach(({ wrapper, config }) => {
-    if (!isLimbVesselKey(config.key)) return;
-    const kind = config.type === "vein" ? "vein" : "artery";
-    const paths = extractVesselCenterlines(wrapper, config.key, kind);
-    paths.forEach((points, index) => {
-      createFlowParticles({
-        points,
-        radius: kind === "vein" ? 0.026 : 0.03,
-        name: `integrated-${config.key}-${index}`
-      }, kind);
-    });
-  });
+function createIntegratedVesselFlows(_entries = []) {
+  // Intentionally disabled. The Y-bin centerline approach used here for
+  // arm/leg parts produced thin streak artifacts in the forearm region
+  // (flow particles use depthTest:false so they punch through skin),
+  // which read as stray red/blue lines emanating from the wrist.
 }
 
 function isLimbVesselKey(key = "") {
