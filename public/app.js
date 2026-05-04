@@ -210,6 +210,14 @@ const teachingOrganScales = {
   bladder: 1.25
 };
 
+const PROCEDURAL_PART_KEYS = new Set([
+  "stomach",
+  "arm_arteries",
+  "arm_veins",
+  "leg_arteries",
+  "leg_veins"
+]);
+
 const defaultIntegratedAnatomyParts = [
   { key: "skin", file: "skin.glb" },
   { key: "brain", file: "brain.glb" },
@@ -1036,14 +1044,6 @@ function rescaleAroundCenter(obj, scaleFactor) {
   wrapper.position.copy(center);
   return wrapper;
 }
-
-const PROCEDURAL_PART_KEYS = new Set([
-  "stomach",
-  "arm_arteries",
-  "arm_veins",
-  "leg_arteries",
-  "leg_veins"
-]);
 
 function placeholderMaterial() {
   return new THREE.MeshBasicMaterial({ color: 0xffffff });
