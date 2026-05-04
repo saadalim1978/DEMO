@@ -1509,6 +1509,9 @@ function prepareIntegratedPart(object, config) {
     child.receiveShadow = true;
     child.frustumCulled = false;
     child.renderOrder = config.layer === "skin" ? 1 : 4;
+    if (child.geometry && !child.geometry.attributes.normal) {
+      child.geometry.computeVertexNormals();
+    }
     child.material = material.clone();
     child.userData.organKey = config.organKey;
     child.userData.organPartKey = config.bodyPartKey || config.key;
