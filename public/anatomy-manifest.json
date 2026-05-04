@@ -1,5 +1,5 @@
 {
-  "version": "2026-05-02.model-v2-stomach-part-1",
+  "version": "2026-05-04.vasculature-combined",
   "_notes": [
     "Organ and vessel coordinates are unchanged; only the skin envelope uses stretch fitting for visualization containment.",
     "Body shell calibrated with fit [3.08, 5.28, 1.38] so hands, feet, vessels, brain, and organs sit inside the external skin.",
@@ -66,28 +66,8 @@
         "file": "bladder.glb"
       },
       {
-        "key": "trunk_arteries",
-        "file": "trunk_arteries.glb"
-      },
-      {
-        "key": "trunk_veins",
-        "file": "trunk_veins.glb"
-      },
-      {
-        "key": "arm_arteries",
-        "file": "arm_arteries.glb"
-      },
-      {
-        "key": "arm_veins",
-        "file": "arm_veins.glb"
-      },
-      {
-        "key": "leg_arteries",
-        "file": "leg_arteries.glb"
-      },
-      {
-        "key": "leg_veins",
-        "file": "leg_veins.glb"
+        "key": "blood_vasculature",
+        "file": "blood_vasculature.glb"
       }
     ],
     "label": "Professional Human Anatomy Parts",

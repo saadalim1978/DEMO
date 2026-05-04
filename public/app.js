@@ -211,11 +211,7 @@ const teachingOrganScales = {
 };
 
 const PROCEDURAL_PART_KEYS = new Set([
-  "stomach",
-  "arm_arteries",
-  "arm_veins",
-  "leg_arteries",
-  "leg_veins"
+  "stomach"
 ]);
 
 const defaultIntegratedAnatomyParts = [
@@ -232,12 +228,7 @@ const defaultIntegratedAnatomyParts = [
   { key: "kidney_left", file: "kidney_left.glb" },
   { key: "kidney_right", file: "kidney_right.glb" },
   { key: "bladder", file: "bladder.glb" },
-  { key: "trunk_arteries", file: "trunk_arteries.glb" },
-  { key: "trunk_veins", file: "trunk_veins.glb" },
-  { key: "arm_arteries", file: "arm_arteries.glb" },
-  { key: "arm_veins", file: "arm_veins.glb" },
-  { key: "leg_arteries", file: "leg_arteries.glb" },
-  { key: "leg_veins", file: "leg_veins.glb" }
+  { key: "blood_vasculature", file: "blood_vasculature.glb" }
 ];
 
 const layerState = {
@@ -1503,11 +1494,13 @@ function integratedPartConfig(name = "") {
   if (key === "skin") return { recognized: true, layer: "skin", key: "skin", organKey: "skin", type: "skin" };
   if (key.includes("arter")) return { recognized: true, layer: "vessels", key, organKey: "vessels", type: "artery" };
   if (key.includes("vein")) return { recognized: true, layer: "vessels", key, organKey: "vessels", type: "vein" };
+  if (key.includes("vascul") || key.includes("blood")) return { recognized: true, layer: "vessels", key, organKey: "vessels", type: "vascular" };
   return organConfigs[key] || { layer: "organs", key: key || "anatomy-part", bodyPartKey: key, organKey: key, color: 0xffffff, emissive: 0x111111, opacity: 0.82 };
 }
 
 function prepareIntegratedPart(object, config) {
-  const material = integratedPartMaterial(config);
+  const baseMaterial = integratedPartMaterial(config);
+  const splitVascular = config.type === "vascular";
   object.traverse((child) => {
     if (!child.isMesh) return;
     child.castShadow = true;
@@ -1516,6 +1509,15 @@ function prepareIntegratedPart(object, config) {
     child.renderOrder = config.layer === "skin" ? 1 : 4;
     if (child.geometry && !child.geometry.attributes.normal) {
       child.geometry.computeVertexNormals();
+    }
+    let material = baseMaterial;
+    if (splitVascular) {
+      const meshName = (child.name || "").toLowerCase();
+      if (/(vein|venous|venae|vena)/.test(meshName)) {
+        material = integratedVertexColorMaterial("vein");
+      } else {
+        material = integratedVertexColorMaterial("artery");
+      }
     }
     child.material = material.clone();
     child.userData.organKey = config.organKey;
@@ -1532,6 +1534,9 @@ function integratedPartMaterial(config) {
   }
   if (config.type === "vein") {
     return integratedVertexColorMaterial("vein");
+  }
+  if (config.type === "vascular") {
+    return integratedVertexColorMaterial("vessel");
   }
   const customTint = ORGAN_VERTEX_TINTS[config.bodyPartKey] || ORGAN_VERTEX_TINTS[config.organKey];
   return integratedVertexColorMaterial("organ", customTint);
