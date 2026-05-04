@@ -211,7 +211,9 @@ const teachingOrganScales = {
 };
 
 const PROCEDURAL_PART_KEYS = new Set([
-  "stomach"
+  "stomach",
+  "arm_arteries",
+  "arm_veins"
 ]);
 
 const defaultIntegratedAnatomyParts = [
@@ -1365,7 +1367,6 @@ async function loadIntegratedAnatomyModel() {
           return { asset: part, sceneModel: buildProceduralPartScene(part.key) };
         }
         const gltf = await gltfLoader.loadAsync(integratedPartUrl(part.file));
-        trimLimbVesselExtremities(gltf.scene, part.key);
         return { asset: part, sceneModel: gltf.scene };
       })
     );
@@ -1391,53 +1392,6 @@ async function loadIntegratedAnatomyModel() {
 function integratedPartUrl(file) {
   const base = integratedAnatomyAsset.partsPath || "/models/anatomy-parts";
   return `${base.replace(/\/$/, "")}/${file}`;
-}
-
-function trimLimbVesselExtremities(sceneModel, partKey = "") {
-  const isArm = /^arm_/.test(partKey);
-  if (!isArm) return;
-  const overall = new THREE.Box3().setFromObject(sceneModel);
-  const maxAbsX = Math.max(Math.abs(overall.min.x), Math.abs(overall.max.x));
-  if (!isFinite(maxAbsX) || maxAbsX <= 0) return;
-  const wristX = maxAbsX * 0.86;
-  sceneModel.traverse((child) => {
-    if (!child.isMesh || !child.geometry) return;
-    const geometry = child.geometry;
-    const positions = geometry.attributes.position;
-    if (!positions) return;
-    const inside = (i) => Math.abs(positions.getX(i)) <= wristX;
-    const indices = geometry.index;
-    const kept = [];
-    if (indices) {
-      for (let i = 0; i < indices.count; i += 3) {
-        const a = indices.getX(i);
-        const b = indices.getX(i + 1);
-        const c = indices.getX(i + 2);
-        if (inside(a) && inside(b) && inside(c)) {
-          kept.push(
-            positions.getX(a), positions.getY(a), positions.getZ(a),
-            positions.getX(b), positions.getY(b), positions.getZ(b),
-            positions.getX(c), positions.getY(c), positions.getZ(c)
-          );
-        }
-      }
-    } else {
-      for (let i = 0; i < positions.count; i += 3) {
-        if (inside(i) && inside(i + 1) && inside(i + 2)) {
-          for (let k = 0; k < 3; k += 1) {
-            kept.push(positions.getX(i + k), positions.getY(i + k), positions.getZ(i + k));
-          }
-        }
-      }
-    }
-    const trimmed = new THREE.BufferGeometry();
-    trimmed.setAttribute("position", new THREE.Float32BufferAttribute(kept, 3));
-    trimmed.computeVertexNormals();
-    trimmed.computeBoundingBox();
-    trimmed.computeBoundingSphere();
-    child.geometry.dispose();
-    child.geometry = trimmed;
-  });
 }
 
 function prepareIntegratedAnatomyModel(sceneModel) {
@@ -2394,11 +2348,19 @@ function createBloodParticles() {
   veinPaths.forEach((path) => createFlowParticles(path, "vein"));
 }
 
-function createIntegratedVesselFlows(_entries = []) {
-  // Intentionally disabled. The Y-bin centerline approach used here for
-  // arm/leg parts produced thin streak artifacts in the forearm region
-  // (flow particles use depthTest:false so they punch through skin),
-  // which read as stray red/blue lines emanating from the wrist.
+function createIntegratedVesselFlows(entries = []) {
+  entries.forEach(({ wrapper, config }) => {
+    if (!isLimbVesselKey(config.key)) return;
+    const kind = config.type === "vein" ? "vein" : "artery";
+    const paths = extractVesselCenterlines(wrapper, config.key, kind);
+    paths.forEach((points, index) => {
+      createFlowParticles({
+        points,
+        radius: kind === "vein" ? 0.026 : 0.03,
+        name: `integrated-${config.key}-${index}`
+      }, kind);
+    });
+  });
 }
 
 function isLimbVesselKey(key = "") {
