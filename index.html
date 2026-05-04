@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>عارض التشريح ثلاثي الأبعاد</title>
+<style>
+  :root {
+    --glass-bg: rgba(20, 22, 28, 0.92);
+    --border: rgba(255, 255, 255, 0.08);
+    --text: #e8eaef;
+    --muted: #8a92a6;
+    --accent: #6FA8D6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Tajawal", -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #0a0c10;
+    color: var(--text);
+    padding: 16px;
+  }
+  .viewer {
+    position: relative;
+    width: 100%;
+    height: 680px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #1a1d24 0%, #0f1116 100%);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+  canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+  canvas:active { cursor: grabbing; }
+
+  .loading {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 12px;
+    background: rgba(15, 17, 22, 0.88);
+    z-index: 10;
+  }
+  .spinner {
+    width: 38px; height: 38px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 14px; color: var(--text); }
+  #status { font-size: 13px; color: var(--muted); }
+
+  .legend {
+    position: absolute; top: 16px; right: 16px;
+    width: 230px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    max-height: 560px;
+    overflow-y: auto;
+    font-size: 13px;
+  }
+  .legend::-webkit-scrollbar { width: 6px; }
+  .legend::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+  .legend-section {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    letter-spacing: 0.06em;
+  }
+  .legend-section:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
+  .legend-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 4px;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: opacity 0.15s, background 0.15s;
+    user-select: none;
+  }
+  .legend-row:hover { background: rgba(255, 255, 255, 0.05); }
+  .legend-row.off { opacity: 0.35; }
+  .swatch {
+    width: 12px; height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .controls {
+    position: absolute; bottom: 16px; left: 16px;
+    display: flex; flex-wrap: wrap; gap: 10px;
+    align-items: center;
+    background: var(--glass-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    max-width: calc(100% - 32px);
+  }
+  .controls button {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .controls button:hover { background: rgba(255, 255, 255, 0.12); }
+  .controls label {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .controls input[type=range] {
+    width: 110px;
+    accent-color: var(--accent);
+  }
+
+  .credit {
+    position: absolute; bottom: 16px; right: 16px;
+    font-size: 10px;
+    color: var(--muted);
+    background: var(--glass-bg);
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  @media (max-width: 700px) {
+    .legend { width: 180px; max-height: 320px; font-size: 12px; }
+    .controls { padding: 8px 10px; gap: 6px; }
+    .controls input[type=range] { width: 80px; }
+    .controls button { padding: 5px 9px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+  <div class="viewer">
+    <canvas id="canvas"></canvas>
+
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <div class="loading-text">جاري تحميل النماذج ثلاثية الأبعاد...</div>
+      <div id="status">0 / 14</div>
+    </div>
+
+    <div class="legend" id="legend"></div>
+
+    <div class="controls">
+      <button id="recenter">إعادة التوسيط</button>
+      <button id="rotate-toggle">إيقاف الدوران</button>
+      <label>الجلد <input type="range" id="skin-slider" min="0" max="100" value="10"></label>
+      <label>الأعضاء <input type="range" id="organ-slider" min="0" max="100" value="80"></label>
+    </div>
+
+    <div class="credit">© HuBMAP HRA · CC BY 4.0</div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const MODELS_BASE = 'models/';
+    const ARTERY_COLOR = 0xC8302C;
+    const VEIN_COLOR   = 0x2E5E9E;
+
+    const ORGAN_SPECS = [
+      { file: 'VH_M_Skin.glb',              name: 'الجلد',            color: 0xE8C9A8, opacity: 0.10, group: 'الغلاف الخارجي', isSkin: true },
+      { file: 'VH_M_Blood_Vasculature.glb', name: 'أوعية الجذع',       opacity: 1.0,    group: 'الجهاز الدوري',     isVasculature: true },
+      { file: 'Allen_M_Brain.glb',          name: 'الدماغ',           color: 0xF5C0CD, opacity: 0.95, group: 'الجهاز العصبي' },
+      { file: 'VH_M_Lung.glb',              name: 'الرئتان',          color: 0x6FA8D6, opacity: 0.55, group: 'الجهاز التنفسي', isOrgan: true },
+      { file: 'VH_M_Heart.glb',             name: 'القلب',            color: 0xC8302C, opacity: 0.92, group: 'الجهاز الدوري',  isOrgan: true },
+      { file: 'VH_M_Liver.glb',             name: 'الكبد',            color: 0x8B4513, opacity: 0.75, group: 'الجهاز الهضمي',  isOrgan: true },
+      { isProcedural: 'stomach',            name: 'المعدة',            color: 0xDC9682, opacity: 0.92, group: 'الجهاز الهضمي' },
+      { file: 'VH_M_Spleen.glb',            name: 'الطحال',           color: 0x6B1F2E, opacity: 0.95, group: 'الجهاز الهضمي',  isOrgan: true, scale: 0.62 },
+      { file: 'VH_M_Pancreas.glb',          name: 'البنكرياس',         color: 0xE8B547, opacity: 0.92, group: 'الجهاز الهضمي',  isOrgan: true },
+      { file: 'VH_M_Small_Intestine.glb',   name: 'الأمعاء الدقيقة',    color: 0xE0925E, opacity: 0.78, group: 'الجهاز الهضمي',  isOrgan: true },
+      { file: 'SBU_M_Intestine_Large.glb',  name: 'الأمعاء الغليظة',    color: 0xC97A4A, opacity: 0.78, group: 'الجهاز الهضمي',  isOrgan: true },
+      { file: 'VH_M_Kidney_L.glb',          name: 'الكلية اليسرى',     color: 0x8B3A3A, opacity: 0.92, group: 'الجهاز البولي',  isOrgan: true },
+      { file: 'VH_M_Kidney_R.glb',          name: 'الكلية اليمنى',     color: 0x8B3A3A, opacity: 0.92, group: 'الجهاز البولي',  isOrgan: true },
+      { file: 'VH_M_Urinary_Bladder.glb',   name: 'المثانة',           color: 0x4FA890, opacity: 0.85, group: 'الجهاز البولي',  isOrgan: true },
+    ];
+
+    // ---------- scene ----------
+    const canvas = document.getElementById('canvas');
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, canvas });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(35, 1, 0.01, 100);
+    camera.position.set(0, 0.45, 1.6);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.minDistance = 0.4;
+    controls.maxDistance = 4;
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.0);   keyLight.position.set(2, 3, 3);   scene.add(keyLight);
+    const fillLight = new THREE.DirectionalLight(0xb5d4f4, 0.45); fillLight.position.set(-3, 1, 1); scene.add(fillLight);
+    const rimLight = new THREE.DirectionalLight(0xfac775, 0.4);   rimLight.position.set(0, 2, -3);  scene.add(rimLight);
+    const bottomLight = new THREE.DirectionalLight(0xffffff, 0.2); bottomLight.position.set(0, -2, 1); scene.add(bottomLight);
+
+    const root = new THREE.Group();
+    scene.add(root);
+
+    const organMeshes = [];
+    const arteryMeshes = [];
+    const veinMeshes = [];
+    const limbGroups = {
+      armArteries: new THREE.Group(),
+      armVeins: new THREE.Group(),
+      legArteries: new THREE.Group(),
+      legVeins: new THREE.Group(),
+    };
+    Object.values(limbGroups).forEach(g => root.add(g));
+
+    let skinObject = null;
+    let autoRotate = true;
+
+    // ---------- helpers ----------
+    function rescaleAroundCenter(obj, scaleFactor) {
+      const box = new THREE.Box3().setFromObject(obj);
+      const center = box.getCenter(new THREE.Vector3());
+      const wrapper = new THREE.Group();
+      obj.position.sub(center);
+      wrapper.add(obj);
+      wrapper.scale.setScalar(scaleFactor);
+      wrapper.position.copy(center);
+      return wrapper;
+    }
+
+    function applySkinMaterial(obj, spec) {
+      obj.traverse(node => {
+        if (!node.isMesh) return;
+        node.material = new THREE.MeshPhysicalMaterial({
+          color: spec.color,
+          opacity: spec.opacity,
+          transparent: true,
+          roughness: 0.6,
+          metalness: 0.0,
+          transmission: 0.3,
+          thickness: 0.5,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+        });
+        node.renderOrder = 999;
+        node.userData.baseOpacity = spec.opacity;
+      });
+    }
+
+    function applyVasculatureMaterials(obj) {
+      obj.traverse(node => {
+        if (!node.isMesh) return;
+        let p = node, isArtery = false, isVein = false;
+        while (p) {
+          const n = (p.name || '').toLowerCase();
+          if (/artery|aorta|arterial/.test(n)) { isArtery = true; break; }
+          if (/vein|venous|vena/.test(n))     { isVein = true;   break; }
+          p = p.parent;
+        }
+        if (!isArtery && !isVein) isArtery = true; // sensible default
+        const color = isArtery ? ARTERY_COLOR : VEIN_COLOR;
+        const emissive = isArtery ? 0x330000 : 0x000814;
+        node.material = new THREE.MeshPhysicalMaterial({
+          color,
+          roughness: 0.35,
+          metalness: 0.0,
+          clearcoat: 0.4,
+          clearcoatRoughness: 0.3,
+          emissive,
+          emissiveIntensity: 0.3,
+          side: THREE.DoubleSide,
+        });
+        if (isArtery) arteryMeshes.push(node); else veinMeshes.push(node);
+      });
+    }
+
+    function applyOrganMaterial(obj, spec) {
+      obj.traverse(node => {
+        if (!node.isMesh) return;
+        const transparent = spec.opacity < 1;
+        node.material = new THREE.MeshPhongMaterial({
+          color: spec.color,
+          opacity: spec.opacity,
+          transparent,
+          shininess: 40,
+          specular: 0x333333,
+          side: THREE.DoubleSide,
+        });
+        node.userData.baseOpacity = spec.opacity;
+        organMeshes.push(node);
+      });
+    }
+
+    // ---------- procedural stomach ----------
+    function buildStomach() {
+      const spine = [
+        [+0.005, 0.435, 0.020, 0.020, 0.025],
+        [+0.030, 0.450, 0.005, 0.045, 0.040],
+        [+0.060, 0.435, 0.000, 0.055, 0.045],
+        [+0.075, 0.410, 0.010, 0.060, 0.050],
+        [+0.075, 0.385, 0.020, 0.060, 0.055],
+        [+0.060, 0.360, 0.025, 0.055, 0.050],
+        [+0.030, 0.340, 0.025, 0.045, 0.040],
+        [-0.005, 0.330, 0.020, 0.030, 0.030],
+        [-0.030, 0.335, 0.015, 0.022, 0.022],
+        [-0.045, 0.345, 0.010, 0.015, 0.018],
+      ];
+      const RING = 16;
+      const points = spine.map(p => new THREE.Vector3(p[0], p[1], p[2]));
+      const tangents = points.map((_, i) => {
+        const prev = points[Math.max(0, i - 1)];
+        const next = points[Math.min(points.length - 1, i + 1)];
+        return next.clone().sub(prev).normalize();
+      });
+
+      const positions = [];
+      const indices = [];
+
+      for (let i = 0; i < spine.length; i++) {
+        const [x, y, z, rx, rz] = spine[i];
+        const T = tangents[i];
+        const up = Math.abs(T.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+        const A = new THREE.Vector3().crossVectors(T, up).normalize();
+        const B = new THREE.Vector3().crossVectors(T, A).normalize();
+        for (let j = 0; j < RING; j++) {
+          const ang = (j / RING) * Math.PI * 2;
+          let cx = Math.cos(ang) * rx;
+          const cz = Math.sin(ang) * rz;
+          cx *= cx > 0 ? 1.15 : 0.7;
+          const v = new THREE.Vector3(x, y, z)
+            .add(A.clone().multiplyScalar(cx))
+            .add(B.clone().multiplyScalar(cz));
+          positions.push(v.x, v.y, v.z);
+        }
+      }
+
+      // tube quads
+      for (let i = 0; i < spine.length - 1; i++) {
+        for (let j = 0; j < RING; j++) {
+          const a = i * RING + j;
+          const b = i * RING + (j + 1) % RING;
+          const c = (i + 1) * RING + j;
+          const d = (i + 1) * RING + (j + 1) % RING;
+          indices.push(a, c, b, b, c, d);
+        }
+      }
+
+      // start cap fan (cardia)
+      const startCap = positions.length / 3;
+      positions.push(points[0].x, points[0].y, points[0].z);
+      for (let j = 0; j < RING; j++) {
+        indices.push(startCap, (j + 1) % RING, j);
+      }
+
+      // end cap fan (pylorus)
+      const endCap = positions.length / 3;
+      const last = points[points.length - 1];
+      positions.push(last.x, last.y, last.z);
+      const lastRing = (spine.length - 1) * RING;
+      for (let j = 0; j < RING; j++) {
+        indices.push(endCap, lastRing + j, lastRing + (j + 1) % RING);
+      }
+
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geom.setIndex(indices);
+      geom.computeVertexNormals();
+
+      const mat = new THREE.MeshPhongMaterial({
+        color: 0xDC9682,
+        shininess: 35,
+        specular: 0x444444,
+        transparent: true,
+        opacity: 0.92,
+        side: THREE.DoubleSide,
+      });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.userData.baseOpacity = 0.92;
+      organMeshes.push(mesh);
+      return mesh;
+    }
+
+    // ---------- limb vessels (procedural tubes) ----------
+    function makeVesselTube(pts, baseRadius, isArtery, segments = 64) {
+      const curve = new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(p[0], p[1], p[2])));
+      const radial = 12;
+      const positions = [];
+      const indices = [];
+
+      for (let i = 0; i <= segments; i++) {
+        const t = i / segments;
+        const p = curve.getPointAt(t);
+        const T = curve.getTangentAt(t);
+        const up = Math.abs(T.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+        const A = new THREE.Vector3().crossVectors(T, up).normalize();
+        const B = new THREE.Vector3().crossVectors(T, A).normalize();
+        const startTaper = Math.min(t / 0.05, 1);
+        const endTaper   = Math.min((1 - t) / 0.15, 1);
+        let r = baseRadius * startTaper * Math.pow(endTaper, 0.5);
+        r *= 1.0 + 0.05 * Math.sin(t * Math.PI * 6);
+        for (let j = 0; j < radial; j++) {
+          const ang = (j / radial) * Math.PI * 2;
+          const v = p.clone()
+            .add(A.clone().multiplyScalar(Math.cos(ang) * r))
+            .add(B.clone().multiplyScalar(Math.sin(ang) * r));
+          positions.push(v.x, v.y, v.z);
+        }
+      }
+
+      for (let i = 0; i < segments; i++) {
+        for (let j = 0; j < radial; j++) {
+          const a = i * radial + j;
+          const b = i * radial + (j + 1) % radial;
+          const c = (i + 1) * radial + j;
+          const d = (i + 1) * radial + (j + 1) % radial;
+          indices.push(a, c, b, b, c, d);
+        }
+      }
+
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geom.setIndex(indices);
+      geom.computeVertexNormals();
+
+      const color = isArtery ? ARTERY_COLOR : VEIN_COLOR;
+      const emissive = isArtery ? 0x330000 : 0x000814;
+      const mat = new THREE.MeshPhysicalMaterial({
+        color,
+        roughness: 0.35,
+        metalness: 0.0,
+        clearcoat: 0.4,
+        clearcoatRoughness: 0.3,
+        emissive,
+        emissiveIntensity: 0.3,
+        side: THREE.DoubleSide,
+      });
+      return new THREE.Mesh(geom, mat);
+    }
+
+    function buildLimbVessels() {
+      for (const sx of [+1, -1]) {
+        // Brachial artery
+        limbGroups.armArteries.add(makeVesselTube([
+          [sx*0.105, 0.520, 0.005], [sx*0.135, 0.460, 0.005],
+          [sx*0.180, 0.380, 0.000], [sx*0.230, 0.290, -0.005],
+          [sx*0.280, 0.210, -0.005], [sx*0.320, 0.140, 0.000],
+          [sx*0.360, 0.090, 0.005], [sx*0.405, 0.060, 0.010],
+          [sx*0.450, 0.045, 0.013], [sx*0.475, 0.035, 0.015],
+          [sx*0.490, 0.025, 0.014],
+        ], 0.0045, true));
+        // Ulnar artery
+        limbGroups.armArteries.add(makeVesselTube([
+          [sx*0.320, 0.140, 0.000], [sx*0.355, 0.090, -0.005],
+          [sx*0.400, 0.060, -0.005], [sx*0.445, 0.045, 0.000],
+          [sx*0.475, 0.030, 0.005],
+        ], 0.0022, true));
+        // Basilic vein
+        limbGroups.armVeins.add(makeVesselTube([
+          [sx*0.110, 0.520, 0.013], [sx*0.140, 0.460, 0.013],
+          [sx*0.185, 0.380, 0.010], [sx*0.235, 0.290, 0.010],
+          [sx*0.285, 0.210, 0.014], [sx*0.325, 0.140, 0.020],
+          [sx*0.365, 0.090, 0.022], [sx*0.410, 0.060, 0.024],
+          [sx*0.455, 0.045, 0.024], [sx*0.480, 0.035, 0.022],
+          [sx*0.495, 0.025, 0.020],
+        ], 0.0050, false));
+        // Cephalic vein
+        limbGroups.armVeins.add(makeVesselTube([
+          [sx*0.115, 0.520, 0.022], [sx*0.150, 0.460, 0.027],
+          [sx*0.195, 0.380, 0.027], [sx*0.245, 0.290, 0.024],
+          [sx*0.295, 0.210, 0.022], [sx*0.335, 0.140, 0.024],
+          [sx*0.375, 0.090, 0.027], [sx*0.420, 0.060, 0.028],
+          [sx*0.460, 0.045, 0.027], [sx*0.485, 0.035, 0.024],
+        ], 0.0042, false));
+        // Femoral / popliteal / dorsalis pedis
+        limbGroups.legArteries.add(makeVesselTube([
+          [sx*0.06, 0.05, 0.005],  [sx*0.10, -0.02, 0.010],
+          [sx*0.13, -0.10, 0.005], [sx*0.14, -0.20, -0.005],
+          [sx*0.14, -0.30, -0.015],[sx*0.13, -0.40, -0.020],
+          [sx*0.13, -0.50, -0.020],[sx*0.13, -0.60, -0.025],
+          [sx*0.15, -0.70, -0.040],[sx*0.18, -0.78, -0.075],
+          [sx*0.20, -0.83, -0.110],[sx*0.20, -0.85, -0.135],
+        ], 0.0060, true));
+        // Posterior tibial
+        limbGroups.legArteries.add(makeVesselTube([
+          [sx*0.13, -0.40, -0.020],[sx*0.12, -0.50, -0.030],
+          [sx*0.13, -0.60, -0.040],[sx*0.16, -0.70, -0.045],
+          [sx*0.18, -0.78, -0.030],[sx*0.20, -0.85, -0.020],
+          [sx*0.21, -0.86, -0.060],
+        ], 0.0030, true));
+        // Femoral vein
+        limbGroups.legVeins.add(makeVesselTube([
+          [sx*0.05, 0.05, 0.005],  [sx*0.08, -0.02, 0.013],
+          [sx*0.11, -0.10, 0.008], [sx*0.12, -0.20, -0.002],
+          [sx*0.12, -0.30, -0.012],[sx*0.11, -0.40, -0.018],
+          [sx*0.11, -0.50, -0.018],[sx*0.11, -0.60, -0.022],
+          [sx*0.13, -0.70, -0.038],[sx*0.17, -0.78, -0.060],
+          [sx*0.19, -0.83, -0.090],[sx*0.20, -0.85, -0.120],
+        ], 0.0075, false));
+        // Great saphenous vein
+        limbGroups.legVeins.add(makeVesselTube([
+          [sx*0.06, -0.02, 0.022],[sx*0.08, -0.10, 0.028],
+          [sx*0.09, -0.20, 0.024],[sx*0.09, -0.30, 0.014],
+          [sx*0.10, -0.40, 0.004],[sx*0.10, -0.50, -0.005],
+          [sx*0.11, -0.60, -0.015],[sx*0.13, -0.70, -0.035],
+          [sx*0.16, -0.78, -0.060],[sx*0.18, -0.83, -0.080],
+        ], 0.0045, false));
+      }
+    }
+
+    // ---------- loading ----------
+    const gltfLoader = new GLTFLoader();
+    function loadGlb(file) {
+      return new Promise((res, rej) => {
+        gltfLoader.load(MODELS_BASE + file, gltf => res(gltf.scene), undefined, rej);
+      });
+    }
+
+    const totalLoadable = ORGAN_SPECS.length;
+    let loaded = 0;
+    function bumpStatus() {
+      loaded++;
+      const el = document.getElementById('status');
+      if (el) el.textContent = `${loaded} / ${totalLoadable}`;
+    }
+
+    async function loadAll() {
+      const tasks = ORGAN_SPECS.map(async (spec) => {
+        let object;
+        if (spec.isProcedural === 'stomach') {
+          object = buildStomach();
+        } else {
+          object = await loadGlb(spec.file);
+        }
+
+        if (spec.isSkin) {
+          applySkinMaterial(object, spec);
+          skinObject = object;
+        } else if (spec.isVasculature) {
+          applyVasculatureMaterials(object);
+        } else if (!spec.isProcedural) {
+          applyOrganMaterial(object, spec);
+        }
+
+        if (spec.scale) {
+          object = rescaleAroundCenter(object, spec.scale);
+        }
+
+        root.add(object);
+        spec._object = object;
+        bumpStatus();
+      });
+      await Promise.all(tasks);
+    }
+
+    // ---------- legend ----------
+    function colorHex(c) { return '#' + c.toString(16).padStart(6, '0'); }
+
+    function makeRow(name, swatchColor, onClick) {
+      const row = document.createElement('div');
+      row.className = 'legend-row';
+      const sw = document.createElement('span');
+      sw.className = 'swatch';
+      sw.style.background = colorHex(swatchColor);
+      const lab = document.createElement('span');
+      lab.textContent = name;
+      row.appendChild(sw);
+      row.appendChild(lab);
+      row.addEventListener('click', () => onClick(row));
+      return row;
+    }
+
+    function buildLegend() {
+      const order = [
+        'الغلاف الخارجي',
+        'الجهاز العصبي',
+        'الجهاز التنفسي',
+        'الجهاز الدوري',
+        'الجهاز الهضمي',
+        'الجهاز البولي',
+      ];
+      const legend = document.getElementById('legend');
+      legend.innerHTML = '';
+
+      for (const g of order) {
+        const header = document.createElement('div');
+        header.className = 'legend-section';
+        header.textContent = g;
+        legend.appendChild(header);
+
+        const items = ORGAN_SPECS.filter(s => s.group === g);
+        for (const spec of items) {
+          const swatchColor = spec.isVasculature ? ARTERY_COLOR : (spec.color ?? 0xffffff);
+          const row = makeRow(spec.name, swatchColor, (rowEl) => {
+            if (!spec._object) return;
+            spec._object.visible = !spec._object.visible;
+            rowEl.classList.toggle('off', !spec._object.visible);
+          });
+          legend.appendChild(row);
+        }
+
+        if (g === 'الجهاز الدوري') {
+          const extras = [
+            { name: 'شرايين الجذع', color: ARTERY_COLOR, toggle: () => {
+              const v = !(arteryMeshes[0]?.visible ?? true);
+              arteryMeshes.forEach(m => m.visible = v);
+              return v;
+            }},
+            { name: 'أوردة الجذع',  color: VEIN_COLOR, toggle: () => {
+              const v = !(veinMeshes[0]?.visible ?? true);
+              veinMeshes.forEach(m => m.visible = v);
+              return v;
+            }},
+            { name: 'شرايين الذراعين', color: ARTERY_COLOR, toggle: () => {
+              limbGroups.armArteries.visible = !limbGroups.armArteries.visible;
+              return limbGroups.armArteries.visible;
+            }},
+            { name: 'أوردة الذراعين',  color: VEIN_COLOR, toggle: () => {
+              limbGroups.armVeins.visible = !limbGroups.armVeins.visible;
+              return limbGroups.armVeins.visible;
+            }},
+            { name: 'شرايين الساقين', color: ARTERY_COLOR, toggle: () => {
+              limbGroups.legArteries.visible = !limbGroups.legArteries.visible;
+              return limbGroups.legArteries.visible;
+            }},
+            { name: 'أوردة الساقين',  color: VEIN_COLOR, toggle: () => {
+              limbGroups.legVeins.visible = !limbGroups.legVeins.visible;
+              return limbGroups.legVeins.visible;
+            }},
+          ];
+          for (const e of extras) {
+            const row = makeRow(e.name, e.color, (rowEl) => {
+              const visible = e.toggle();
+              rowEl.classList.toggle('off', !visible);
+            });
+            legend.appendChild(row);
+          }
+        }
+      }
+    }
+
+    // ---------- fit / resize ----------
+    function fitAndCenter() {
+      const box = new THREE.Box3().setFromObject(root);
+      if (box.isEmpty()) return;
+      const center = box.getCenter(new THREE.Vector3());
+      root.position.sub(center);
+      controls.target.set(0, 0, 0);
+      const size = box.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const dist = maxDim / Math.tan((35 / 2) * Math.PI / 180) * 0.65;
+      camera.position.set(0, 0, dist);
+      controls.update();
+    }
+
+    function resize() {
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      if (canvas.width !== w || canvas.height !== h) {
+        renderer.setSize(w, h, false);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+      }
+    }
+
+    // ---------- animation ----------
+    let last = performance.now();
+    function animate() {
+      requestAnimationFrame(animate);
+      const now = performance.now();
+      const dt = (now - last) / 1000;
+      last = now;
+      if (autoRotate) root.rotation.y += dt * 0.2;
+      controls.update();
+      resize();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // ---------- ui wiring ----------
+    document.getElementById('recenter').addEventListener('click', fitAndCenter);
+
+    const rotBtn = document.getElementById('rotate-toggle');
+    rotBtn.addEventListener('click', () => {
+      autoRotate = !autoRotate;
+      rotBtn.textContent = autoRotate ? 'إيقاف الدوران' : 'تشغيل الدوران';
+    });
+
+    document.getElementById('skin-slider').addEventListener('input', e => {
+      const v = +e.target.value / 100;
+      if (!skinObject) return;
+      skinObject.traverse(node => {
+        if (!node.isMesh || !node.material) return;
+        node.material.opacity = v;
+        node.material.transparent = true;
+        node.visible = v > 0.01;
+      });
+    });
+
+    document.getElementById('organ-slider').addEventListener('input', e => {
+      const mult = +e.target.value / 100;
+      for (const m of organMeshes) {
+        if (m.userData.baseOpacity === undefined) m.userData.baseOpacity = m.material.opacity;
+        const op = m.userData.baseOpacity * mult;
+        m.material.opacity = op;
+        m.material.transparent = op < 1;
+        m.visible = mult > 0.01;
+      }
+    });
+
+    // ---------- go ----------
+    buildLimbVessels();
+    loadAll().then(() => {
+      document.getElementById('loading').style.display = 'none';
+      buildLegend();
+      fitAndCenter();
+    }).catch(err => {
+      console.error(err);
+      const s = document.getElementById('status');
+      if (s) s.textContent = 'تعذّر تحميل النماذج: ' + (err?.message || err);
+    });
+  </script>
+</body>
+</html>
