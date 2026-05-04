@@ -220,7 +220,7 @@ const PROCEDURAL_PART_KEYS = new Set([
 ]);
 
 const defaultIntegratedAnatomyParts = [
-  { key: "skin", file: "skin.glb" },
+  { key: "skin", file: "skin_female.glb" },
   { key: "brain", file: "brain.glb" },
   { key: "lungs", file: "lungs.glb" },
   { key: "heart", file: "heart.glb" },

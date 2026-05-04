@@ -15,7 +15,7 @@
     "parts": [
       {
         "key": "skin",
-        "file": "skin.glb"
+        "file": "skin_female.glb"
       },
       {
         "key": "brain",
