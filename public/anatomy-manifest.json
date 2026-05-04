@@ -1,8 +1,8 @@
 {
-  "version": "2026-05-04.vasculature-combined+limbs",
+  "version": "2026-05-04.female-skin",
   "_notes": [
-    "Organ and vessel coordinates are unchanged; only the skin envelope uses stretch fitting for visualization containment.",
-    "Body shell calibrated with fit [3.08, 5.28, 1.38] so hands, feet, vessels, brain, and organs sit inside the external skin.",
+    "Skin envelope is now a female (VH_F-style) shell, swapped to fit the breast_cancer scenario; internal organs and vessels still come from the existing male/HuBMAP-derived parts and share the same world coordinate system.",
+    "Body shell calibrated with fit [3.08, 5.28, 1.38] so hands, feet, vessels, brain, and organs sit inside the external skin. If the new skin's natural bounds differ, this fit may need re-tuning.",
     "Convention: +X = viewer's right (= patient's left), Y = up, +Z = anterior (front).",
     "Heart is left of midline -> patient's left -> +X in this convention.",
     "Liver is right upper quadrant -> patient's right -> -X in this convention.",
